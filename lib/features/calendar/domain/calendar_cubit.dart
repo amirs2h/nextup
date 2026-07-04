@@ -1,0 +1,116 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../shared/services/supabase_service.dart';
+import '../../../shared/services/tmdb_service.dart';
+import '../../../shared/models/show_model.dart';
+
+class CalendarEvent {
+  final ShowModel show;
+  final int seasonNumber;
+  final int episodeNumber;
+  final String episodeName;
+  final DateTime airDate;
+
+  CalendarEvent({
+    required this.show,
+    required this.seasonNumber,
+    required this.episodeNumber,
+    required this.episodeName,
+    required this.airDate,
+  });
+}
+
+abstract class CalendarState {}
+
+class CalendarInitial extends CalendarState {}
+
+class CalendarLoading extends CalendarState {}
+
+class CalendarLoaded extends CalendarState {
+  final List<CalendarEvent> events;
+  final DateTime selectedMonth;
+
+  CalendarLoaded({
+    required this.events,
+    required this.selectedMonth,
+  });
+}
+
+class CalendarError extends CalendarState {
+  final String message;
+  CalendarError(this.message);
+}
+
+class CalendarCubit extends Cubit<CalendarState> {
+  final SupabaseService _supabaseService;
+  final TmdbService _tmdbService;
+
+  CalendarCubit(this._supabaseService, this._tmdbService) : super(CalendarInitial());
+
+  Future<void> loadCalendar(DateTime month) async {
+    final user = _supabaseService.currentUser;
+    if (user == null) {
+      emit(CalendarLoaded(events: [], selectedMonth: month));
+      return;
+    }
+
+    emit(CalendarLoading());
+    try {
+      // Get user's watchlist shows
+      final watchlist = await _supabaseService.getWatchlist(
+        userId: user.id,
+        mediaType: 'tv',
+      );
+
+      List<CalendarEvent> events = [];
+
+      for (final item in watchlist.take(10)) {
+        try {
+          final showData = await _tmdbService.getShowDetails(item['tmdb_id']);
+          final show = ShowModel.fromJson(showData);
+
+          if (show.seasons != null) {
+            for (final season in show.seasons!) {
+              if (season.seasonNumber == 0) continue;
+
+              try {
+                final seasonData = await _tmdbService.getShowSeasonDetails(
+                  show.id,
+                  season.seasonNumber,
+                );
+
+                final episodes = seasonData['episodes'] as List? ?? [];
+                for (final episode in episodes) {
+                  if (episode['air_date'] != null) {
+                    final airDate = DateTime.tryParse(episode['air_date']);
+                    if (airDate != null &&
+                        airDate.year == month.year &&
+                        airDate.month == month.month) {
+                      events.add(CalendarEvent(
+                        show: show,
+                        seasonNumber: season.seasonNumber,
+                        episodeNumber: episode['episode_number'] ?? 0,
+                        episodeName: episode['name'] ?? '',
+                        airDate: airDate,
+                      ));
+                    }
+                  }
+                }
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      // Sort by air date
+      events.sort((a, b) => a.airDate.compareTo(b.airDate));
+
+      emit(CalendarLoaded(events: events, selectedMonth: month));
+    } catch (e) {
+      emit(CalendarError(e.toString()));
+    }
+  }
+}
