@@ -46,41 +46,45 @@ class _SeasonDetailView extends StatelessWidget {
     return BlocBuilder<SeasonDetailCubit, SeasonDetailState>(
       builder: (context, state) {
         if (state is SeasonDetailLoading) {
-          return AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
+          return Scaffold(body: AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary))));
         }
 
         if (state is SeasonDetailError) {
-          return AppBackground(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 60, color: AppColors.error),
-                  const SizedBox(height: 16),
-                  Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.read<SeasonDetailCubit>().loadSeasonDetails(),
-                    child: const Text('Retry'),
-                  ),
-                ],
+          return Scaffold(
+            body: AppBackground(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 60, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.read<SeasonDetailCubit>().loadSeasonDetails(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         }
 
         if (state is! SeasonDetailLoaded) {
-          return AppBackground(child: const SizedBox());
+          return Scaffold(body: AppBackground(child: const SizedBox()));
         }
 
-        return AppBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(context, state),
-                _buildProgress(context, state),
-                Expanded(child: _buildEpisodeList(context, state)),
-              ],
+        return Scaffold(
+          body: AppBackground(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(context, state),
+                  _buildProgress(context, state),
+                  Expanded(child: _buildEpisodeList(context, state)),
+                ],
+              ),
             ),
           ),
         );

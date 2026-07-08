@@ -57,30 +57,32 @@ class _ShowDetailViewState extends State<_ShowDetailView> {
     return BlocBuilder<ShowDetailCubit, ShowDetailState>(
       builder: (context, state) {
         if (state is ShowDetailLoading) {
-          return AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
+          return Scaffold(body: AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary))));
         }
 
         if (state is ShowDetailError) {
-          return AppBackground(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 60, color: AppColors.error),
-                  const SizedBox(height: 16),
-                  Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.read<ShowDetailCubit>().loadShowDetails(),
-                    child: const Text('Retry'),
-                  ),
-                ],
+          return Scaffold(
+            body: AppBackground(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 60, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.read<ShowDetailCubit>().loadShowDetails(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         }
 
-        if (state is! ShowDetailLoaded) return AppBackground(child: const SizedBox());
+        if (state is! ShowDetailLoaded) return Scaffold(body: AppBackground(child: const SizedBox()));
 
         return Scaffold(
           body: AppBackground(
@@ -335,7 +337,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> {
                               padding: const EdgeInsets.all(12),
                               borderRadius: BorderRadius.circular(12),
                               child: InkWell(
-                                onTap: () => context.push('/show/$widget.showId/season/${season.seasonNumber}'),
+                                onTap: () => context.push('/show/${widget.showId}/season/${season.seasonNumber}'),
                                 borderRadius: BorderRadius.circular(12),
                                 child: Row(
                                   children: [

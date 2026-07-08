@@ -91,7 +91,6 @@ class AppRouter {
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
         path: '/show/:id/season/:seasonNumber/episode/:episodeNumber',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
@@ -102,7 +101,6 @@ class AppRouter {
         },
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
         path: '/show/:id/season/:seasonNumber',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
@@ -112,7 +110,6 @@ class AppRouter {
         },
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
         path: '/show/:id',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
@@ -121,7 +118,6 @@ class AppRouter {
         },
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
         path: '/movie/:id',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
@@ -152,7 +148,6 @@ class AppRouter {
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingPage()),
       GoRoute(path: '/filters', builder: (context, state) => const FiltersPage()),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
         path: '/person/:id',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');

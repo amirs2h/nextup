@@ -57,30 +57,32 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
     return BlocBuilder<MovieDetailCubit, MovieDetailState>(
       builder: (context, state) {
         if (state is MovieDetailLoading) {
-          return AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
+          return Scaffold(body: AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary))));
         }
 
         if (state is MovieDetailError) {
-          return AppBackground(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 60, color: AppColors.error),
-                  const SizedBox(height: 16),
-                  Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.read<MovieDetailCubit>().loadMovieDetails(),
-                    child: const Text('Retry'),
-                  ),
-                ],
+          return Scaffold(
+            body: AppBackground(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 60, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.read<MovieDetailCubit>().loadMovieDetails(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         }
 
-        if (state is! MovieDetailLoaded) return AppBackground(child: const SizedBox());
+        if (state is! MovieDetailLoaded) return Scaffold(body: AppBackground(child: const SizedBox()));
 
         return Scaffold(
           body: AppBackground(

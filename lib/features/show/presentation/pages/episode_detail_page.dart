@@ -50,7 +50,6 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
       final supabase = context.read<SupabaseService>();
       final user = supabase.currentUser;
 
-      // Load episode details
       final seasonData = await tmdb.getShowSeasonDetails(widget.showId, widget.seasonNumber);
       final episodes = seasonData['episodes'] as List? ?? [];
       final episode = episodes.firstWhere(
@@ -61,9 +60,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
       if (episode != null) {
         _episodeData = episode;
 
-        // Load user-specific data only if logged in
         if (user != null) {
-          // Check if watched
           final watched = await supabase.isWatched(
             userId: user.id,
             tmdbId: widget.showId,
@@ -71,37 +68,28 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
             seasonNumber: widget.seasonNumber,
             episodeNumber: widget.episodeNumber,
           );
-
-          // Load user rating
           final userRating = await supabase.getUserEpisodeRating(
             userId: user.id,
             tmdbId: widget.showId,
             seasonNumber: widget.seasonNumber,
             episodeNumber: widget.episodeNumber,
           );
-
-          // Load reactions
           final reactions = await supabase.getReactions(
             tmdbId: widget.showId,
             seasonNumber: widget.seasonNumber,
             episodeNumber: widget.episodeNumber,
           );
-
-          // Load comments
           final comments = await supabase.getComments(
             tmdbId: widget.showId,
             mediaType: 'tv',
             seasonNumber: widget.seasonNumber,
             episodeNumber: widget.episodeNumber,
           );
-
-          // Process reactions
           Map<String, int> reactionCounts = {};
           for (final r in reactions) {
             final emoji = r['emoji'] as String;
             reactionCounts[emoji] = (reactionCounts[emoji] ?? 0) + 1;
           }
-
           if (mounted) {
             setState(() {
               _isWatched = watched;
