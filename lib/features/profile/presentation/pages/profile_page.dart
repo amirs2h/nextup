@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/widgets/app_background.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_background.dart';
+import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/models/show_model.dart';
+import '../../../../shared/models/movie_model.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/profile_cubit.dart';
-import '../../../../shared/widgets/glass_container.dart';
+import '../../domain/favorites_cubit.dart';
+import '../../../watchlist/domain/watchlist_cubit.dart';
+import '../../domain/watch_history_cubit.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -18,13 +25,16 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadData();
   }
 
-  void _loadProfile() {
+  void _loadData() {
     final authState = context.read<AuthCubit>().state;
     if (authState is AuthAuthenticated) {
       context.read<ProfileCubit>().loadProfile(authState.user.id);
+      context.read<FavoritesCubit>().loadFavorites();
+      context.read<WatchlistCubit>().loadWatchlist();
+      context.read<WatchHistoryCubit>().loadHistory();
     }
   }
 
@@ -39,7 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.person_outline, size: 80, color: AppColors.textMuted(context)),
+                    Icon(Icons.person_outline, size: 60, color: AppColors.textMuted(context)),
                     const SizedBox(height: 16),
                     Text('Please login to view your profile', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
                     const SizedBox(height: 24),
@@ -51,9 +61,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
             String username = 'User';
             String email = '';
+            String? avatarUrl;
+            String bio = '';
             if (authState is AuthAuthenticated) {
               username = authState.profile?['username'] ?? 'User';
               email = authState.user.email ?? '';
+              avatarUrl = authState.profile?['avatar_url'];
+              bio = authState.profile?['bio'] ?? '';
             }
 
             return BlocBuilder<ProfileCubit, ProfileState>(
@@ -61,31 +75,46 @@ class _ProfilePageState extends State<ProfilePage> {
                 int followersCount = 0;
                 int followingCount = 0;
                 int watchlistCount = 0;
+                List<Map<String, dynamic>> followers = [];
+                List<Map<String, dynamic>> following = [];
 
                 if (state is ProfileLoaded) {
                   followersCount = state.followersCount;
                   followingCount = state.followingCount;
                   watchlistCount = state.watchlistCount;
+                  followers = state.followers;
+                  following = state.following;
                 }
 
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children: [
-                      _buildHeader(context),
-                      const SizedBox(height: 24),
-                      _buildAvatar(username),
-                      const SizedBox(height: 16),
-                      Text(username, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                      if (email.isNotEmpty) Text(email, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
-                      const SizedBox(height: 24),
-                      _buildStats(context, followersCount, followingCount, watchlistCount),
-                      const SizedBox(height: 24),
-                      _buildActionButtons(context),
-                      const SizedBox(height: 24),
-                      _buildUserContent(context),
-                      const SizedBox(height: 100),
-                    ],
+                return RefreshIndicator(
+                  onRefresh: () async => _loadData(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        _buildProfileHeader(context, username, email, avatarUrl, bio, followersCount, followingCount, watchlistCount, followers, following),
+                        const SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children: [
+                              _buildQuickStats(context, watchlistCount, followersCount, followingCount, followers, following),
+                              const SizedBox(height: 20),
+                              _buildFavoritesCarousel(context),
+                              const SizedBox(height: 20),
+                              _buildWatchlistCarousel(context),
+                              const SizedBox(height: 20),
+                              _buildHistoryCarousel(context),
+                              const SizedBox(height: 20),
+                              _buildActionButtons(context),
+                              const SizedBox(height: 20),
+                              _buildUserContent(context),
+                              const SizedBox(height: 100),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -96,69 +125,315 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Row(
-        children: [
-          Text('Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => context.push('/settings'),
-            child: GlassContainer(
-              padding: const EdgeInsets.all(10),
-              borderRadius: BorderRadius.circular(14),
-              child: Icon(Icons.settings_outlined, color: AppColors.text(context), size: 24),
+  Widget _buildProfileHeader(BuildContext context, String username, String email, String? avatarUrl, String bio, int followersCount, int followingCount, int watchlistCount, List<Map<String, dynamic>> followers, List<Map<String, dynamic>> following) {
+    return BlocBuilder<WatchlistCubit, WatchlistState>(
+      builder: (context, watchlistState) {
+        String? backdropUrl;
+        if (watchlistState is WatchlistLoaded && watchlistState.items.isNotEmpty) {
+          final firstItem = watchlistState.items.first;
+          if (firstItem.mediaType == 'tv') {
+            final show = firstItem.model as ShowModel;
+            backdropUrl = show.backdropUrl ?? show.posterUrl;
+          } else {
+            final movie = firstItem.model as MovieModel;
+            backdropUrl = movie.backdropUrl ?? movie.posterUrl;
+          }
+        }
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF6C63FF).withOpacity(0.3),
+                Colors.transparent,
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAvatar(String username) {
-    return Container(
-      width: 100,
-      height: 100,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
-      child: Center(
-        child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white)),
-      ),
-    );
-  }
-
-  Widget _buildStats(BuildContext context, int followers, int following, int watchlist) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatItem(context, 'Watchlist', watchlist.toString()),
-          Container(width: 1, height: 40, color: AppColors.divider(context)),
-          _buildStatItem(context, 'Following', following.toString()),
-          Container(width: 1, height: 40, color: AppColors.divider(context)),
-          _buildStatItem(context, 'Followers', followers.toString()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(BuildContext context, String label, String value) {
-    return GestureDetector(
-      onTap: () {
-        if (label == 'Following') _showFollowing();
-        if (label == 'Followers') _showFollowers();
+          child: Column(
+            children: [
+              // Header with backdrop
+              Container(
+                width: double.infinity,
+                height: 180,
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: backdropUrl != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CachedNetworkImage(
+                              imageUrl: backdropUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (c, u, e) => Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(Icons.movie_outlined, size: 50, color: Colors.white.withOpacity(0.3)),
+                          ),
+                        ),
+                ),
+              ),
+              // Avatar + Info
+              Transform.translate(
+                offset: const Offset(0, -40),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
+                        border: Border.all(color: AppColors.background(context), width: 4),
+                        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+                      ),
+                      child: avatarUrl != null
+                          ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36)))))
+                          : Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36))),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(username, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    if (email.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(email, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                    ],
+                    if (bio.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(bio, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
       },
+    );
+  }
+
+  Widget _buildQuickStats(BuildContext context, int watchlist, int followers, int following, List<Map<String, dynamic>> followersList, List<Map<String, dynamic>> followingList) {
+    return Row(
+      children: [
+        Expanded(child: _buildStatCard(context, Icons.bookmark_rounded, 'Watchlist', watchlist.toString(), const Color(0xFF6C63FF))),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => _showFollowing(followingList),
+            child: _buildStatCard(context, Icons.person_rounded, 'Following', following.toString(), const Color(0xFF00CC6A)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => _showFollowers(followersList),
+            child: _buildStatCard(context, Icons.people_rounded, 'Followers', followers.toString(), const Color(0xFFFFD93D)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(BuildContext context, IconData icon, String label, String value, Color color) {
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: BorderRadius.circular(16),
+      opacity: 0.06,
+      borderColor: color.withOpacity(0.2),
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFavoritesCarousel(BuildContext context) {
+    return BlocBuilder<FavoritesCubit, FavoritesState>(
+      builder: (context, state) {
+        if (state is! FavoritesLoaded) return const SizedBox();
+        final shows = state.shows;
+        final movies = state.movies;
+        final totalItems = shows.length + movies.length;
+        if (totalItems == 0) return const SizedBox();
+        return _buildCarouselSection(
+          context,
+          title: 'Favorites',
+          icon: Icons.favorite_rounded,
+          color: const Color(0xFFE50914),
+          onSeeAll: () => context.push('/favorites'),
+          itemCount: totalItems > 10 ? 10 : totalItems,
+          itemBuilder: (context, index) {
+            final isMovie = index >= shows.length;
+            final id = isMovie ? movies[index - shows.length].id : shows[index].id;
+            final title = isMovie ? movies[index - shows.length].title : shows[index].name;
+            final posterUrl = isMovie ? movies[index - shows.length].posterUrl : shows[index].posterUrl;
+            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () => context.push(isMovie ? '/movie/$id' : '/show/$id'));
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildWatchlistCarousel(BuildContext context) {
+    return BlocBuilder<WatchlistCubit, WatchlistState>(
+      builder: (context, state) {
+        if (state is! WatchlistLoaded) return const SizedBox();
+        final items = state.items;
+        if (items.isEmpty) return const SizedBox();
+        return _buildCarouselSection(
+          context,
+          title: 'Watchlist',
+          icon: Icons.bookmark_rounded,
+          color: const Color(0xFF6C63FF),
+          onSeeAll: () => context.go('/watchlist'),
+          itemCount: items.length > 10 ? 10 : items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            final isMovie = item.mediaType == 'movie';
+            final id = isMovie ? (item.model as MovieModel).id : (item.model as ShowModel).id;
+            final title = isMovie ? (item.model as MovieModel).title : (item.model as ShowModel).name;
+            final posterUrl = isMovie ? (item.model as MovieModel).posterUrl : (item.model as ShowModel).posterUrl;
+            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () => context.push(isMovie ? '/movie/$id' : '/show/$id'));
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHistoryCarousel(BuildContext context) {
+    return BlocBuilder<WatchHistoryCubit, WatchHistoryState>(
+      builder: (context, state) {
+        if (state is! WatchHistoryLoaded) return const SizedBox();
+        final shows = state.shows.values.toList();
+        final movies = state.movies.values.toList();
+        final totalItems = shows.length + movies.length;
+        if (totalItems == 0) return const SizedBox();
+        return _buildCarouselSection(
+          context,
+          title: 'Watch History',
+          icon: Icons.history_rounded,
+          color: const Color(0xFF00CC6A),
+          onSeeAll: () => context.push('/watch-history'),
+          itemCount: totalItems > 10 ? 10 : totalItems,
+          itemBuilder: (context, index) {
+            final isMovie = index >= shows.length;
+            final id = isMovie ? movies[index - shows.length].id : shows[index].id;
+            final title = isMovie ? movies[index - shows.length].title : shows[index].name;
+            final posterUrl = isMovie ? movies[index - shows.length].posterUrl : shows[index].posterUrl;
+            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () => context.push(isMovie ? '/movie/$id' : '/show/$id'));
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCarouselSection(BuildContext context, {required String title, required IconData icon, required Color color, required VoidCallback onSeeAll, required int itemCount, required Widget Function(BuildContext, int) itemBuilder}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            const Spacer(),
+            GestureDetector(
+              onTap: onSeeAll,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text('See All', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 170,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: itemCount,
+            itemBuilder: itemBuilder,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCarouselItem(BuildContext context, {required String title, String? posterUrl, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 110,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 110,
+              height: 145,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: posterUrl != null
+                    ? CachedNetworkImage(imageUrl: posterUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))))
+                    : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+          ],
+        ),
       ),
     );
   }
@@ -174,10 +449,23 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         const SizedBox(width: 12),
-        GlassContainer(
-          padding: const EdgeInsets.all(14),
-          borderRadius: BorderRadius.circular(16),
-          child: Icon(Icons.share, color: AppColors.text(context)),
+        GestureDetector(
+          onTap: () {
+            final authState = context.read<AuthCubit>().state;
+            if (authState is AuthAuthenticated) {
+              final username = authState.profile?['username'] ?? 'User';
+              Share.share('Check out $username\'s profile on NextUp!');
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg(context),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border(context)),
+            ),
+            child: Icon(Icons.share_rounded, color: AppColors.text(context)),
+          ),
         ),
       ],
     );
@@ -186,44 +474,48 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildUserContent(BuildContext context) {
     return Column(
       children: [
-        _buildContentCard(context, icon: Icons.bookmark_outline, title: 'My Watchlist', subtitle: 'Shows and movies to watch', onTap: () => context.go('/watchlist')),
-        _buildContentCard(context, icon: Icons.favorite_outline, title: 'Favorites', subtitle: 'Your favorite shows and movies', onTap: () => context.push('/favorites')),
-        _buildContentCard(context, icon: Icons.history, title: 'Watch History', subtitle: 'Shows and movies you\'ve watched', onTap: () => context.push('/watch-history')),
-        _buildContentCard(context, icon: Icons.bar_chart_outlined, title: 'Statistics', subtitle: 'Your watching stats', onTap: () => context.push('/stats')),
-        _buildContentCard(context, icon: Icons.emoji_events_outlined, title: 'Achievements', subtitle: 'Your badges and milestones', onTap: () => context.push('/achievements')),
-        _buildContentCard(context, icon: Icons.people_outline, title: 'Activity', subtitle: 'What your friends are watching', onTap: () => context.push('/activity')),
+        _buildContentCard(context, icon: Icons.bookmark_rounded, title: 'My Watchlist', subtitle: 'Shows and movies to watch', color: const Color(0xFF6C63FF), onTap: () => context.go('/watchlist')),
+        _buildContentCard(context, icon: Icons.favorite_rounded, title: 'Favorites', subtitle: 'Your favorite shows and movies', color: const Color(0xFFE50914), onTap: () => context.push('/favorites')),
+        _buildContentCard(context, icon: Icons.history_rounded, title: 'Watch History', subtitle: 'Shows and movies you\'ve watched', color: const Color(0xFF00CC6A), onTap: () => context.push('/watch-history')),
+        _buildContentCard(context, icon: Icons.playlist_play_rounded, title: 'My Lists', subtitle: 'Custom collections', color: const Color(0xFF9D4EDD), onTap: () => context.push('/custom-lists')),
+        _buildContentCard(context, icon: Icons.people_alt_rounded, title: 'Shared Lists', subtitle: 'Lists with friends', color: const Color(0xFF6C63FF), onTap: () => context.push('/shared-lists')),
+        _buildContentCard(context, icon: Icons.leaderboard_rounded, title: 'Rankings', subtitle: 'Compare with friends', color: const Color(0xFFFFD93D), onTap: () => context.push('/rankings')),
+        _buildContentCard(context, icon: Icons.bar_chart_rounded, title: 'Statistics', subtitle: 'Your watching stats', color: const Color(0xFF00CC6A), onTap: () => context.push('/stats')),
+        _buildContentCard(context, icon: Icons.emoji_events_rounded, title: 'Achievements', subtitle: 'Your badges and milestones', color: const Color(0xFFFFD93D), onTap: () => context.push('/achievements')),
+        _buildContentCard(context, icon: Icons.people_rounded, title: 'Activity', subtitle: 'What your friends are watching', color: const Color(0xFF6C63FF), onTap: () => context.push('/activity')),
       ],
     );
   }
 
-  Widget _buildContentCard(BuildContext context, {required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildContentCard(BuildContext context, {required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassContainer(
-        padding: const EdgeInsets.all(16),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: GlassContainer(
+          padding: const EdgeInsets.all(14),
           borderRadius: BorderRadius.circular(16),
+          opacity: 0.06,
+          borderColor: color.withOpacity(0.1),
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: AppColors.cardBg(context), borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: AppColors.icon(context), size: 24),
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: color, size: 22),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.w600)),
-                    Text(subtitle, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                    Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w600)),
+                    Text(subtitle, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: AppColors.textMuted(context)),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context), size: 20),
             ],
           ),
         ),
@@ -231,82 +523,103 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _showFollowing() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
-      context.read<ProfileCubit>().loadFollowing(authState.user.id);
-    }
-    showModalBottomSheet(
+  void _showFollowing(List<Map<String, dynamic>> following) {
+    showDialog(
       context: context,
-      backgroundColor: AppColors.surface(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => BlocBuilder<ProfileCubit, ProfileState>(
-        builder: (context, state) {
-          final following = state is ProfileLoaded ? state.following : [];
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Following', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                const SizedBox(height: 16),
-                if (following.isEmpty)
-                  Text('Not following anyone yet', style: TextStyle(color: AppColors.textMuted(context)))
-                else
-                  ...following.map((user) {
-                    final username = user['profiles']?['username'] ?? user['username'] ?? 'User';
-                    return ListTile(
-                      leading: CircleAvatar(child: Text(username[0].toUpperCase())),
-                      title: Text(username, style: TextStyle(color: AppColors.text(context))),
-                      trailing: TextButton(onPressed: () {}, child: const Text('Unfollow')),
-                    );
-                  }),
-              ],
-            ),
-          );
-        },
+      builder: (context) => SimpleDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Following', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        children: [
+          if (following.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Not following anyone yet', style: TextStyle(color: AppColors.textMuted(context))),
+            )
+          else
+            ...following.map((user) {
+              final uname = user['profiles']?['username'] ?? 'User';
+              final uid = user['following_id'];
+              return SimpleDialogOption(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.push('/user/$uid');
+                },
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      child: Text(uname.isNotEmpty ? uname[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 14)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(uname, style: TextStyle(color: AppColors.text(context), fontSize: 16))),
+                    TextButton(
+                      onPressed: () async {
+                        final authState = context.read<AuthCubit>().state;
+                        if (authState is AuthAuthenticated) {
+                          await context.read<ProfileCubit>().unfollowUser(authState.user.id, uid);
+                          Navigator.pop(context);
+                          _loadData();
+                        }
+                      },
+                      child: const Text('Unfollow', style: TextStyle(color: Color(0xFFFF4757))),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
 
-  void _showFollowers() {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is AuthAuthenticated) {
-      context.read<ProfileCubit>().loadFollowers(authState.user.id);
-    }
-    showModalBottomSheet(
+  void _showFollowers(List<Map<String, dynamic>> followers) {
+    showDialog(
       context: context,
-      backgroundColor: AppColors.surface(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => BlocBuilder<ProfileCubit, ProfileState>(
-        builder: (context, state) {
-          final followers = state is ProfileLoaded ? state.followers : [];
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Followers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                const SizedBox(height: 16),
-                if (followers.isEmpty)
-                  Text('No followers yet', style: TextStyle(color: AppColors.textMuted(context)))
-                else
-                  ...followers.map((user) {
-                    final username = user['profiles']?['username'] ?? user['username'] ?? 'User';
-                    return ListTile(
-                      leading: CircleAvatar(child: Text(username[0].toUpperCase())),
-                      title: Text(username, style: TextStyle(color: AppColors.text(context))),
-                      trailing: TextButton(onPressed: () {}, child: const Text('Follow Back')),
-                    );
-                  }),
-              ],
-            ),
-          );
-        },
+      builder: (context) => SimpleDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Followers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        children: [
+          if (followers.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('No followers yet', style: TextStyle(color: AppColors.textMuted(context))),
+            )
+          else
+            ...followers.map((user) {
+              final uname = user['profiles']?['username'] ?? 'User';
+              final uid = user['follower_id'];
+              return SimpleDialogOption(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.push('/user/$uid');
+                },
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      child: Text(uname.isNotEmpty ? uname[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 14)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(uname, style: TextStyle(color: AppColors.text(context), fontSize: 16))),
+                    TextButton(
+                      onPressed: () async {
+                        final authState = context.read<AuthCubit>().state;
+                        if (authState is AuthAuthenticated) {
+                          await context.read<ProfileCubit>().followUser(authState.user.id, uid);
+                          Navigator.pop(context);
+                          _loadData();
+                        }
+                      },
+                      child: const Text('Follow Back', style: TextStyle(color: Color(0xFF4CAF50))),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
 }
-
-
-

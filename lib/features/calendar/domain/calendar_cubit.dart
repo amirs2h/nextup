@@ -61,47 +61,61 @@ class CalendarCubit extends Cubit<CalendarState> {
         mediaType: 'tv',
       );
 
-      List<CalendarEvent> events = [];
-
-      for (final item in watchlist.take(10)) {
+      // Parallel: Fetch show details for all watchlist items
+      final showFutures = watchlist.map((item) async {
         try {
           final showData = await _tmdbService.getShowDetails(item['tmdb_id']);
-          final show = ShowModel.fromJson(showData);
+          return ShowModel.fromJson(showData);
+        } catch (e) {
+          return null;
+        }
+      }).toList();
 
-          if (show.seasons != null) {
-            for (final season in show.seasons!) {
-              if (season.seasonNumber == 0) continue;
+      final shows = (await Future.wait(showFutures)).whereType<ShowModel>().toList();
 
-              try {
-                final seasonData = await _tmdbService.getShowSeasonDetails(
-                  show.id,
-                  season.seasonNumber,
-                );
+      // Parallel: Fetch season details for all shows
+      List<CalendarEvent> events = [];
+      
+      for (final show in shows) {
+        if (show.seasons == null) continue;
+        
+        // Filter to only seasons that might have episodes in this month
+        final seasonFutures = show.seasons!
+            .where((s) => s.seasonNumber > 0)
+            .map((season) async {
+          try {
+            final seasonData = await _tmdbService.getShowSeasonDetails(
+              show.id,
+              season.seasonNumber,
+            );
+            return seasonData;
+          } catch (e) {
+            return null;
+          }
+        }).toList();
 
-                final episodes = seasonData['episodes'] as List? ?? [];
-                for (final episode in episodes) {
-                  if (episode['air_date'] != null) {
-                    final airDate = DateTime.tryParse(episode['air_date']);
-                    if (airDate != null &&
-                        airDate.year == month.year &&
-                        airDate.month == month.month) {
-                      events.add(CalendarEvent(
-                        show: show,
-                        seasonNumber: season.seasonNumber,
-                        episodeNumber: episode['episode_number'] ?? 0,
-                        episodeName: episode['name'] ?? '',
-                        airDate: airDate,
-                      ));
-                    }
-                  }
-                }
-              } catch (e) {
-                continue;
+        final seasonResults = await Future.wait(seasonFutures);
+        
+        for (final seasonData in seasonResults) {
+          if (seasonData == null) continue;
+          final episodes = seasonData['episodes'] as List? ?? [];
+          
+          for (final episode in episodes) {
+            if (episode['air_date'] != null) {
+              final airDate = DateTime.tryParse(episode['air_date']);
+              if (airDate != null &&
+                  airDate.year == month.year &&
+                  airDate.month == month.month) {
+                events.add(CalendarEvent(
+                  show: show,
+                  seasonNumber: seasonData['season_number'] ?? 0,
+                  episodeNumber: episode['episode_number'] ?? 0,
+                  episodeName: episode['name'] ?? '',
+                  airDate: airDate,
+                ));
               }
             }
           }
-        } catch (e) {
-          continue;
         }
       }
 

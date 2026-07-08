@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../domain/auth_cubit.dart';
 
@@ -27,7 +29,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
@@ -63,77 +65,71 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: BlocListener<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            context.go('/');
-          } else if (state is AuthEmailConfirmationRequired) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                backgroundColor: const Color(0xFF1A1A2E),
-                title: const Row(
-                  children: [
-                    Icon(Icons.email_outlined, color: Color(0xFF6C63FF)),
-                    SizedBox(width: 8),
-                    Text('Check Your Email', style: TextStyle(color: Colors.white)),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: BlocListener<AuthCubit, AuthState>(
+          listener: (context, state) {
+            if (state is AuthAuthenticated) {
+              context.go('/');
+            } else if (state is AuthEmailConfirmationRequired) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  backgroundColor: AppColors.surface(context),
+                  title: Row(
+                    children: [
+                      const Icon(Icons.email_outlined, color: AppColors.electricPurple),
+                      const SizedBox(width: 8),
+                      Text('Check Your Email', style: TextStyle(color: AppColors.text(context))),
+                    ],
+                  ),
+                  content: Text(
+                    'We sent a confirmation link to ${state.email}. Please check your email and click the link to activate your account.',
+                    style: TextStyle(color: AppColors.textSecondary(context)),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.go('/login');
+                      },
+                      child: const Text('Go to Login'),
+                    ),
                   ],
                 ),
-                content: Text(
-                  'We sent a confirmation link to ${state.email}. Please check your email and click the link to activate your account.',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      context.go('/login');
-                    },
-                    child: const Text('Go to Login'),
+              );
+            } else if (state is AuthError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-              ),
-            );
-          } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: const Color(0xFFFF4757),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-            );
-          }
-        },
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF0A0A0F),
-                Color(0xFF1A1A2E),
-                Color(0xFF16213E),
-              ],
-            ),
-          ),
+              );
+            }
+          },
           child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 40),
+                        const Spacer(flex: 1),
                         // Back Button
                         Align(
                           alignment: Alignment.centerLeft,
@@ -144,37 +140,37 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               height: 44,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.08),
+                                color: AppColors.cardBg(context),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.1),
+                                  color: AppColors.border(context),
                                 ),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.arrow_back_ios_new_rounded,
-                                color: Colors.white,
+                                color: AppColors.text(context),
                                 size: 20,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         // Title
-                        const Text(
+                        Text(
                           'Create Account',
                           style: TextStyle(
-                            fontSize: 32,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppColors.text(context),
                             letterSpacing: -0.5,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           'Join NextUp to track your shows',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.white.withOpacity(0.6),
+                            color: AppColors.textMuted(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -185,8 +181,17 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           hintText: 'Username',
                           prefixIcon: Icons.person_outlined,
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null || value.trim().isEmpty) {
                               return 'Please enter a username';
+                            }
+                            if (value.trim().length < 3) {
+                              return 'Username must be at least 3 characters';
+                            }
+                            if (value.trim().length > 20) {
+                              return 'Username must be at most 20 characters';
+                            }
+                            if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value.trim())) {
+                              return 'Only letters, numbers, and _ allowed';
                             }
                             return null;
                           },
@@ -201,6 +206,9 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your email';
+                            }
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(value)) {
+                              return 'Please enter a valid email';
                             }
                             return null;
                           },
@@ -217,7 +225,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               _isPasswordVisible
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.white.withOpacity(0.5),
+                              color: AppColors.textMuted(context),
                             ),
                             onPressed: () {
                               setState(() {
@@ -229,8 +237,14 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                             if (value == null || value.isEmpty) {
                               return 'Please enter a password';
                             }
-                            if (value.length < 6) {
-                              return 'Password must be at least 6 characters';
+                            if (value.length < 8) {
+                              return 'Password must be at least 8 characters';
+                            }
+                            if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                              return 'Must contain an uppercase letter';
+                            }
+                            if (!RegExp(r'[0-9]').hasMatch(value)) {
+                              return 'Must contain a number';
                             }
                             return null;
                           },
@@ -243,13 +257,16 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           prefixIcon: Icons.lock_outlined,
                           obscureText: true,
                           validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please confirm your password';
+                            }
                             if (value != _passwordController.text) {
                               return 'Passwords do not match';
                             }
                             return null;
                           },
                         ),
-                        const SizedBox(height: 32),
+                        const Spacer(flex: 2),
                         // Register Button
                         BlocBuilder<AuthCubit, AuthState>(
                           builder: (context, state) {
@@ -257,13 +274,13 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               text: state is AuthLoading ? 'Loading...' : 'Create Account',
                               icon: state is AuthLoading ? null : Icons.person_add_rounded,
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)],
+                                colors: [AppColors.electricPurple, AppColors.neonPurple],
                               ),
                               onPressed: state is AuthLoading ? () {} : _handleRegister,
                             );
                           },
                         ),
-                        const SizedBox(height: 24),
+                        const Spacer(flex: 1),
                         // Login Link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -271,7 +288,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                             Text(
                               'Already have an account? ',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
+                                color: AppColors.textMuted(context),
                               ),
                             ),
                             GestureDetector(
@@ -279,23 +296,26 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               child: const Text(
                                 'Login',
                                 style: TextStyle(
-                                  color: Color(0xFF6C63FF),
+                                  color: AppColors.electricPurple,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const Spacer(flex: 1),
                       ],
                     ),
                   ),
                 ),
               ),
+              ),
             ),
+            ],
           ),
         ),
       ),
+    ),
     );
   }
 }

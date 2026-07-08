@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../auth/domain/auth_cubit.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_background.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -34,21 +36,42 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
     _controller.forward();
 
+    // Wait for animation + auth state to be determined
     Future.delayed(const Duration(seconds: 2), () async {
       if (!mounted) return;
 
       final prefs = await SharedPreferences.getInstance();
       final isOnboardingComplete = prefs.getBool('onboarding_complete') ?? false;
-      final authState = context.read<AuthCubit>().state;
 
       if (!mounted) return;
 
       if (!isOnboardingComplete) {
         context.go('/onboarding');
-      } else if (authState is AuthAuthenticated) {
-        context.go('/');
+        return;
+      }
+
+      // Wait for auth state to be determined (not AuthInitial)
+      final authCubit = context.read<AuthCubit>();
+      if (authCubit.state is AuthInitial) {
+        // Wait for auth state to settle
+        await for (final state in authCubit.stream) {
+          if (!mounted) return;
+          if (state is! AuthInitial) {
+            if (state is AuthAuthenticated) {
+              context.go('/');
+            } else {
+              context.go('/login');
+            }
+            break;
+          }
+        }
       } else {
-        context.go('/login');
+        // Auth state already determined
+        if (authCubit.state is AuthAuthenticated) {
+          context.go('/');
+        } else {
+          context.go('/login');
+        }
       }
     });
   }
@@ -62,18 +85,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0A0A0F),
-              Color(0xFF1A1A2E),
-              Color(0xFF16213E),
-            ],
-          ),
-        ),
+      body: AppBackground(
         child: Center(
           child: AnimatedBuilder(
             animation: _controller,
@@ -90,30 +102,28 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                         height: 120,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFE50914), Color(0xFFFF3D47)],
-                          ),
+                          gradient: AppColors.primaryGradient,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFE50914).withOpacity(0.5),
+                              color: AppColors.primary.withOpacity(0.5),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.play_arrow_rounded,
                           size: 60,
-                          color: Colors.white,
+                          color: AppColors.text(context),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'NextUp',
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppColors.text(context),
                           letterSpacing: 2,
                         ),
                       ),
@@ -122,7 +132,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                         'Track your shows & movies',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.6),
+                          color: AppColors.textMuted(context),
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -131,7 +141,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                         height: 30,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white.withOpacity(0.5),
+                          color: AppColors.textMuted(context),
                         ),
                       ),
                     ],

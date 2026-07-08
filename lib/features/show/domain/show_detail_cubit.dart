@@ -3,6 +3,7 @@ import '../../../shared/models/show_model.dart';
 import '../../../shared/models/person_model.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/services/supabase_service.dart';
+import '../../../shared/services/omdb_service.dart';
 
 // States
 abstract class ShowDetailState {}
@@ -20,6 +21,12 @@ class ShowDetailLoaded extends ShowDetailState {
   final Map<int, bool> watchedEpisodes;
   final List<Map<String, dynamic>> videos;
   final Map<String, dynamic>? watchProviders;
+  final String? imdbId;
+  final String? contentRating;
+  final int? rottenTomatoesScore;
+  final String? imdbRating;
+  final double? userRating;
+  final double averageRating;
 
   ShowDetailLoaded({
     required this.show,
@@ -30,6 +37,12 @@ class ShowDetailLoaded extends ShowDetailState {
     this.watchedEpisodes = const {},
     this.videos = const [],
     this.watchProviders,
+    this.imdbId,
+    this.contentRating,
+    this.rottenTomatoesScore,
+    this.imdbRating,
+    this.userRating,
+    this.averageRating = 0,
   });
 }
 
@@ -42,9 +55,10 @@ class ShowDetailError extends ShowDetailState {
 class ShowDetailCubit extends Cubit<ShowDetailState> {
   final TmdbService _tmdbService;
   final SupabaseService _supabaseService;
+  final OmdbService _omdbService;
   final int showId;
 
-  ShowDetailCubit(this._tmdbService, this._supabaseService, this.showId)
+  ShowDetailCubit(this._tmdbService, this._supabaseService, this._omdbService, this.showId)
       : super(ShowDetailInitial()) {
     loadShowDetails();
   }
@@ -52,11 +66,24 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   Future<void> loadShowDetails() async {
     emit(ShowDetailLoading());
     try {
-      final detailsData = await _tmdbService.getShowDetails(showId);
-      final creditsData = await _tmdbService.getShowCredits(showId);
-      final similarData = await _tmdbService.getSimilarShows(showId);
-      final videosData = await _tmdbService.getShowVideos(showId);
-      final providersData = await _tmdbService.getShowWatchProviders(showId);
+      // Parallel TMDB calls (7 calls in parallel)
+      final tmdbResults = await Future.wait([
+        _tmdbService.getShowDetails(showId),
+        _tmdbService.getShowCredits(showId),
+        _tmdbService.getSimilarShows(showId),
+        _tmdbService.getShowVideos(showId),
+        _tmdbService.getShowWatchProviders(showId),
+        _tmdbService.getShowExternalIds(showId),
+        _tmdbService.getShowContentRatings(showId),
+      ]);
+
+      final detailsData = tmdbResults[0] as Map<String, dynamic>;
+      final creditsData = tmdbResults[1] as Map<String, dynamic>;
+      final similarData = tmdbResults[2] as Map<String, dynamic>;
+      final videosData = tmdbResults[3] as List<Map<String, dynamic>>;
+      final providersData = tmdbResults[4] as Map<String, dynamic>;
+      final externalIdsData = tmdbResults[5] as Map<String, dynamic>;
+      final contentRatingsData = tmdbResults[6] as Map<String, dynamic>;
 
       final show = ShowModel.fromJson(detailsData);
       final cast = (creditsData['cast'] as List)
@@ -66,30 +93,78 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       final similarShows = (similarData['results'] as List)
           .map((json) => ShowModel.fromJson(json))
           .toList();
-      final videos = List<Map<String, dynamic>>.from(videosData);
+      final videos = videosData;
       final watchProviders = providersData;
+      final imdbId = externalIdsData['imdb_id'] as String?;
 
-      // Check watchlist and favorites
+      // Get content rating (US preferred)
+      String? contentRating;
+      final ratings = contentRatingsData['results'] as List?;
+      if (ratings != null) {
+        for (final r in ratings) {
+          if (r['iso_3166_1'] == 'US') {
+            contentRating = r['rating'];
+            break;
+          }
+        }
+        if (contentRating == null && ratings.isNotEmpty) {
+          contentRating = ratings.first['rating'];
+        }
+      }
+
+      // Get OMDB ratings (depends on imdbId from external_ids)
+      int? rottenTomatoesScore;
+      String? imdbRating;
+      if (imdbId != null) {
+        final omdbData = await _omdbService.getRatings(imdbId);
+        if (omdbData != null) {
+          rottenTomatoesScore = _omdbService.getRottenTomatoesScore(omdbData);
+          imdbRating = _omdbService.getImdbRating(omdbData);
+        }
+      }
+
+      final seasons = detailsData['seasons'] as List? ?? [];
+      final seasonNumbers = seasons
+          .map((s) => s['season_number'] as int?)
+          .where((s) => s != null && s > 0)
+          .cast<int>()
+          .toList();
+
+      // Parallel Supabase calls (4+N calls in parallel, N = number of seasons)
+      final user = _supabaseService.currentUser;
       bool isInWatchlist = false;
       bool isFavorite = false;
       Map<int, bool> watchedEpisodes = {};
+      double? userRating;
+      double averageRating = 0;
 
-      final user = _supabaseService.currentUser;
       if (user != null) {
-        final watchlistFuture = _supabaseService.isInWatchlist(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-        );
-        final favoriteFuture = _supabaseService.isFavorite(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-        );
-
-        final results = await Future.wait([watchlistFuture, favoriteFuture]);
-        isInWatchlist = results[0];
-        isFavorite = results[1];
+        final futures = [
+          _supabaseService.isInWatchlist(userId: user.id, tmdbId: showId, mediaType: 'tv'),
+          _supabaseService.isFavorite(userId: user.id, tmdbId: showId, mediaType: 'tv'),
+          _supabaseService.getUserRating(userId: user.id, tmdbId: showId, mediaType: 'tv'),
+          _supabaseService.getAverageRating(tmdbId: showId, mediaType: 'tv'),
+          ...seasonNumbers.map((sn) => _supabaseService.getWatchedEpisodes(
+            userId: user.id,
+            tmdbId: showId,
+            seasonNumber: sn,
+          )),
+        ];
+        final supabaseResults = await Future.wait(futures);
+        isInWatchlist = supabaseResults[0] as bool;
+        isFavorite = supabaseResults[1] as bool;
+        userRating = supabaseResults[2] as double?;
+        averageRating = supabaseResults[3] as double;
+        for (int i = 4; i < supabaseResults.length; i++) {
+          final seasonIdx = i - 4;
+          final sn = seasonNumbers[seasonIdx];
+          final seasonMap = supabaseResults[i] as Map<int, bool>;
+          for (final entry in seasonMap.entries) {
+            watchedEpisodes[sn * 1000 + entry.key] = entry.value;
+          }
+        }
+      } else {
+        averageRating = await _supabaseService.getAverageRating(tmdbId: showId, mediaType: 'tv');
       }
 
       emit(ShowDetailLoaded(
@@ -101,13 +176,19 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         watchedEpisodes: watchedEpisodes,
         videos: videos,
         watchProviders: watchProviders,
+        imdbId: imdbId,
+        contentRating: contentRating,
+        rottenTomatoesScore: rottenTomatoesScore,
+        imdbRating: imdbRating,
+        userRating: userRating,
+        averageRating: averageRating,
       ));
     } catch (e) {
       emit(ShowDetailError(e.toString()));
     }
   }
 
-  Future<void> toggleWatchlist() async {
+  Future<void> toggleWatchlist({String status = 'watchlist'}) async {
     final currentState = state;
     if (currentState is! ShowDetailLoaded) return;
 
@@ -126,6 +207,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
           userId: user.id,
           tmdbId: showId,
           mediaType: 'tv',
+          status: status,
         );
       }
 
@@ -138,6 +220,12 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         watchedEpisodes: currentState.watchedEpisodes,
         videos: currentState.videos,
         watchProviders: currentState.watchProviders,
+        imdbId: currentState.imdbId,
+        contentRating: currentState.contentRating,
+        rottenTomatoesScore: currentState.rottenTomatoesScore,
+        imdbRating: currentState.imdbRating,
+        userRating: currentState.userRating,
+        averageRating: currentState.averageRating,
       ));
     } catch (e) {
       emit(currentState);
@@ -175,6 +263,12 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         watchedEpisodes: currentState.watchedEpisodes,
         videos: currentState.videos,
         watchProviders: currentState.watchProviders,
+        imdbId: currentState.imdbId,
+        contentRating: currentState.contentRating,
+        rottenTomatoesScore: currentState.rottenTomatoesScore,
+        imdbRating: currentState.imdbRating,
+        userRating: currentState.userRating,
+        averageRating: currentState.averageRating,
       ));
     } catch (e) {
       emit(currentState);
@@ -222,9 +316,31 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         watchedEpisodes: newWatched,
         videos: currentState.videos,
         watchProviders: currentState.watchProviders,
+        imdbId: currentState.imdbId,
+        contentRating: currentState.contentRating,
+        rottenTomatoesScore: currentState.rottenTomatoesScore,
+        imdbRating: currentState.imdbRating,
+        userRating: currentState.userRating,
+        averageRating: currentState.averageRating,
       ));
+
+      // Auto-compute status after toggling episode
+      await _autoComputeStatus(user.id);
     } catch (e) {
       emit(currentState);
+    }
+  }
+
+  Future<void> _autoComputeStatus(String userId) async {
+    try {
+      final showDetails = await _tmdbService.getShowDetails(showId);
+      await _supabaseService.computeAndSetShowStatus(
+        userId: userId,
+        tmdbId: showId,
+        showDetails: showDetails,
+      );
+    } catch (e) {
+      print('Error auto-computing status: $e');
     }
   }
 }

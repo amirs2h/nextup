@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../auth/domain/auth_cubit.dart';
+import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -50,7 +53,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Profile updated successfully!'),
-            backgroundColor: const Color(0xFF00FF88),
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -62,7 +65,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: const Color(0xFFFF4757),
+            backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -125,6 +128,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildAvatarSection(BuildContext context) {
+    final authState = context.read<AuthCubit>().state;
+    String? avatarUrl;
+    if (authState is AuthAuthenticated) {
+      avatarUrl = authState.profile?['avatar_url'] as String?;
+    }
+
     return Column(
       children: [
         Container(
@@ -132,32 +141,68 @@ class _EditProfilePageState extends State<EditProfilePage> {
           height: 100,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-            boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+            gradient: const LinearGradient(colors: [AppColors.electricPurple, AppColors.neonPurple]),
+            boxShadow: [BoxShadow(color: AppColors.electricPurple.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
           ),
-          child: Center(
-            child: Text(
-              _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
-              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
+          child: ClipOval(
+            child: avatarUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: avatarUrl,
+                    fit: BoxFit.cover,
+                    width: 100,
+                    height: 100,
+                    errorWidget: (c, u, e) => Center(
+                      child: Text(
+                        _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
+                        style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
+                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 8),
         TextButton(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Coming soon!'),
-                backgroundColor: const Color(0xFF6C63FF),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-          },
-          child: const Text('Change Photo', style: TextStyle(color: Color(0xFF6C63FF))),
+          onPressed: _pickAndUploadAvatar,
+          child: const Text('Change Photo', style: TextStyle(color: AppColors.electricPurple)),
         ),
       ],
     );
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 80);
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final bytes = await image.readAsBytes();
+      final ext = '.${image.name.split('.').last}';
+      final user = context.read<SupabaseService>().currentUser;
+      if (user == null) return;
+
+      final url = await context.read<SupabaseService>().uploadAvatar(user.id, bytes, ext);
+      if (url != null && mounted) {
+        await context.read<AuthCubit>().refreshProfile();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Avatar updated!'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to upload avatar'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Widget _buildForm(BuildContext context) {
@@ -229,3 +274,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

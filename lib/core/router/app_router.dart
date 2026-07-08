@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../theme/app_colors.dart';
+import '../../shared/widgets/app_background.dart';
+
 import '../../features/auth/domain/auth_cubit.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
@@ -10,8 +13,14 @@ import '../../features/home/presentation/pages/see_all_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/show/presentation/pages/show_detail_page.dart';
 import '../../features/show/presentation/pages/season_detail_page.dart';
+import '../../features/show/presentation/pages/episode_detail_page.dart';
 import '../../features/movie/presentation/pages/movie_detail_page.dart';
 import '../../features/watchlist/presentation/pages/watchlist_page.dart';
+import '../../features/shared_lists/presentation/pages/shared_lists_page.dart';
+import '../../features/shared_lists/presentation/pages/shared_list_detail_page.dart';
+import '../../features/custom_lists/presentation/pages/custom_lists_page.dart';
+import '../../features/custom_lists/presentation/pages/custom_list_detail_page.dart';
+import '../../features/rankings/presentation/pages/rankings_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/discover/presentation/pages/discover_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
@@ -27,6 +36,7 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/person/presentation/pages/person_detail_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/favorites_page.dart';
+import '../../features/profile/presentation/pages/user_profile_page.dart';
 import '../../features/profile/presentation/pages/watch_history_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../shared/widgets/main_scaffold.dart';
@@ -81,14 +91,18 @@ class AppRouter {
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
       GoRoute(
-        path: '/show/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/show/:id/season/:seasonNumber/episode/:episodeNumber',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
-          if (id == null) return const _ErrorPage();
-          return ShowDetailPage(showId: id);
+          final seasonNumber = int.tryParse(state.pathParameters['seasonNumber'] ?? '');
+          final episodeNumber = int.tryParse(state.pathParameters['episodeNumber'] ?? '');
+          if (id == null || seasonNumber == null || episodeNumber == null) return const _ErrorPage();
+          return EpisodeDetailPage(showId: id, seasonNumber: seasonNumber, episodeNumber: episodeNumber);
         },
       ),
       GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/show/:id/season/:seasonNumber',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
@@ -98,6 +112,16 @@ class AppRouter {
         },
       ),
       GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/show/:id',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (id == null) return const _ErrorPage();
+          return ShowDetailPage(showId: id);
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/movie/:id',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
@@ -128,6 +152,7 @@ class AppRouter {
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingPage()),
       GoRoute(path: '/filters', builder: (context, state) => const FiltersPage()),
       GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/person/:id',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
@@ -139,6 +164,13 @@ class AppRouter {
       GoRoute(path: '/favorites', builder: (context, state) => const FavoritesPage()),
       GoRoute(path: '/watch-history', builder: (context, state) => const WatchHistoryPage()),
       GoRoute(
+        path: '/user/:userId',
+        builder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          return UserProfilePage(userId: userId);
+        },
+      ),
+      GoRoute(
         path: '/see-all',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
@@ -148,6 +180,25 @@ class AppRouter {
           );
         },
       ),
+      GoRoute(path: '/shared-lists', builder: (context, state) => const SharedListsPage()),
+      GoRoute(
+        path: '/shared-list/:listId',
+        builder: (context, state) {
+          final listId = state.pathParameters['listId']!;
+          final listName = state.extra as String? ?? 'Shared List';
+          return SharedListDetailPage(listId: listId, listName: listName);
+        },
+      ),
+      GoRoute(path: '/custom-lists', builder: (context, state) => const CustomListsPage()),
+      GoRoute(
+        path: '/custom-list/:listId',
+        builder: (context, state) {
+          final listId = state.pathParameters['listId']!;
+          final listName = state.extra as String? ?? 'Custom List';
+          return CustomListDetailPage(listId: listId, listName: listName);
+        },
+      ),
+      GoRoute(path: '/rankings', builder: (context, state) => const RankingsPage()),
     ],
   );
 }
@@ -158,21 +209,14 @@ class _ErrorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0A0A0F), Color(0xFF1A1A2E)],
-          ),
-        ),
+      body: AppBackground(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+              Icon(Icons.error_outline, size: 60, color: AppColors.error),
               const SizedBox(height: 16),
-              const Text('Page not found', style: TextStyle(color: Colors.white70, fontSize: 18)),
+              Text('Page not found', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => context.go('/'),

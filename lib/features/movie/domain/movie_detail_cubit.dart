@@ -3,6 +3,7 @@ import '../../../shared/models/movie_model.dart';
 import '../../../shared/models/person_model.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/services/supabase_service.dart';
+import '../../../shared/services/omdb_service.dart';
 
 // States
 abstract class MovieDetailState {}
@@ -20,6 +21,12 @@ class MovieDetailLoaded extends MovieDetailState {
   final bool isWatched;
   final List<Map<String, dynamic>> videos;
   final Map<String, dynamic>? watchProviders;
+  final String? imdbId;
+  final String? contentRating;
+  final int? rottenTomatoesScore;
+  final String? imdbRating;
+  final double? userRating;
+  final double averageRating;
 
   MovieDetailLoaded({
     required this.movie,
@@ -30,6 +37,12 @@ class MovieDetailLoaded extends MovieDetailState {
     this.isWatched = false,
     this.videos = const [],
     this.watchProviders,
+    this.imdbId,
+    this.contentRating,
+    this.rottenTomatoesScore,
+    this.imdbRating,
+    this.userRating,
+    this.averageRating = 0,
   });
 }
 
@@ -42,9 +55,10 @@ class MovieDetailError extends MovieDetailState {
 class MovieDetailCubit extends Cubit<MovieDetailState> {
   final TmdbService _tmdbService;
   final SupabaseService _supabaseService;
+  final OmdbService _omdbService;
   final int movieId;
 
-  MovieDetailCubit(this._tmdbService, this._supabaseService, this.movieId)
+  MovieDetailCubit(this._tmdbService, this._supabaseService, this._omdbService, this.movieId)
       : super(MovieDetailInitial()) {
     loadMovieDetails();
   }
@@ -52,11 +66,24 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
   Future<void> loadMovieDetails() async {
     emit(MovieDetailLoading());
     try {
-      final detailsData = await _tmdbService.getMovieDetails(movieId);
-      final creditsData = await _tmdbService.getMovieCredits(movieId);
-      final similarData = await _tmdbService.getSimilarMovies(movieId);
-      final videosData = await _tmdbService.getMovieVideos(movieId);
-      final providersData = await _tmdbService.getMovieWatchProviders(movieId);
+      // Parallel TMDB calls (7 calls in parallel)
+      final tmdbResults = await Future.wait([
+        _tmdbService.getMovieDetails(movieId),
+        _tmdbService.getMovieCredits(movieId),
+        _tmdbService.getSimilarMovies(movieId),
+        _tmdbService.getMovieVideos(movieId),
+        _tmdbService.getMovieWatchProviders(movieId),
+        _tmdbService.getMovieExternalIds(movieId),
+        _tmdbService.getMovieReleaseDates(movieId),
+      ]);
+
+      final detailsData = tmdbResults[0] as Map<String, dynamic>;
+      final creditsData = tmdbResults[1] as Map<String, dynamic>;
+      final similarData = tmdbResults[2] as Map<String, dynamic>;
+      final videosData = tmdbResults[3] as List<Map<String, dynamic>>;
+      final providersData = tmdbResults[4] as Map<String, dynamic>;
+      final externalIdsData = tmdbResults[5] as Map<String, dynamic>;
+      final releaseDatesData = tmdbResults[6] as Map<String, dynamic>;
 
       final movie = MovieModel.fromJson(detailsData);
       final cast = (creditsData['cast'] as List)
@@ -66,36 +93,66 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
       final similarMovies = (similarData['results'] as List)
           .map((json) => MovieModel.fromJson(json))
           .toList();
-      final videos = List<Map<String, dynamic>>.from(videosData);
+      final videos = videosData;
       final watchProviders = providersData;
+      final imdbId = externalIdsData['imdb_id'] as String?;
 
-      // Check watchlist, favorites, and watched status
+      // Get content rating (US preferred)
+      String? contentRating;
+      final releaseDates = releaseDatesData['results'] as List?;
+      if (releaseDates != null) {
+        for (final r in releaseDates) {
+          if (r['iso_3166_1'] == 'US') {
+            final dates = r['release_dates'] as List?;
+            if (dates != null && dates.isNotEmpty) {
+              contentRating = dates.first['certification'];
+            }
+            break;
+          }
+        }
+        if (contentRating == null && releaseDates.isNotEmpty) {
+          final firstResult = releaseDates.first;
+          final dates = firstResult['release_dates'] as List?;
+          if (dates != null && dates.isNotEmpty) {
+            contentRating = dates.first['certification'];
+          }
+        }
+      }
+
+      // Get OMDB ratings (depends on imdbId from external_ids)
+      int? rottenTomatoesScore;
+      String? imdbRating;
+      if (imdbId != null) {
+        final omdbData = await _omdbService.getRatings(imdbId);
+        if (omdbData != null) {
+          rottenTomatoesScore = _omdbService.getRottenTomatoesScore(omdbData);
+          imdbRating = _omdbService.getImdbRating(omdbData);
+        }
+      }
+
+      // Parallel Supabase calls (5 calls in parallel)
+      final user = _supabaseService.currentUser;
       bool isInWatchlist = false;
       bool isFavorite = false;
       bool isWatched = false;
+      double? userRating;
+      double averageRating = 0;
 
-      final user = _supabaseService.currentUser;
       if (user != null) {
-        final dbResults = await Future.wait([
-          _supabaseService.isInWatchlist(
-            userId: user.id,
-            tmdbId: movieId,
-            mediaType: 'movie',
-          ),
-          _supabaseService.isFavorite(
-            userId: user.id,
-            tmdbId: movieId,
-            mediaType: 'movie',
-          ),
-          _supabaseService.isWatched(
-            userId: user.id,
-            tmdbId: movieId,
-            mediaType: 'movie',
-          ),
+        final supabaseResults = await Future.wait([
+          _supabaseService.isInWatchlist(userId: user.id, tmdbId: movieId, mediaType: 'movie'),
+          _supabaseService.isFavorite(userId: user.id, tmdbId: movieId, mediaType: 'movie'),
+          _supabaseService.isWatched(userId: user.id, tmdbId: movieId, mediaType: 'movie'),
+          _supabaseService.getUserRating(userId: user.id, tmdbId: movieId, mediaType: 'movie'),
+          _supabaseService.getAverageRating(tmdbId: movieId, mediaType: 'movie'),
         ]);
-        isInWatchlist = dbResults[0];
-        isFavorite = dbResults[1];
-        isWatched = dbResults[2];
+        isInWatchlist = supabaseResults[0] as bool;
+        isFavorite = supabaseResults[1] as bool;
+        isWatched = supabaseResults[2] as bool;
+        userRating = supabaseResults[3] as double?;
+        averageRating = supabaseResults[4] as double;
+      } else {
+        averageRating = await _supabaseService.getAverageRating(tmdbId: movieId, mediaType: 'movie');
       }
 
       emit(MovieDetailLoaded(
@@ -107,13 +164,19 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         isWatched: isWatched,
         videos: videos,
         watchProviders: watchProviders,
+        imdbId: imdbId,
+        contentRating: contentRating,
+        rottenTomatoesScore: rottenTomatoesScore,
+        imdbRating: imdbRating,
+        userRating: userRating,
+        averageRating: averageRating,
       ));
     } catch (e) {
       emit(MovieDetailError(e.toString()));
     }
   }
 
-  Future<void> toggleWatchlist() async {
+  Future<void> toggleWatchlist({String status = 'watchlist'}) async {
     final currentState = state;
     if (currentState is! MovieDetailLoaded) return;
 
@@ -132,6 +195,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
           userId: user.id,
           tmdbId: movieId,
           mediaType: 'movie',
+          status: status,
         );
       }
 
@@ -144,6 +208,12 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         isWatched: currentState.isWatched,
         videos: currentState.videos,
         watchProviders: currentState.watchProviders,
+        imdbId: currentState.imdbId,
+        contentRating: currentState.contentRating,
+        rottenTomatoesScore: currentState.rottenTomatoesScore,
+        imdbRating: currentState.imdbRating,
+        userRating: currentState.userRating,
+        averageRating: currentState.averageRating,
       ));
     } catch (e) {
       emit(currentState);
@@ -181,6 +251,12 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         isWatched: currentState.isWatched,
         videos: currentState.videos,
         watchProviders: currentState.watchProviders,
+        imdbId: currentState.imdbId,
+        contentRating: currentState.contentRating,
+        rottenTomatoesScore: currentState.rottenTomatoesScore,
+        imdbRating: currentState.imdbRating,
+        userRating: currentState.userRating,
+        averageRating: currentState.averageRating,
       ));
     } catch (e) {
       emit(currentState);
@@ -195,6 +271,8 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
     if (user == null) return;
 
     try {
+      final newIsWatched = !currentState.isWatched;
+      
       if (currentState.isWatched) {
         await _supabaseService.unmarkAsWatched(
           userId: user.id,
@@ -215,10 +293,28 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         similarMovies: currentState.similarMovies,
         isInWatchlist: currentState.isInWatchlist,
         isFavorite: currentState.isFavorite,
-        isWatched: !currentState.isWatched,
+        isWatched: newIsWatched,
         videos: currentState.videos,
         watchProviders: currentState.watchProviders,
+        imdbId: currentState.imdbId,
+        contentRating: currentState.contentRating,
+        rottenTomatoesScore: currentState.rottenTomatoesScore,
+        imdbRating: currentState.imdbRating,
+        userRating: currentState.userRating,
+        averageRating: currentState.averageRating,
       ));
+
+      // Auto-compute status after toggling watched (separate try/catch to avoid reverting UI)
+      try {
+        await _supabaseService.computeAndSetMovieStatus(
+          userId: user.id,
+          tmdbId: movieId,
+          isWatched: newIsWatched,
+        );
+      } catch (statusError) {
+        // Don't revert UI if status computation fails
+        print('Error computing movie status: $statusError');
+      }
     } catch (e) {
       emit(currentState);
     }

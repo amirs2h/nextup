@@ -4,29 +4,22 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/settings_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/widgets/app_background.dart';
+import '../../../../shared/services/supabase_service.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [const Color(0xFF0A0A0F), const Color(0xFF1A1A2E)]
-                : [const Color(0xFFF5F5F5), const Color(0xFFE8E8F0)],
-          ),
-        ),
-        child: SafeArea(
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
-              _buildHeader(context, isDark),
+              _buildHeader(context),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -36,19 +29,19 @@ class SettingsPage extends StatelessWidget {
                         children: [
                           const SizedBox(height: 20),
                           _buildSection(
-                            isDark: isDark,
+                            context,
                             title: state.locale.languageCode == 'fa' ? 'ظاهر' : 'Appearance',
                             children: [
-                              _buildThemeSelector(context, state, isDark),
-                              _buildLanguageSelector(context, state, isDark),
+                              _buildThemeSelector(context, state),
+                              _buildLanguageSelector(context, state),
                             ],
                           ),
                           _buildSection(
-                            isDark: isDark,
+                            context,
                             title: state.locale.languageCode == 'fa' ? 'اعلان‌ها' : 'Notifications',
                             children: [
                               _buildSwitchTile(
-                                isDark: isDark,
+                                context,
                                 icon: Icons.notifications_outlined,
                                 title: state.locale.languageCode == 'fa' ? 'اعلان‌های فشاری' : 'Push Notifications',
                                 subtitle: state.locale.languageCode == 'fa' ? 'اعلان قسمت جدید' : 'Get notified for new episodes',
@@ -56,7 +49,7 @@ class SettingsPage extends StatelessWidget {
                                 onChanged: (_) => context.read<SettingsCubit>().toggleNotifications(),
                               ),
                               _buildSwitchTile(
-                                isDark: isDark,
+                                context,
                                 icon: Icons.email_outlined,
                                 title: state.locale.languageCode == 'fa' ? 'اعلان‌های ایمیلی' : 'Email Notifications',
                                 subtitle: state.locale.languageCode == 'fa' ? 'خلاصه هفتگی' : 'Weekly watch summary',
@@ -66,50 +59,46 @@ class SettingsPage extends StatelessWidget {
                             ],
                           ),
                           _buildSection(
-                            isDark: isDark,
+                            context,
                             title: state.locale.languageCode == 'fa' ? 'حساب کاربری' : 'Account',
                             children: [
                               _buildMenuTile(
-                                isDark: isDark,
+                                context,
                                 icon: Icons.person_outline,
                                 title: state.locale.languageCode == 'fa' ? 'ویرایش پروفایل' : 'Edit Profile',
                                 onTap: () => context.push('/edit-profile'),
                               ),
                               _buildMenuTile(
-                                isDark: isDark,
+                                context,
                                 icon: Icons.lock_outline,
                                 title: state.locale.languageCode == 'fa' ? 'تغییر رمز عبور' : 'Change Password',
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(state.locale.languageCode == 'fa' ? 'بزودی!' : 'Coming soon!'), backgroundColor: const Color(0xFF6C63FF), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                                  );
-                                },
+                                onTap: () => _showChangePasswordDialog(context, state.locale.languageCode == 'fa'),
                               ),
                               _buildMenuTile(
-                                isDark: isDark,
+                                context,
                                 icon: Icons.delete_outline,
                                 title: state.locale.languageCode == 'fa' ? 'حذف حساب' : 'Delete Account',
-                                titleColor: const Color(0xFFFF4757),
+                                titleColor: AppColors.error,
                                 onTap: () => _showDeleteDialog(context, state.locale.languageCode == 'fa'),
                               ),
                             ],
                           ),
                           _buildSection(
-                            isDark: isDark,
+                            context,
                             title: state.locale.languageCode == 'fa' ? 'درباره' : 'About',
                             children: [
-                              _buildInfoTile(isDark: isDark, icon: Icons.info_outline, title: state.locale.languageCode == 'fa' ? 'نسخه' : 'Version', value: '1.0.0'),
+                              _buildInfoTile(context, icon: Icons.info_outline, title: state.locale.languageCode == 'fa' ? 'نسخه' : 'Version', value: '1.0.0'),
                               _buildMenuTile(
-                                isDark: isDark,
+                                context,
                                 icon: Icons.description_outlined,
                                 title: state.locale.languageCode == 'fa' ? 'شرایط استفاده' : 'Terms of Service',
-                                onTap: () {},
+                                onTap: () => _showInfoDialog(context, state.locale.languageCode == 'fa' ? 'شرایط استفاده' : 'Terms of Service', state.locale.languageCode == 'fa' ? 'این برنامه تحت قوانین جمهوری اسلامی ایران فعالیت می‌کند.' : 'This application operates under applicable laws.'),
                               ),
                               _buildMenuTile(
-                                isDark: isDark,
+                                context,
                                 icon: Icons.privacy_tip_outlined,
                                 title: state.locale.languageCode == 'fa' ? 'سیاست حریم خصوصی' : 'Privacy Policy',
-                                onTap: () {},
+                                onTap: () => _showInfoDialog(context, state.locale.languageCode == 'fa' ? 'سیاست حریم خصوصی' : 'Privacy Policy', state.locale.languageCode == 'fa' ? 'ما به حریم خصوصی شما احترام می‌گذاریم.' : 'We respect your privacy.'),
                               ),
                             ],
                           ),
@@ -129,96 +118,200 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
             child: Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
-                border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08)),
+                color: AppColors.cardBg(context),
+                border: Border.all(color: AppColors.border(context)),
               ),
-              child: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 20),
             ),
           ),
           const SizedBox(width: 16),
-          BlocBuilder<SettingsCubit, SettingsState>(
-            builder: (context, state) {
-              return Text(
-                state.locale.languageCode == 'fa' ? 'تنظیمات' : 'Settings',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
-              );
-            },
-          ),
+          Text('Settings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
   }
 
-  Widget _buildSection({required bool isDark, required String title, required List<Widget> children}) {
+  Widget _buildSection(BuildContext context, {required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 24),
-        Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5))),
-        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary(context))),
+        ),
         GlassContainer(
           padding: const EdgeInsets.all(4),
           borderRadius: BorderRadius.circular(16),
           child: Column(children: children),
         ),
+        const SizedBox(height: 20),
       ],
     );
   }
 
-  Widget _buildThemeSelector(BuildContext context, SettingsState state, bool isDark) {
-    String themeName = state.locale.languageCode == 'fa' ? 'تاریک' : 'Dark';
-    if (state.themeMode == ThemeMode.light) themeName = state.locale.languageCode == 'fa' ? 'روشن' : 'Light';
-    if (state.themeMode == ThemeMode.system) themeName = state.locale.languageCode == 'fa' ? 'سیستم' : 'System';
-
+  Widget _buildThemeSelector(BuildContext context, SettingsState state) {
     return ListTile(
-      leading: Icon(Icons.dark_mode_outlined, color: isDark ? Colors.white70 : Colors.black54),
-      title: Text(state.locale.languageCode == 'fa' ? 'پوسته' : 'Theme', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
-      subtitle: Text(themeName, style: TextStyle(color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5))),
-      trailing: Icon(Icons.chevron_right, color: isDark ? Colors.white54 : Colors.black38),
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-          builder: (modalContext) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.locale.languageCode == 'fa' ? 'انتخاب پوسته' : 'Choose Theme',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
-                ),
-                const SizedBox(height: 20),
-                _buildThemeOption(context, state.locale.languageCode == 'fa' ? 'تاریک' : 'Dark', Icons.dark_mode, ThemeMode.dark, state.themeMode, isDark),
-                _buildThemeOption(context, state.locale.languageCode == 'fa' ? 'روشن' : 'Light', Icons.light_mode, ThemeMode.light, state.themeMode, isDark),
-                _buildThemeOption(context, state.locale.languageCode == 'fa' ? 'سیستم' : 'System', Icons.settings_brightness, ThemeMode.system, state.themeMode, isDark),
-              ],
-            ),
-          ),
-        );
-      },
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(color: AppColors.electricPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        child: const Icon(Icons.palette_outlined, color: AppColors.electricPurple, size: 20),
+      ),
+      title: Text(state.locale.languageCode == 'fa' ? 'تم' : 'Theme', style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+      subtitle: Text(
+        state.themeMode == ThemeMode.dark ? 'Dark' : state.themeMode == ThemeMode.light ? 'Light' : 'System',
+        style: TextStyle(color: AppColors.textMuted(context), fontSize: 13),
+      ),
+      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context)),
+      onTap: () => _showThemeBottomSheet(context, state),
     );
   }
 
-  Widget _buildThemeOption(BuildContext context, String title, IconData icon, ThemeMode mode, ThemeMode current, bool isDark) {
-    final isSelected = mode == current;
+  Widget _buildLanguageSelector(BuildContext context, SettingsState state) {
     return ListTile(
-      leading: Icon(icon, color: isSelected ? const Color(0xFFE50914) : (isDark ? Colors.white70 : Colors.black54)),
-      title: Text(title, style: TextStyle(color: isSelected ? const Color(0xFFE50914) : (isDark ? Colors.white : Colors.black), fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-      trailing: isSelected ? const Icon(Icons.check, color: Color(0xFFE50914)) : null,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(color: AppColors.neonBlue.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        child: const Icon(Icons.language_rounded, color: AppColors.neonBlue, size: 20),
+      ),
+      title: Text(state.locale.languageCode == 'fa' ? 'زبان' : 'Language', style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+      subtitle: Text(
+        state.locale.languageCode == 'fa' ? 'فارسی' : 'English',
+        style: TextStyle(color: AppColors.textMuted(context), fontSize: 13),
+      ),
+      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context)),
+      onTap: () => _showLanguageBottomSheet(context, state),
+    );
+  }
+
+  Widget _buildSwitchTile(BuildContext context, {required IconData icon, required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: AppColors.accent, size: 20),
+      ),
+      title: Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+      subtitle: Text(subtitle, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+        activeColor: AppColors.electricPurple,
+      ),
+    );
+  }
+
+  Widget _buildMenuTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap, Color? titleColor}) {
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(color: AppColors.cardBg(context), borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: titleColor ?? AppColors.icon(context), size: 20),
+      ),
+      title: Text(title, style: TextStyle(color: titleColor ?? AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context)),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildInfoTile(BuildContext context, {required IconData icon, required String title, required String value}) {
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(color: AppColors.cardBg(context), borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: AppColors.icon(context), size: 20),
+      ),
+      title: Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+      trailing: Text(value, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+    );
+  }
+
+  Widget _buildSignOutButton(BuildContext context, bool isPersian) {
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: AppColors.surface(context),
+            title: Text(isPersian ? 'خروج' : 'Sign Out', style: TextStyle(color: AppColors.text(context))),
+            content: Text(isPersian ? 'آیا مطمئن هستید؟' : 'Are you sure?', style: TextStyle(color: AppColors.textSecondary(context))),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(isPersian ? 'لغو' : 'Cancel')),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  context.read<AuthCubit>().signOut();
+                  context.go('/login');
+                },
+                child: Text(isPersian ? 'خروج' : 'Sign Out', style: const TextStyle(color: AppColors.error)),
+              ),
+            ],
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: AppColors.error.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.error.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+            const SizedBox(width: 8),
+            Text(isPersian ? 'خروج از حساب' : 'Sign Out', style: const TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showThemeBottomSheet(BuildContext context, SettingsState state) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(state.locale.languageCode == 'fa' ? 'انتخاب تم' : 'Select Theme', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            const SizedBox(height: 16),
+            _buildThemeOption(context, state, ThemeMode.dark, Icons.dark_mode_rounded, 'Dark'),
+            _buildThemeOption(context, state, ThemeMode.light, Icons.light_mode_rounded, 'Light'),
+            _buildThemeOption(context, state, ThemeMode.system, Icons.phone_android_rounded, 'System'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(BuildContext context, SettingsState state, ThemeMode mode, IconData icon, String label) {
+    final isSelected = state.themeMode == mode;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? AppColors.electricPurple : AppColors.icon(context)),
+      title: Text(label, style: TextStyle(color: isSelected ? AppColors.electricPurple : AppColors.text(context), fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+      trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.electricPurple) : null,
       onTap: () {
         context.read<SettingsCubit>().setThemeMode(mode);
         Navigator.pop(context);
@@ -226,128 +319,119 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLanguageSelector(BuildContext context, SettingsState state, bool isDark) {
-    String langName = state.locale.languageCode == 'fa' ? 'فارسی' : 'English';
-
-    return ListTile(
-      leading: Icon(Icons.language, color: isDark ? Colors.white70 : Colors.black54),
-      title: Text(state.locale.languageCode == 'fa' ? 'زبان' : 'Language', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
-      subtitle: Text(langName, style: TextStyle(color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5))),
-      trailing: Icon(Icons.chevron_right, color: isDark ? Colors.white54 : Colors.black38),
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-          builder: (modalContext) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.locale.languageCode == 'fa' ? 'انتخاب زبان' : 'Choose Language',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
-                ),
-                const SizedBox(height: 20),
-                _buildLanguageOption(context, 'English', 'en', state.locale, isDark),
-                _buildLanguageOption(context, 'فارسی', 'fa', state.locale, isDark),
-              ],
-            ),
-          ),
-        );
-      },
+  void _showLanguageBottomSheet(BuildContext context, SettingsState state) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(state.locale.languageCode == 'fa' ? 'انتخاب زبان' : 'Select Language', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            const SizedBox(height: 16),
+            _buildLanguageOption(context, state, const Locale('en'), 'English', '🇺🇸'),
+            _buildLanguageOption(context, state, const Locale('fa'), 'فارسی', '🇮🇷'),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildLanguageOption(BuildContext context, String title, String code, Locale current, bool isDark) {
-    final isSelected = code == current.languageCode;
+  Widget _buildLanguageOption(BuildContext context, SettingsState state, Locale locale, String label, String flag) {
+    final isSelected = state.locale == locale;
     return ListTile(
-      title: Text(title, style: TextStyle(color: isSelected ? const Color(0xFFE50914) : (isDark ? Colors.white : Colors.black), fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-      trailing: isSelected ? const Icon(Icons.check, color: Color(0xFFE50914)) : null,
+      leading: Text(flag, style: const TextStyle(fontSize: 24)),
+      title: Text(label, style: TextStyle(color: isSelected ? AppColors.electricPurple : AppColors.text(context), fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+      trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.electricPurple) : null,
       onTap: () {
-        context.read<SettingsCubit>().setLocale(Locale(code));
+        context.read<SettingsCubit>().setLocale(locale);
         Navigator.pop(context);
       },
     );
   }
 
-  Widget _buildSwitchTile({
-    required bool isDark,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: isDark ? Colors.white70 : Colors.black54),
-      title: Text(title, style: TextStyle(color: isDark ? Colors.white : Colors.black)),
-      subtitle: Text(subtitle, style: TextStyle(color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5))),
-      value: value,
-      onChanged: onChanged,
-      activeColor: const Color(0xFFE50914),
-    );
-  }
+  void _showChangePasswordDialog(BuildContext context, bool isPersian) {
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
-  Widget _buildMenuTile({
-    required bool isDark,
-    required IconData icon,
-    required String title,
-    Color? titleColor,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: titleColor ?? (isDark ? Colors.white70 : Colors.black54)),
-      title: Text(title, style: TextStyle(color: titleColor ?? (isDark ? Colors.white : Colors.black))),
-      trailing: Icon(Icons.chevron_right, color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
-      onTap: onTap,
-    );
-  }
-
-  Widget _buildInfoTile({required bool isDark, required IconData icon, required String title, required String value}) {
-    return ListTile(
-      leading: Icon(icon, color: isDark ? Colors.white70 : Colors.black54),
-      title: Text(title, style: TextStyle(color: isDark ? Colors.white : Colors.black)),
-      trailing: Text(value, style: TextStyle(color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5))),
-    );
-  }
-
-  Widget _buildSignOutButton(BuildContext context, bool isPersian) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      borderRadius: BorderRadius.circular(16),
-      borderColor: const Color(0xFFFF4757).withOpacity(0.3),
-      child: InkWell(
-        onTap: () {
-          showDialog(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              backgroundColor: const Color(0xFF1A1A2E),
-              title: Text(isPersian ? 'خروج' : 'Sign Out', style: const TextStyle(color: Colors.white)),
-              content: Text(isPersian ? 'آیا مطمئن هستید؟' : 'Are you sure you want to sign out?', style: const TextStyle(color: Colors.white70)),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(isPersian ? 'لغو' : 'Cancel')),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    context.read<AuthCubit>().signOut();
-                    context.go('/login');
-                  },
-                  child: Text(isPersian ? 'خروج' : 'Sign Out', style: const TextStyle(color: Color(0xFFFF4757))),
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(isPersian ? 'تغییر رمز عبور' : 'Change Password', style: TextStyle(color: AppColors.text(context))),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: newPasswordController,
+                obscureText: true,
+                style: TextStyle(color: AppColors.text(context)),
+                decoration: InputDecoration(
+                  hintText: isPersian ? 'رمز عبور جدید' : 'New Password',
+                  hintStyle: TextStyle(color: AppColors.textMuted(context)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
                 ),
-              ],
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.logout, color: Color(0xFFFF4757), size: 22),
-            const SizedBox(width: 8),
-            Text(isPersian ? 'خروج از حساب' : 'Sign Out', style: const TextStyle(color: Color(0xFFFF4757), fontSize: 16, fontWeight: FontWeight.w600)),
-          ],
+                validator: (value) {
+                  if (value == null || value.isEmpty) return isPersian ? 'رمز عبور را وارد کنید' : 'Please enter password';
+                  if (value.length < 8) return isPersian ? 'حداقل ۸ کاراکتر' : 'Minimum 8 characters';
+                  if (!RegExp(r'[A-Z]').hasMatch(value)) return isPersian ? 'باید حرف بزرگ داشته باشد' : 'Must contain an uppercase letter';
+                  if (!RegExp(r'[0-9]').hasMatch(value)) return isPersian ? 'باید عدد داشته باشد' : 'Must contain a number';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                style: TextStyle(color: AppColors.text(context)),
+                decoration: InputDecoration(
+                  hintText: isPersian ? 'تکرار رمز عبور' : 'Confirm Password',
+                  hintStyle: TextStyle(color: AppColors.textMuted(context)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return isPersian ? 'تکرار رمز عبور را وارد کنید' : 'Please confirm password';
+                  if (value != newPasswordController.text) return isPersian ? 'رمز عبور مطابقت ندارد' : 'Passwords do not match';
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(isPersian ? 'لغو' : 'Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(dialogContext);
+                try {
+                  await context.read<SupabaseService>().updatePassword(newPasswordController.text);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isPersian ? 'رمز عبور تغییر کرد' : 'Password changed'), backgroundColor: AppColors.success),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isPersian ? 'خطا در تغییر رمز عبور' : 'Failed to change password'), backgroundColor: AppColors.error),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.electricPurple),
+            child: Text(isPersian ? 'تغییر' : 'Change'),
+          ),
+        ],
       ),
     );
   }
@@ -355,19 +439,55 @@ class SettingsPage extends StatelessWidget {
   void _showDeleteDialog(BuildContext context, bool isPersian) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: Text(isPersian ? 'حذف حساب' : 'Delete Account', style: const TextStyle(color: Colors.white)),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(isPersian ? 'حذف حساب' : 'Delete Account', style: const TextStyle(color: AppColors.error)),
         content: Text(
           isPersian ? 'آیا مطمئن هستید؟ این عمل غیرقابل بازگشت است.' : 'Are you sure you want to delete your account? This action cannot be undone.',
-          style: const TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppColors.textSecondary(context)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(isPersian ? 'لغو' : 'Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(isPersian ? 'حذف' : 'Delete', style: const TextStyle(color: Color(0xFFFF4757))),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(isPersian ? 'لغو' : 'Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                final supabase = context.read<SupabaseService>();
+                final user = supabase.currentUser;
+                if (user != null) {
+                  await supabase.deleteAccount(user.id);
+                  if (context.mounted) {
+                    context.read<AuthCubit>().signOut();
+                    context.go('/login');
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(isPersian ? 'خطا در حذف حساب' : 'Failed to delete account'), backgroundColor: AppColors.error),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(isPersian ? 'حذف' : 'Delete'),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showInfoDialog(BuildContext context, String title, String content) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: TextStyle(color: AppColors.text(context))),
+        content: Text(content, style: TextStyle(color: AppColors.textSecondary(context))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('OK')),
         ],
       ),
     );

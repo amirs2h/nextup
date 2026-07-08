@@ -24,12 +24,15 @@ class _ActivityPageState extends State<ActivityPage> {
   @override
   Widget build(BuildContext context) {
     return AppBackground(
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(child: _buildContent(context)),
-          ],
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(context),
+              Expanded(child: _buildContent(context)),
+            ],
+          ),
         ),
       ),
     );
@@ -64,7 +67,7 @@ class _ActivityPageState extends State<ActivityPage> {
     return BlocBuilder<ActivityCubit, ActivityState>(
       builder: (context, state) {
         if (state is ActivityLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is ActivityError) {
@@ -72,9 +75,14 @@ class _ActivityPageState extends State<ActivityPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.read<ActivityCubit>().loadActivity(),
+                  child: const Text('Retry'),
+                ),
               ],
             ),
           );
@@ -96,13 +104,18 @@ class _ActivityPageState extends State<ActivityPage> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: state.activities.length,
-            itemBuilder: (context, index) {
-              final activity = state.activities[index];
-              return _buildActivityCard(context, activity);
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<ActivityCubit>().loadActivity();
             },
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: state.activities.length,
+              itemBuilder: (context, index) {
+                final activity = state.activities[index];
+                return _buildActivityCard(context, activity);
+              },
+            ),
           );
         }
 
@@ -113,11 +126,13 @@ class _ActivityPageState extends State<ActivityPage> {
 
   Widget _buildActivityCard(BuildContext context, Map<String, dynamic> activity) {
     final username = activity['username'] ?? 'User';
+    final avatarUrl = activity['avatar_url'];
     final tmdbId = activity['tmdb_id'];
     final mediaType = activity['media_type'] ?? 'tv';
     final seasonNumber = activity['season_number'];
     final episodeNumber = activity['episode_number'];
     final watchedAt = activity['watched_at'] != null ? DateTime.parse(activity['watched_at']) : DateTime.now();
+    final title = activity['title'] ?? '';
 
     String action;
     IconData icon;
@@ -127,16 +142,16 @@ class _ActivityPageState extends State<ActivityPage> {
       if (seasonNumber != null && episodeNumber != null) {
         action = 'watched S${seasonNumber}E${episodeNumber}';
         icon = Icons.play_circle;
-        iconColor = const Color(0xFF00FF88);
+        iconColor = AppColors.success;
       } else {
         action = 'started watching';
         icon = Icons.tv;
-        iconColor = const Color(0xFF6C63FF);
+        iconColor = AppColors.electricPurple;
       }
     } else {
       action = 'watched';
       icon = Icons.movie;
-      iconColor = const Color(0xFFE50914);
+      iconColor = AppColors.primary;
     }
 
     return Padding(
@@ -145,14 +160,23 @@ class _ActivityPageState extends State<ActivityPage> {
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          onTap: () => context.push(mediaType == 'tv' ? '/show/$tmdbId' : '/movie/$tmdbId'),
+          onTap: () {
+            if (mediaType == 'tv' && seasonNumber != null && episodeNumber != null) {
+              context.push('/show/$tmdbId/season/$seasonNumber/episode/$episodeNumber');
+            } else {
+              context.push(mediaType == 'tv' ? '/show/$tmdbId' : '/movie/$tmdbId');
+            }
+          },
           borderRadius: BorderRadius.circular(12),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 20,
                 backgroundColor: AppColors.cardBg(context),
-                child: Text(username[0].toUpperCase(), style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold)),
+                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                child: avatarUrl == null 
+                    ? Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold))
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -168,6 +192,10 @@ class _ActivityPageState extends State<ActivityPage> {
                         ],
                       ),
                     ),
+                    if (title.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
                     const SizedBox(height: 4),
                     Text(timeago.format(watchedAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                   ],
@@ -189,3 +217,17 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

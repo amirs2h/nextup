@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
@@ -23,6 +24,7 @@ class NotificationsError extends NotificationsState {
 // Cubit
 class NotificationsCubit extends Cubit<NotificationsState> {
   final SupabaseService _supabaseService;
+  RealtimeChannel? _channel;
 
   NotificationsCubit(this._supabaseService) : super(NotificationsInitial());
 
@@ -41,6 +43,38 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     } catch (e) {
       emit(NotificationsError(e.toString()));
     }
+  }
+
+  void subscribeToRealtime() {
+    final user = _supabaseService.currentUser;
+    if (user == null) return;
+
+    // Unsubscribe from previous channel if exists
+    _channel?.unsubscribe();
+
+    // Subscribe to notifications table changes
+    _channel = _supabaseService.client
+        .channel('notifications:${user.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            // Reload notifications when new one arrives
+            loadNotifications();
+          },
+        )
+        .subscribe();
+  }
+
+  void unsubscribeFromRealtime() {
+    _channel?.unsubscribe();
+    _channel = null;
   }
 
   Future<void> markAsRead(String notificationId) async {
@@ -62,5 +96,11 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     } catch (e) {
       // Handle error
     }
+  }
+
+  @override
+  Future<void> close() {
+    unsubscribeFromRealtime();
+    return super.close();
   }
 }

@@ -18,6 +18,11 @@ class AppTheme {
         onSecondary: Colors.black,
         onSurface: AppColors.darkText,
       ),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AppColors.primary,
+        selectionColor: AppColors.primary,
+        selectionHandleColor: AppColors.primary,
+      ),
       textTheme: GoogleFonts.poppinsTextTheme(
         ThemeData.dark().textTheme.copyWith(
           headlineLarge: const TextStyle(
@@ -113,18 +118,6 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.darkDivider),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error),
-        ),
         hintStyle: const TextStyle(color: AppColors.darkTextSecondary),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -155,6 +148,11 @@ class AppTheme {
         onPrimary: Colors.white,
         onSecondary: Colors.black,
         onSurface: AppColors.lightText,
+      ),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AppColors.primary,
+        selectionColor: AppColors.primary,
+        selectionHandleColor: AppColors.primary,
       ),
       textTheme: GoogleFonts.poppinsTextTheme(
         ThemeData.light().textTheme.copyWith(
@@ -251,18 +249,6 @@ class AppTheme {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.lightDivider),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error),
         ),
         hintStyle: const TextStyle(color: AppColors.lightTextSecondary),
       ),

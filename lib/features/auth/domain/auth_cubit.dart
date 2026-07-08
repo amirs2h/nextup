@@ -87,6 +87,17 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    emit(AuthLoading());
+    try {
+      await _supabaseService.signInWithGoogle();
+      // OAuth redirects, so we don't need to handle the response here
+      // The auth state listener will pick up the session
+    } catch (e) {
+      emit(AuthError('Google sign-in failed. Please try again.'));
+    }
+  }
+
   Future<void> signUp({
     required String email,
     required String password,
@@ -148,7 +159,9 @@ class AuthCubit extends Cubit<AuthState> {
       await _supabaseService.updateProfile(user.id, data);
       await _loadProfile(user);
     } catch (e) {
-      emit(AuthError(e.toString()));
+      // Don't emit AuthError - keep the authenticated state
+      // Just re-load the profile to restore the current state
+      await _loadProfile(user);
     }
   }
 

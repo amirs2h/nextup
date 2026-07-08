@@ -6,11 +6,14 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../shared/services/tmdb_service.dart';
 import '../../../../shared/services/supabase_service.dart';
+import '../../../../shared/services/omdb_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/modern_widgets.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/trailer_widget.dart';
+import '../../../../shared/widgets/external_ratings_widget.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/movie_detail_cubit.dart';
 
 class MovieDetailPage extends StatelessWidget {
@@ -24,6 +27,7 @@ class MovieDetailPage extends StatelessWidget {
       create: (context) => MovieDetailCubit(
         context.read<TmdbService>(),
         context.read<SupabaseService>(),
+        context.read<OmdbService>(),
         movieId,
       ),
       child: _MovieDetailView(movieId: movieId),
@@ -31,25 +35,38 @@ class MovieDetailPage extends StatelessWidget {
   }
 }
 
-class _MovieDetailView extends StatelessWidget {
+class _MovieDetailView extends StatefulWidget {
   final int movieId;
   const _MovieDetailView({required this.movieId});
+
+  @override
+  State<_MovieDetailView> createState() => _MovieDetailViewState();
+}
+
+class _MovieDetailViewState extends State<_MovieDetailView> {
+  int _voteRefreshKey = 0;
+
+  void _refreshVotes() {
+    setState(() {
+      _voteRefreshKey++;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<MovieDetailCubit, MovieDetailState>(
       builder: (context, state) {
         if (state is MovieDetailLoading) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFE50914))));
+          return AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
         }
 
         if (state is MovieDetailError) {
-          return Scaffold(
-            body: Center(
+          return AppBackground(
+            child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                  const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                   const SizedBox(height: 16),
                   Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                   const SizedBox(height: 16),
@@ -63,7 +80,7 @@ class _MovieDetailView extends StatelessWidget {
           );
         }
 
-        if (state is! MovieDetailLoaded) return const Scaffold(body: SizedBox());
+        if (state is! MovieDetailLoaded) return AppBackground(child: const SizedBox());
 
         return Scaffold(
           body: AppBackground(
@@ -83,17 +100,17 @@ class _MovieDetailView extends StatelessWidget {
                             imageUrl: state.movie.backdropUrl!,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Shimmer.fromColors(
-                              baseColor: Colors.grey[900]!,
-                              highlightColor: Colors.grey[800]!,
-                              child: Container(color: Colors.grey[900]),
+                              baseColor: AppColors.cardBg(context),
+                              highlightColor: AppColors.cardBgStrong(context),
+                              child: Container(color: AppColors.cardBg(context)),
                             ),
                             errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[900],
-                              child: const Center(child: Icon(Icons.movie, size: 80, color: Colors.white24)),
+                              color: AppColors.cardBg(context),
+                              child: Center(child: Icon(Icons.movie, size: 80, color: AppColors.iconMuted(context))),
                             ),
                           )
                         else
-                          Container(color: Colors.grey[900], child: const Center(child: Icon(Icons.movie, size: 80, color: Colors.white24))),
+                          Container(color: AppColors.cardBg(context), child: Center(child: Icon(Icons.movie, size: 80, color: AppColors.iconMuted(context)))),
                         DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -121,8 +138,8 @@ class _MovieDetailView extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: state.movie.posterUrl != null
-                                      ? CachedNetworkImage(imageUrl: state.movie.posterUrl!, fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800], child: const Icon(Icons.movie, color: Colors.white24)))
-                                      : Container(color: Colors.grey[800], child: const Icon(Icons.movie, color: Colors.white24)),
+                                      ? CachedNetworkImage(imageUrl: state.movie.posterUrl!, fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.iconMuted(context))))
+                                      : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.iconMuted(context))),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -134,16 +151,45 @@ class _MovieDetailView extends StatelessWidget {
                                     const SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        RatingBadge(rating: state.movie.voteAverage, size: 0.9),
+                                        RatingBadge(rating: state.movie.voteAverage),
                                         const SizedBox(width: 8),
                                         if (state.movie.releaseDate != null && state.movie.releaseDate!.length >= 4)
-                                          Text(state.movie.releaseDate!.substring(0, 4), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14)),
+                                          Text(state.movie.releaseDate!.substring(0, 4), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                                         if (state.movie.runtime != null) ...[
                                           const SizedBox(width: 8),
-                                          Text(state.movie.runtimeFormatted, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14)),
+                                          Text(state.movie.runtimeFormatted, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                                         ],
                                       ],
                                     ),
+                                    const SizedBox(height: 8),
+                                    ExternalRatingsWidget(
+                                      imdbId: state.imdbId,
+                                      rottenTomatoesScore: state.rottenTomatoesScore,
+                                      imdbRating: state.imdbRating,
+                                      contentRating: state.contentRating,
+                                      voteCount: state.movie.voteCount,
+                                    ),
+                                    // NextUp User Ratings
+                                    if (state.averageRating > 0 || state.userRating != null) ...[
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          if (state.averageRating > 0) ...[
+                                            Icon(Icons.people, color: AppColors.textMuted(context), size: 14),
+                                            const SizedBox(width: 4),
+                                            Text('NextUp: ${state.averageRating.toStringAsFixed(1)}', 
+                                              style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ],
+                                          if (state.userRating != null) ...[
+                                            const SizedBox(width: 12),
+                                            Icon(Icons.star, color: const Color(0xFFFFD93D), size: 14),
+                                            const SizedBox(width: 4),
+                                            Text('You: ${state.userRating!.toStringAsFixed(1)}', 
+                                              style: TextStyle(color: const Color(0xFFFFD93D), fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -157,6 +203,10 @@ class _MovieDetailView extends StatelessWidget {
                     IconButton(
                       icon: Icon(state.isFavorite ? Icons.favorite : Icons.favorite_outline, color: state.isFavorite ? const Color(0xFFE50914) : AppColors.text(context)),
                       onPressed: () => context.read<MovieDetailCubit>().toggleFavorite(),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.playlist_add, color: AppColors.text(context)),
+                      onPressed: () => _showAddToListDialog(context, widget.movieId, 'movie', state.movie.title),
                     ),
                     IconButton(
                       icon: Icon(Icons.share, color: AppColors.text(context)),
@@ -197,7 +247,7 @@ class _MovieDetailView extends StatelessWidget {
                             text: 'Comments',
                             icon: Icons.chat_bubble_outline,
                             gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-                            onPressed: () => context.push('/comments', extra: {'tmdbId': movieId, 'mediaType': 'movie'}),
+                            onPressed: () => context.push('/comments', extra: {'tmdbId': widget.movieId, 'mediaType': 'movie'}),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -206,7 +256,7 @@ class _MovieDetailView extends StatelessWidget {
                           padding: const EdgeInsets.all(16),
                           borderRadius: BorderRadius.circular(16),
                           child: InkWell(
-                            onTap: () => _showRatingDialog(context, movieId, 'movie', state.movie.title),
+                            onTap: () => _showRatingDialog(context, widget.movieId, 'movie', state.movie.title),
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -228,6 +278,44 @@ class _MovieDetailView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Tagline
+                        if (state.movie.tagline != null && state.movie.tagline!.isNotEmpty) ...[
+                          Text(state.movie.tagline!, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14, fontStyle: FontStyle.italic)),
+                          const SizedBox(height: 12),
+                        ],
+                        // Genres
+                        if (state.movie.genres != null && state.movie.genres!.isNotEmpty) ...[
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: state.movie.genres!.map((genre) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBg(context),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.border(context)),
+                                ),
+                                child: Text(genre['name'] ?? '', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        // Financial Info
+                        if (state.movie.budget != null && state.movie.budget! > 0 || state.movie.revenue != null && state.movie.revenue! > 0) ...[
+                          Row(
+                            children: [
+                              if (state.movie.budget != null && state.movie.budget! > 0) ...[
+                                _buildFinancialItem(context, 'Budget', state.movie.budgetFormatted),
+                                const SizedBox(width: 24),
+                              ],
+                              if (state.movie.revenue != null && state.movie.revenue! > 0)
+                                _buildFinancialItem(context, 'Revenue', state.movie.revenueFormatted),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         Text('Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                         const SizedBox(height: 8),
                         Text(state.movie.overview ?? 'No overview available.', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.5)),
@@ -251,19 +339,22 @@ class _MovieDetailView extends StatelessWidget {
                               itemCount: state.cast.length,
                               itemBuilder: (context, index) {
                                 final person = state.cast[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: Column(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 35,
-                                        backgroundColor: AppColors.cardBg(context),
-                                        backgroundImage: person.profileUrl != null ? CachedNetworkImageProvider(person.profileUrl!) : null,
-                                        child: person.profileUrl == null ? Icon(Icons.person, color: AppColors.textMuted(context)) : null,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      SizedBox(width: 70, child: Text(person.name, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                    ],
+                                return GestureDetector(
+                                  onTap: () => context.push('/person/${person.id}'),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: Column(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 35,
+                                          backgroundColor: AppColors.cardBg(context),
+                                          backgroundImage: person.profileUrl != null ? CachedNetworkImageProvider(person.profileUrl!) : null,
+                                          child: person.profileUrl == null ? Icon(Icons.person, color: AppColors.textMuted(context)) : null,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        SizedBox(width: 70, child: Text(person.name, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
@@ -271,6 +362,14 @@ class _MovieDetailView extends StatelessWidget {
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                // Favorite Actor Voting
+                if (state.cast.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: _buildFavoriteActorSection(context, widget.movieId, 'movie', state.cast),
                     ),
                   ),
                 if (state.videos.isNotEmpty)
@@ -361,15 +460,26 @@ class _MovieDetailView extends StatelessWidget {
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context)))),
             ElevatedButton(
               onPressed: rating > 0 ? () async {
+                final currentRating = rating;
                 final supabase = context.read<SupabaseService>();
                 final user = supabase.currentUser;
-                if (user != null) {
-                  await supabase.rateMovie(userId: user.id, tmdbId: tmdbId, rating: rating);
-                }
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Rated $rating/10'), backgroundColor: const Color(0xFF00FF88), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                );
+                try {
+                  if (user != null) {
+                    await supabase.rateMovie(userId: user.id, tmdbId: tmdbId, rating: currentRating);
+                  }
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Rated $currentRating/10'), backgroundColor: const Color(0xFF00FF88), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: const Text('Failed to save rating'), backgroundColor: const Color(0xFFFF4757), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    );
+                  }
+                }
               } : null,
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE50914), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               child: const Text('Rate'),
@@ -379,4 +489,289 @@ class _MovieDetailView extends StatelessWidget {
       ),
     );
   }
+
+  void _showAddToListDialog(BuildContext context, int tmdbId, String mediaType, String title) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.playlist_add, color: AppColors.electricPurple),
+            const SizedBox(width: 8),
+            Text('Add to List', style: TextStyle(color: AppColors.text(context))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Add "$title" to a custom list', style: TextStyle(color: AppColors.textSecondary(context))),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                context.push('/custom-lists');
+              },
+              icon: const Icon(Icons.playlist_play),
+              label: const Text('Go to My Lists'),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.electricPurple),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinancialItem(BuildContext context, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildFavoriteActorSection(BuildContext context, int tmdbId, String mediaType, List<dynamic> cast) {
+    final supabase = context.read<SupabaseService>();
+    final authState = context.read<AuthCubit>().state;
+    final userId = authState is AuthAuthenticated ? authState.user.id : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Who's Your Favorite?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        const SizedBox(height: 4),
+        Text('Vote for your favorite actor in this movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+        const SizedBox(height: 12),
+        // Show voting results if user has voted, otherwise show voting UI
+        FutureBuilder<Map<String, dynamic>?>(
+          key: ValueKey(_voteRefreshKey),
+          future: userId != null ? supabase.getUserFavoriteActorVote(userId: userId, tmdbId: tmdbId, mediaType: mediaType) : null,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator(color: AppColors.primary));
+            }
+            if (snapshot.hasError) {
+              return SizedBox();
+            }
+            final userVote = snapshot.data;
+            if (userVote != null) {
+              // User has voted - show results
+              return _buildVotingResults(context, tmdbId, mediaType, userVote, cast);
+            }
+            // User hasn't voted - show voting UI
+            return _buildVotingUI(context, tmdbId, mediaType, cast, userId);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVotingUI(BuildContext context, int tmdbId, String mediaType, List<dynamic> cast, String? userId) {
+    return SizedBox(
+      height: 140,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: cast.length.clamp(0, 10),
+        itemBuilder: (context, index) {
+          final person = cast[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () async {
+                if (userId == null) return;
+                try {
+                  final supabase = context.read<SupabaseService>();
+                  await supabase.voteFavoriteActor(
+                    userId: userId,
+                    tmdbId: tmdbId,
+                    mediaType: mediaType,
+                    personId: person.id,
+                    characterName: person.character,
+                  );
+                  if (context.mounted) {
+                    _refreshVotes();
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to vote. Please try again.'), backgroundColor: AppColors.error),
+                    );
+                  }
+                }
+              },
+              child: Column(
+                children: [
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border(context), width: 2),
+                      image: person.profileUrl != null
+                          ? DecorationImage(image: CachedNetworkImageProvider(person.profileUrl!), fit: BoxFit.cover)
+                          : null,
+                    ),
+                    child: person.profileUrl == null
+                        ? Icon(Icons.person, color: AppColors.textMuted(context), size: 30)
+                        : null,
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      person.name,
+                      style: TextStyle(color: AppColors.text(context), fontSize: 11, fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.electricPurple.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text('Vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildVotingResults(BuildContext context, int tmdbId, String mediaType, Map<String, dynamic> userVote, List<dynamic> cast) {
+    final supabase = context.read<SupabaseService>();
+    final votedPersonId = userVote['person_id'] as int? ?? 0;
+
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: supabase.getFavoriteActorResults(tmdbId: tmdbId, mediaType: mediaType),
+      builder: (context, snapshot) {
+        final results = snapshot.data ?? [];
+        if (results.isEmpty) {
+          return const SizedBox();
+        }
+
+        return Column(
+          children: results.map((result) {
+            final personId = result['person_id'] as int? ?? 0;
+            final characterName = result['character_name'] as String? ?? 'Unknown';
+            final percentage = result['percentage'] as int? ?? 0;
+            final isUserVote = personId == votedPersonId;
+            dynamic person;
+            for (final p in cast) {
+              if (p.id == personId) { person = p; break; }
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GlassContainer(
+                padding: const EdgeInsets.all(12),
+                borderRadius: BorderRadius.circular(12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isUserVote ? AppColors.electricPurple : AppColors.border(context),
+                          width: isUserVote ? 2 : 1,
+                        ),
+                        image: person?.profileUrl != null
+                            ? DecorationImage(image: CachedNetworkImageProvider(person!.profileUrl!), fit: BoxFit.cover)
+                            : null,
+                      ),
+                      child: person?.profileUrl == null
+                          ? Icon(Icons.person, color: AppColors.textMuted(context), size: 20)
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  person?.name ?? 'Unknown',
+                                  style: TextStyle(
+                                    color: AppColors.text(context),
+                                    fontWeight: isUserVote ? FontWeight.bold : FontWeight.w500,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isUserVote)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.electricPurple.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text('Your vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10)),
+                                ),
+                            ],
+                          ),
+                          Text(characterName, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$percentage%',
+                          style: TextStyle(
+                            color: isUserVote ? AppColors.electricPurple : AppColors.text(context),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          width: 60,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: percentage / 100,
+                              backgroundColor: AppColors.cardBg(context),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                isUserVote ? AppColors.electricPurple : AppColors.primary,
+                              ),
+                              minHeight: 4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
 }
+

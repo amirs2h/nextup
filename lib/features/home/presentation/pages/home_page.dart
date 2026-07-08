@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +9,7 @@ import '../../../../shared/widgets/modern_widgets.dart';
 import '../../domain/home_cubit.dart';
 import '../../domain/recommendations_cubit.dart';
 import '../../../auth/domain/auth_cubit.dart';
+import '../../../notifications/domain/notifications_cubit.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,10 +33,11 @@ class _HomePageState extends State<HomePage> {
       child: SafeArea(
         child: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
-            return CustomScrollView(
+              return CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(child: _buildAppBar(context)),
+                SliverToBoxAdapter(child: _buildHeroSection(context, state)),
                 SliverToBoxAdapter(child: _buildSearchBar(context)),
                 // For You Section
                 SliverToBoxAdapter(child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
@@ -62,7 +65,7 @@ class _HomePageState extends State<HomePage> {
                   },
                 )),
                 if (state is HomeLoading)
-                  const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: Color(0xFFE50914))))
+                  const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
                 else if (state is HomeLoaded) ...[
                   SliverToBoxAdapter(child: _buildSection(
                     context: context,
@@ -124,7 +127,7 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                          const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                           const SizedBox(height: 16),
@@ -159,8 +162,8 @@ class _HomePageState extends State<HomePage> {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(colors: [Color(0xFFE50914), Color(0xFFFF3D47)]),
-                  boxShadow: [BoxShadow(color: const Color(0xFFE50914).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))],
+                  gradient: AppColors.primaryGradient,
+                  boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))],
                 ),
                 child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
               ),
@@ -187,21 +190,112 @@ class _HomePageState extends State<HomePage> {
                 child: GlassContainer(
                   padding: const EdgeInsets.all(10),
                   borderRadius: BorderRadius.circular(14),
-                  child: Stack(
-                    children: [
-                      Icon(Icons.notifications_outlined, color: AppColors.text(context), size: 24),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE50914))),
-                      ),
-                    ],
+                  child: BlocBuilder<NotificationsCubit, NotificationsState>(
+                    builder: (context, notifState) {
+                      final hasUnread = notifState is NotificationsLoaded && notifState.unreadCount > 0;
+                      return Stack(
+                        children: [
+                          Icon(Icons.notifications_outlined, color: AppColors.text(context), size: 24),
+                          if (hasUnread)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primary)),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildHeroSection(BuildContext context, HomeState state) {
+    if (state is! HomeLoaded || state.trendingShows.isEmpty) return const SizedBox();
+    final show = state.trendingShows.first;
+    
+    return GestureDetector(
+      onTap: () => context.push('/show/${show.id}'),
+      child: Container(
+        height: 200,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Backdrop image
+              if (show.backdropUrl != null)
+                CachedNetworkImage(
+                  imageUrl: show.backdropUrl!,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => Container(color: AppColors.cardBg(context)),
+                )
+              else
+                Container(color: AppColors.cardBg(context)),
+              // Glass overlay
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                  ),
+                ),
+              ),
+              // Content
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('TRENDING', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(show.name, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
+                        const SizedBox(width: 4),
+                        Text(show.voteAverage.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 12),
+                        if (show.firstAirDate != null && show.firstAirDate!.length >= 4)
+                          Text(show.firstAirDate!.substring(0, 4), style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14)),
+                        const SizedBox(width: 12),
+                        if (show.numberOfSeasons != null)
+                          Text('${show.numberOfSeasons} Seasons', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Play button
+              Positioned(
+                top: 16,
+                right: 16,
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(10),
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

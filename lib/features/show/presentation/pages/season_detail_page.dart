@@ -46,18 +46,18 @@ class _SeasonDetailView extends StatelessWidget {
     return BlocBuilder<SeasonDetailCubit, SeasonDetailState>(
       builder: (context, state) {
         if (state is SeasonDetailLoading) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFE50914))));
+          return AppBackground(child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
         }
 
         if (state is SeasonDetailError) {
-          return Scaffold(
-            body: Center(
+          return AppBackground(
+            child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                  const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                   const SizedBox(height: 16),
-                  Text(state.message, style: const TextStyle(color: Colors.white70)),
+                  Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => context.read<SeasonDetailCubit>().loadSeasonDetails(),
@@ -70,26 +70,17 @@ class _SeasonDetailView extends StatelessWidget {
         }
 
         if (state is! SeasonDetailLoaded) {
-          return const Scaffold(body: SizedBox());
+          return AppBackground(child: const SizedBox());
         }
 
-        return Scaffold(
-          body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF0A0A0F), Color(0xFF1A1A2E)],
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  _buildHeader(context, state),
-                  _buildProgress(state),
-                  Expanded(child: _buildEpisodeList(context, state)),
-                ],
-              ),
+        return AppBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(context, state),
+                _buildProgress(context, state),
+                Expanded(child: _buildEpisodeList(context, state)),
+              ],
             ),
           ),
         );
@@ -103,16 +94,11 @@ class _SeasonDetailView extends StatelessWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            onTap: () => context.pop(),
+            child: GlassContainer(
+              padding: const EdgeInsets.all(10),
+              borderRadius: BorderRadius.circular(14),
+              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 20),
             ),
           ),
           const SizedBox(width: 16),
@@ -120,8 +106,8 @@ class _SeasonDetailView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(state.season.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                Text('${state.season.episodes?.length ?? 0} episodes', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+                Text(state.season.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                Text('${state.season.episodes?.length ?? 0} episodes', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
               ],
             ),
           ),
@@ -135,7 +121,7 @@ class _SeasonDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildProgress(SeasonDetailLoaded state) {
+  Widget _buildProgress(BuildContext context, SeasonDetailLoaded state) {
     final total = state.season.episodes?.length ?? 0;
     final watched = state.watchedEpisodes.values.where((v) => v).length;
     final progress = total > 0 ? watched / total : 0.0;
@@ -147,8 +133,8 @@ class _SeasonDetailView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$watched of $total watched', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)),
-              Text('${(progress * 100).toInt()}%', style: const TextStyle(color: Color(0xFF00FF88), fontWeight: FontWeight.bold)),
+              Text('$watched of $total watched', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+              Text('${(progress * 100).toInt()}%', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -156,8 +142,8 @@ class _SeasonDetailView extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white.withOpacity(0.1),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00FF88)),
+              backgroundColor: AppColors.cardBg(context),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
               minHeight: 6,
             ),
           ),
@@ -169,7 +155,7 @@ class _SeasonDetailView extends StatelessWidget {
   Widget _buildEpisodeList(BuildContext context, SeasonDetailLoaded state) {
     final episodes = state.season.episodes;
     if (episodes == null || episodes.isEmpty) {
-      return Center(child: Text('No episodes available', style: TextStyle(color: Colors.white.withOpacity(0.5))));
+      return Center(child: Text('No episodes available', style: TextStyle(color: AppColors.textMuted(context))));
     }
 
     return ListView.builder(
@@ -184,30 +170,26 @@ class _SeasonDetailView extends StatelessWidget {
   }
 
   Widget _buildEpisodeCard(BuildContext context, EpisodeModel episode, bool isWatched) {
-    return Container(
+    return GlassContainer(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withOpacity(0.05),
-        border: Border.all(
-          color: isWatched ? const Color(0xFF00FF88).withOpacity(0.3) : Colors.white.withOpacity(0.08),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
+      padding: const EdgeInsets.all(12),
+      borderRadius: BorderRadius.circular(16),
+      borderColor: isWatched ? AppColors.success.withOpacity(0.3) : null,
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => context.push('/show/$showId/season/$seasonNumber/episode/${episode.episodeNumber}'),
+            child: Row(
               children: [
                 Container(
                   width: 120,
                   height: 68,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.white.withOpacity(0.1)),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: AppColors.cardBg(context)),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: episode.stillUrl != null
-                        ? CachedNetworkImage(imageUrl: episode.stillUrl!, fit: BoxFit.cover, errorWidget: (_, __, ___) => const Center(child: Icon(Icons.play_circle_outline, color: Colors.white24)))
-                        : const Center(child: Icon(Icons.play_circle_outline, color: Colors.white24)),
+                        ? CachedNetworkImage(imageUrl: episode.stillUrl!, fit: BoxFit.cover, errorWidget: (_, __, ___) => Center(child: Icon(Icons.play_circle_outline, color: AppColors.iconMuted(context))))
+                        : Center(child: Icon(Icons.play_circle_outline, color: AppColors.iconMuted(context))),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -217,13 +199,13 @@ class _SeasonDetailView extends StatelessWidget {
                     children: [
                       Text(
                         'E${episode.episodeNumber} • ${episode.name}',
-                        style: TextStyle(color: isWatched ? Colors.white54 : Colors.white, fontWeight: FontWeight.w500, decoration: isWatched ? TextDecoration.lineThrough : null),
+                        style: TextStyle(color: isWatched ? AppColors.textMuted(context) : AppColors.text(context), fontWeight: FontWeight.w500, fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (episode.runtime != null) ...[
                         const SizedBox(height: 4),
-                        Text('${episode.runtime} min', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                        Text('${episode.runtime} min', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
                       ],
                     ],
                   ),
@@ -236,67 +218,109 @@ class _SeasonDetailView extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isWatched ? const Color(0xFF00FF88).withOpacity(0.2) : Colors.white.withOpacity(0.08),
-                      border: Border.all(color: isWatched ? const Color(0xFF00FF88) : Colors.white.withOpacity(0.2)),
+                      color: isWatched ? AppColors.success.withOpacity(0.2) : AppColors.cardBg(context),
+                      border: Border.all(color: isWatched ? AppColors.success : AppColors.border(context)),
                     ),
-                    child: Icon(Icons.check, color: isWatched ? const Color(0xFF00FF88) : Colors.white24, size: 20),
+                    child: Icon(Icons.check, color: isWatched ? AppColors.success : AppColors.iconMuted(context), size: 20),
                   ),
                 ),
               ],
             ),
-            // Comments and Reactions for this episode
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  // Comments button
-                  GestureDetector(
-                    onTap: () => context.push('/comments', extra: {
-                      'tmdbId': showId,
-                      'mediaType': 'tv',
-                      'seasonNumber': seasonNumber,
-                      'episodeNumber': episode.episodeNumber,
-                    }),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withOpacity(0.08)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.chat_bubble_outline, color: Colors.white.withOpacity(0.5), size: 16),
-                          const SizedBox(width: 6),
-                          Text('Comments', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
-                        ],
-                      ),
+          ),
+          // Comments and Reactions
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                // TMDB Rating
+                if (episode.voteAverage > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star_rounded, color: AppColors.warning, size: 14),
+                        const SizedBox(width: 4),
+                          Text(episode.voteAverage.toStringAsFixed(1), 
+                            style: const TextStyle(color: AppColors.warning, fontSize: 11, fontWeight: FontWeight.w600)),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Reactions
-                  ...['🔥', '😂', '😭', '❤️'].map((emoji) => Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: GestureDetector(
-                      onTap: () {
-                        // TODO: Add reaction
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(emoji, style: const TextStyle(fontSize: 14)),
-                      ),
-                    ),
-                  )),
                 ],
-              ),
+                // Comments button
+                GestureDetector(
+                  onTap: () => context.push('/comments', extra: {
+                    'tmdbId': showId,
+                    'mediaType': 'tv',
+                    'seasonNumber': seasonNumber,
+                    'episodeNumber': episode.episodeNumber,
+                  }),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBg(context),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border(context)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.chat_bubble_outline, color: AppColors.textMuted(context), size: 16),
+                        const SizedBox(width: 6),
+                          Text('Comments', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Reactions
+                ...['🔥', '😂', '😭', '❤️'].map((emoji) => Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: GestureDetector(
+                    onTap: () async {
+                      final supabase = context.read<SupabaseService>();
+                      final user = supabase.currentUser;
+                      if (user != null) {
+                        await supabase.addReaction(
+                          userId: user.id,
+                          tmdbId: showId,
+                          seasonNumber: seasonNumber,
+                          episodeNumber: episode.episodeNumber,
+                          emoji: emoji,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Reacted with $emoji'),
+                              backgroundColor: AppColors.success,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(emoji, style: const TextStyle(fontSize: 14)),
+                    ),
+                  ),
+                )),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

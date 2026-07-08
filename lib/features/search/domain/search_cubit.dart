@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 import '../../../shared/services/tmdb_service.dart';
+import '../../../shared/services/supabase_service.dart';
 
 // States
 abstract class SearchState {}
@@ -13,11 +14,13 @@ class SearchLoading extends SearchState {}
 class SearchLoaded extends SearchState {
   final List<ShowModel> shows;
   final List<MovieModel> movies;
+  final List<Map<String, dynamic>> users;
   final String query;
 
   SearchLoaded({
     required this.shows,
     required this.movies,
+    required this.users,
     required this.query,
   });
 }
@@ -30,8 +33,9 @@ class SearchError extends SearchState {
 // Cubit
 class SearchCubit extends Cubit<SearchState> {
   final TmdbService _tmdbService;
+  final SupabaseService _supabaseService;
 
-  SearchCubit(this._tmdbService) : super(SearchInitial());
+  SearchCubit(this._tmdbService, this._supabaseService) : super(SearchInitial());
 
   Future<void> search(String query) async {
     if (query.trim().isEmpty) {
@@ -41,20 +45,23 @@ class SearchCubit extends Cubit<SearchState> {
 
     emit(SearchLoading());
     try {
-      final results = await Future.wait([
-        _tmdbService.searchShows(query),
-        _tmdbService.searchMovies(query),
-      ]);
+      final showsData = _tmdbService.searchShows(query);
+      final moviesData = _tmdbService.searchMovies(query);
+      final usersData = _supabaseService.searchUsers(query);
 
-      final shows = (results[0]['results'] as List)
+      final results = await Future.wait([showsData, moviesData, usersData]);
+
+      final shows = ((results[0] as Map)['results'] as List)
           .map((json) => ShowModel.fromJson(json))
           .toList();
 
-      final movies = (results[1]['results'] as List)
+      final movies = ((results[1] as Map)['results'] as List)
           .map((json) => MovieModel.fromJson(json))
           .toList();
 
-      emit(SearchLoaded(shows: shows, movies: movies, query: query));
+      final users = List<Map<String, dynamic>>.from(results[2] as List);
+
+      emit(SearchLoaded(shows: shows, movies: movies, users: users, query: query));
     } catch (e) {
       emit(SearchError(e.toString()));
     }

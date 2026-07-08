@@ -34,11 +34,13 @@ class CommentsCubit extends Cubit<CommentsState> {
   }) async {
     emit(CommentsLoading());
     try {
+      final user = _supabaseService.currentUser;
       final data = await _supabaseService.getComments(
         tmdbId: tmdbId,
         mediaType: mediaType,
         seasonNumber: seasonNumber,
         episodeNumber: episodeNumber,
+        userId: user?.id,
       );
 
       final comments = data.map((json) => CommentModel.fromJson(json)).toList();

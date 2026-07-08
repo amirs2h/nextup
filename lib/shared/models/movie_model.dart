@@ -1,3 +1,5 @@
+import '../../core/config/app_config.dart';
+
 class MovieModel {
   final int id;
   final String title;
@@ -14,6 +16,12 @@ class MovieModel {
   final String? status;
   final int? budget;
   final int? revenue;
+  final String? tagline;
+  final List<Map<String, dynamic>>? genres;
+  final List<Map<String, dynamic>>? productionCompanies;
+  final List<Map<String, dynamic>>? spokenLanguages;
+  final String? imdbId;
+  final String? homepage;
 
   MovieModel({
     required this.id,
@@ -31,6 +39,12 @@ class MovieModel {
     this.status,
     this.budget,
     this.revenue,
+    this.tagline,
+    this.genres,
+    this.productionCompanies,
+    this.spokenLanguages,
+    this.imdbId,
+    this.homepage,
   });
 
   factory MovieModel.fromJson(Map<String, dynamic> json) {
@@ -50,15 +64,21 @@ class MovieModel {
       status: json['status'],
       budget: json['budget'],
       revenue: json['revenue'],
+      tagline: json['tagline'],
+      genres: json['genres'] != null ? List<Map<String, dynamic>>.from(json['genres']) : null,
+      productionCompanies: json['production_companies'] != null ? List<Map<String, dynamic>>.from(json['production_companies']) : null,
+      spokenLanguages: json['spoken_languages'] != null ? List<Map<String, dynamic>>.from(json['spoken_languages']) : null,
+      imdbId: json['imdb_id'],
+      homepage: json['homepage'],
     );
   }
 
   String? get posterUrl => posterPath != null
-      ? 'https://image.tmdb.org/t/p/w500$posterPath'
+      ? AppConfig.getImageUrl(posterPath, size: 'w500')
       : null;
 
   String? get backdropUrl => backdropPath != null
-      ? 'https://image.tmdb.org/t/p/original$backdropPath'
+      ? AppConfig.getImageUrl(backdropPath, size: 'original')
       : null;
 
   String get runtimeFormatted {
@@ -69,5 +89,19 @@ class MovieModel {
       return '${hours}h ${minutes}m';
     }
     return '${minutes}m';
+  }
+
+  String get budgetFormatted {
+    if (budget == null || budget == 0) return 'N/A';
+    if (budget! >= 1000000) return '\$${(budget! / 1000000).toStringAsFixed(0)}M';
+    if (budget! >= 1000) return '\$${(budget! / 1000).toStringAsFixed(0)}K';
+    return '\$$budget';
+  }
+
+  String get revenueFormatted {
+    if (revenue == null || revenue == 0) return 'N/A';
+    if (revenue! >= 1000000) return '\$${(revenue! / 1000000).toStringAsFixed(0)}M';
+    if (revenue! >= 1000) return '\$${(revenue! / 1000).toStringAsFixed(0)}K';
+    return '\$$revenue';
   }
 }

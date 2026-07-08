@@ -39,20 +39,37 @@ class FavoritesCubit extends Cubit<FavoritesState> {
     try {
       final favorites = await _supabaseService.getFavorites(userId: user.id);
 
+      if (favorites.isEmpty) {
+        emit(FavoritesLoaded(shows: [], movies: []));
+        return;
+      }
+
+      // Parallel TMDB calls for all favorites
+      final futures = favorites.map((item) async {
+        try {
+          if (item['media_type'] == 'tv') {
+            final data = await _tmdbService.getShowDetails(item['tmdb_id']);
+            return {'type': 'tv', 'data': data};
+          } else {
+            final data = await _tmdbService.getMovieDetails(item['tmdb_id']);
+            return {'type': 'movie', 'data': data};
+          }
+        } catch (e) {
+          return null;
+        }
+      }).toList();
+
+      final results = await Future.wait(futures);
+
       List<ShowModel> shows = [];
       List<MovieModel> movies = [];
 
-      for (final item in favorites) {
-        try {
-          if (item['media_type'] == 'tv') {
-            final showData = await _tmdbService.getShowDetails(item['tmdb_id']);
-            shows.add(ShowModel.fromJson(showData));
-          } else if (item['media_type'] == 'movie') {
-            final movieData = await _tmdbService.getMovieDetails(item['tmdb_id']);
-            movies.add(MovieModel.fromJson(movieData));
-          }
-        } catch (e) {
-          continue;
+      for (final result in results) {
+        if (result == null) continue;
+        if (result['type'] == 'tv') {
+          shows.add(ShowModel.fromJson(result['data'] as Map<String, dynamic>));
+        } else {
+          movies.add(MovieModel.fromJson(result['data'] as Map<String, dynamic>));
         }
       }
 

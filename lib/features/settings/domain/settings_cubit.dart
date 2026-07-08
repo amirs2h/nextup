@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../shared/services/tmdb_service.dart';
 
 class SettingsState {
   final ThemeMode themeMode;
@@ -31,7 +32,9 @@ class SettingsState {
 }
 
 class SettingsCubit extends Cubit<SettingsState> {
-  SettingsCubit() : super(SettingsState()) {
+  final TmdbService _tmdbService;
+
+  SettingsCubit(this._tmdbService) : super(SettingsState()) {
     _loadSettings();
   }
 
@@ -71,6 +74,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> setLocale(Locale locale) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('locale', locale.languageCode);
+    _tmdbService.setLanguage(locale.languageCode);
     emit(state.copyWith(locale: locale));
   }
 

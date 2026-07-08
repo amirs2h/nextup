@@ -11,16 +11,39 @@ class WatchlistInitial extends WatchlistState {}
 
 class WatchlistLoading extends WatchlistState {}
 
-class WatchlistLoaded extends WatchlistState {
-  final List<ShowModel> shows;
-  final List<MovieModel> movies;
-  final String filter; // 'all', 'shows', 'movies'
+class WatchlistItem {
+  final dynamic model; // ShowModel or MovieModel
+  final String mediaType;
+  final String status;
 
-  WatchlistLoaded({
-    required this.shows,
-    required this.movies,
-    this.filter = 'all',
-  });
+  WatchlistItem({required this.model, required this.mediaType, required this.status});
+}
+
+class WatchlistLoaded extends WatchlistState {
+  final List<WatchlistItem> items;
+  final String filter; // 'all', 'shows', 'movies', 'watching', 'completed', 'up_to_date', 'watchlist', 'stopped'
+
+  WatchlistLoaded({required this.items, this.filter = 'all'});
+
+  List<WatchlistItem> get filteredItems {
+    switch (filter) {
+      case 'shows':
+        return items.where((i) => i.mediaType == 'tv').toList();
+      case 'movies':
+        return items.where((i) => i.mediaType == 'movie').toList();
+      case 'watching':
+      case 'completed':
+      case 'up_to_date':
+      case 'watchlist':
+      case 'stopped':
+        return items.where((i) => i.status == filter).toList();
+      default:
+        return items;
+    }
+  }
+
+  List<WatchlistItem> get showItems => filteredItems.where((i) => i.mediaType == 'tv').toList();
+  List<WatchlistItem> get movieItems => filteredItems.where((i) => i.mediaType == 'movie').toList();
 }
 
 class WatchlistError extends WatchlistState {
@@ -38,7 +61,7 @@ class WatchlistCubit extends Cubit<WatchlistState> {
   Future<void> loadWatchlist({String filter = 'all'}) async {
     final user = _supabaseService.currentUser;
     if (user == null) {
-      emit(WatchlistLoaded(shows: [], movies: [], filter: filter));
+      emit(WatchlistLoaded(items: [], filter: filter));
       return;
     }
 
@@ -46,25 +69,38 @@ class WatchlistCubit extends Cubit<WatchlistState> {
     try {
       final watchlistItems = await _supabaseService.getWatchlist(userId: user.id);
 
-      List<ShowModel> shows = [];
-      List<MovieModel> movies = [];
-
-      for (final item in watchlistItems) {
-        try {
-          if (item['media_type'] == 'tv') {
-            final showData = await _tmdbService.getShowDetails(item['tmdb_id']);
-            shows.add(ShowModel.fromJson(showData));
-          } else if (item['media_type'] == 'movie') {
-            final movieData = await _tmdbService.getMovieDetails(item['tmdb_id']);
-            movies.add(MovieModel.fromJson(movieData));
-          }
-        } catch (e) {
-          // Skip items that fail to load
-          continue;
-        }
+      if (watchlistItems.isEmpty) {
+        emit(WatchlistLoaded(items: [], filter: filter));
+        return;
       }
 
-      emit(WatchlistLoaded(shows: shows, movies: movies, filter: filter));
+      // Parallel TMDB calls for all watchlist items
+      final futures = watchlistItems.map((item) async {
+        try {
+          if (item['media_type'] == 'tv') {
+            final data = await _tmdbService.getShowDetails(item['tmdb_id']);
+            return WatchlistItem(
+              model: ShowModel.fromJson(data),
+              mediaType: 'tv',
+              status: item['status'] ?? 'watchlist',
+            );
+          } else {
+            final data = await _tmdbService.getMovieDetails(item['tmdb_id']);
+            return WatchlistItem(
+              model: MovieModel.fromJson(data),
+              mediaType: 'movie',
+              status: item['status'] ?? 'watchlist',
+            );
+          }
+        } catch (e) {
+          return null;
+        }
+      }).toList();
+
+      final results = await Future.wait(futures);
+      final items = results.whereType<WatchlistItem>().toList();
+
+      emit(WatchlistLoaded(items: items, filter: filter));
     } catch (e) {
       emit(WatchlistError(e.toString()));
     }
@@ -87,14 +123,28 @@ class WatchlistCubit extends Cubit<WatchlistState> {
     }
   }
 
+  Future<void> updateStatus(int tmdbId, String mediaType, String newStatus) async {
+    final user = _supabaseService.currentUser;
+    if (user == null) return;
+
+    try {
+      await _supabaseService.updateWatchlistStatus(
+        userId: user.id,
+        tmdbId: tmdbId,
+        mediaType: mediaType,
+        status: newStatus,
+      );
+      // Reload
+      await loadWatchlist(filter: state is WatchlistLoaded ? (state as WatchlistLoaded).filter : 'all');
+    } catch (e) {
+      emit(WatchlistError(e.toString()));
+    }
+  }
+
   void setFilter(String filter) {
     if (state is WatchlistLoaded) {
       final current = state as WatchlistLoaded;
-      emit(WatchlistLoaded(
-        shows: current.shows,
-        movies: current.movies,
-        filter: filter,
-      ));
+      emit(WatchlistLoaded(items: current.items, filter: filter));
     }
   }
 }

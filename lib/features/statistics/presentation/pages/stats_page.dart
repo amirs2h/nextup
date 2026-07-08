@@ -63,7 +63,7 @@ class _StatsPageState extends State<StatsPage> {
     return BlocBuilder<StatsCubit, StatsState>(
       builder: (context, state) {
         if (state is StatsLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is StatsError) {
@@ -71,26 +71,36 @@ class _StatsPageState extends State<StatsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.read<StatsCubit>().loadStats(),
+                  child: const Text('Retry'),
+                ),
               ],
             ),
           );
         }
 
         if (state is StatsLoaded) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _buildOverviewCards(context, state),
-                const SizedBox(height: 24),
-                _buildWatchTimeChart(context, state),
-                const SizedBox(height: 24),
-                _buildDistributionChart(context, state),
-                const SizedBox(height: 100),
-              ],
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<StatsCubit>().loadStats();
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildOverviewCards(context, state),
+                  const SizedBox(height: 24),
+                  _buildWatchTimeChart(context, state),
+                  const SizedBox(height: 24),
+                  _buildDistributionChart(context, state),
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
           );
         }
@@ -109,10 +119,10 @@ class _StatsPageState extends State<StatsPage> {
       mainAxisSpacing: 12,
       childAspectRatio: 1.5,
       children: [
-        _buildStatCard(context, 'Shows', stats.totalShows.toString(), Icons.tv, const Color(0xFFE50914)),
-        _buildStatCard(context, 'Movies', stats.totalMovies.toString(), Icons.movie, const Color(0xFF6C63FF)),
-        _buildStatCard(context, 'Episodes', stats.totalEpisodes.toString(), Icons.play_circle, const Color(0xFF00FF88)),
-        _buildStatCard(context, 'Hours', stats.totalHours.toString(), Icons.access_time, const Color(0xFFFFD93D)),
+        _buildStatCard(context, 'Shows', stats.totalShows.toString(), Icons.tv, AppColors.primary),
+        _buildStatCard(context, 'Movies', stats.totalMovies.toString(), Icons.movie, AppColors.electricPurple),
+        _buildStatCard(context, 'Episodes', stats.totalEpisodes.toString(), Icons.play_circle, AppColors.success),
+        _buildStatCard(context, 'Hours', stats.totalHours.toString(), Icons.access_time, AppColors.warning),
       ],
     );
   }
@@ -188,7 +198,7 @@ class _StatsPageState extends State<StatsPage> {
                 barGroups: List.generate(6, (index) {
                   return BarChartGroupData(
                     x: index,
-                    barRods: [BarChartRodData(toY: values[index], color: const Color(0xFFE50914), width: 20, borderRadius: BorderRadius.circular(4))],
+                    barRods: [BarChartRodData(toY: values[index], color: AppColors.primary, width: 20, borderRadius: BorderRadius.circular(4))],
                   );
                 }),
               ),
@@ -221,14 +231,14 @@ class _StatsPageState extends State<StatsPage> {
                   PieChartSectionData(
                     value: stats.totalShows.toDouble(),
                     title: 'Shows',
-                    color: const Color(0xFFE50914),
+                    color: AppColors.primary,
                     radius: 40,
                     titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   PieChartSectionData(
                     value: stats.totalMovies.toDouble(),
                     title: 'Movies',
-                    color: const Color(0xFF6C63FF),
+                    color: AppColors.electricPurple,
                     radius: 40,
                     titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
@@ -241,6 +251,20 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

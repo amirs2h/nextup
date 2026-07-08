@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import '../../core/theme/app_colors.dart';
 
 class GlassContainer extends StatelessWidget {
   final Widget child;
@@ -8,11 +9,11 @@ class GlassContainer extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final BorderRadius? borderRadius;
-  final double blur;
   final double opacity;
   final Color? borderColor;
   final List<BoxShadow>? boxShadow;
   final Gradient? gradient;
+  final bool useBlur;
 
   const GlassContainer({
     super.key,
@@ -22,55 +23,62 @@ class GlassContainer extends StatelessWidget {
     this.padding,
     this.margin,
     this.borderRadius,
-    this.blur = 10,
-    this.opacity = 0.1,
+    this.opacity = 0.08,
     this.borderColor,
     this.boxShadow,
     this.gradient,
+    this.useBlur = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = AppColors.isDark(context);
+    final radius = borderRadius ?? BorderRadius.circular(16);
 
     return Container(
       width: width,
       height: height,
       margin: margin,
       decoration: BoxDecoration(
-        borderRadius: borderRadius ?? BorderRadius.circular(20),
+        borderRadius: radius,
         boxShadow: boxShadow ?? [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: isDark ? Colors.black.withOpacity(0.25) : Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: borderRadius ?? BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Container(
-            padding: padding ?? const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: gradient ?? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [Colors.white.withOpacity(opacity), Colors.white.withOpacity(opacity * 0.5)]
-                    : [Colors.black.withOpacity(0.02), Colors.black.withOpacity(0.01)],
-              ),
-              borderRadius: borderRadius ?? BorderRadius.circular(20),
-              border: Border.all(
-                color: borderColor ?? (isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.08)),
-                width: 1,
-              ),
-            ),
-            child: child,
-          ),
+        borderRadius: radius,
+        child: useBlur
+            ? BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                child: _buildContent(context, isDark, radius),
+              )
+            : _buildContent(context, isDark, radius),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, bool isDark, BorderRadius radius) {
+    return Container(
+      padding: padding ?? const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: gradient ?? LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [Colors.white.withOpacity(opacity), Colors.white.withOpacity(opacity * 0.5)]
+              : [Colors.white.withOpacity(0.85), Colors.white.withOpacity(0.65)],
+        ),
+        borderRadius: radius,
+        border: Border.all(
+          color: borderColor ?? (isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.5)),
+          width: 1,
         ),
       ),
+      child: child,
     );
   }
 }
@@ -78,6 +86,7 @@ class GlassContainer extends StatelessWidget {
 class GlassCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final double? width;
@@ -87,6 +96,7 @@ class GlassCard extends StatelessWidget {
     super.key,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.padding,
     this.margin,
     this.width,
@@ -97,6 +107,7 @@ class GlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: GlassContainer(
         width: width,
         height: height,
@@ -129,38 +140,58 @@ class GlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
     return Container(
       width: width ?? double.infinity,
       height: height,
       decoration: BoxDecoration(
-        gradient: gradient ?? const LinearGradient(colors: [Color(0xFFE50914), Color(0xFFFF3D47)]),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: (gradient != null ? const Color(0xFF6C63FF) : const Color(0xFFE50914)).withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: (gradient != null ? AppColors.electricPurple : AppColors.primary).withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(16),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: Colors.white, size: 24),
-                  const SizedBox(width: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: gradient ?? LinearGradient(
+                colors: [
+                  AppColors.primary.withOpacity(isDark ? 0.85 : 0.9),
+                  AppColors.primaryLight.withOpacity(isDark ? 0.75 : 0.85),
                 ],
-                Text(
-                  text,
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onPressed,
+                borderRadius: BorderRadius.circular(16),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, color: Colors.white, size: 22),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        text,
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -177,6 +208,7 @@ class GlassTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
+  final int maxLines;
 
   const GlassTextField({
     super.key,
@@ -187,48 +219,62 @@ class GlassTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.validator,
+    this.maxLines = 1,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final isDark = AppColors.isDark(context);
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: isDark ? Colors.black.withOpacity(0.1) : Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: TextFormField(
             controller: controller,
             obscureText: obscureText,
             keyboardType: keyboardType,
             validator: validator,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            maxLines: maxLines,
+            style: TextStyle(color: AppColors.text(context)),
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.4)),
-              prefixIcon: Icon(prefixIcon, color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.5)),
+              hintStyle: TextStyle(color: AppColors.textMuted(context)),
+              prefixIcon: Icon(prefixIcon, color: AppColors.textMuted(context)),
               suffixIcon: suffixIcon,
               filled: true,
-              fillColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              fillColor: AppColors.glassBg(context),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08)),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: AppColors.glassBorder(context)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.electricPurple, width: 2),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFFF4757), width: 1),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.error, width: 1),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.error, width: 2),
+              ),
             ),
           ),
         ),

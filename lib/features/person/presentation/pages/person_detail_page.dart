@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../shared/services/tmdb_service.dart';
+import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/person_cubit.dart';
 
 class PersonDetailPage extends StatelessWidget {
@@ -18,20 +21,22 @@ class PersonDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => PersonCubit(context.read<TmdbService>(), personId),
-      child: const _PersonDetailView(),
+      child: _PersonDetailView(personId: personId),
     );
   }
 }
 
 class _PersonDetailView extends StatelessWidget {
-  const _PersonDetailView();
+  final int personId;
+
+  const _PersonDetailView({required this.personId});
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PersonCubit, PersonState>(
       builder: (context, state) {
         if (state is PersonLoading) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFE50914))));
+          return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
         }
 
         if (state is PersonError) {
@@ -40,7 +45,7 @@ class _PersonDetailView extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                  const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                   const SizedBox(height: 16),
                   Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 ],
@@ -75,7 +80,7 @@ class _PersonDetailView extends StatelessWidget {
                       children: [
                         if (profilePath != null)
                           CachedNetworkImage(
-                            imageUrl: 'https://image.tmdb.org/t/p/w780$profilePath',
+                            imageUrl: AppConfig.getImageUrl(profilePath, size: 'w780'),
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Shimmer.fromColors(
                               baseColor: Colors.grey[900]!,
@@ -151,6 +156,7 @@ class _PersonDetailView extends StatelessWidget {
                                 final posterPath = credit['poster_path'];
                                 final mediaType = credit['media_type'] ?? 'movie';
                                 final id = credit['id'];
+                                final characterName = credit['character'] ?? '';
 
                                 return GestureDetector(
                                   onTap: () => context.push(mediaType == 'tv' ? '/show/$id' : '/movie/$id'),
@@ -161,25 +167,54 @@ class _PersonDetailView extends StatelessWidget {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Expanded(
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(12),
-                                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(12),
-                                              child: posterPath != null
-                                                  ? CachedNetworkImage(
-                                                      imageUrl: 'https://image.tmdb.org/t/p/w342$posterPath',
-                                                      fit: BoxFit.cover,
-                                                      errorWidget: (_, __, ___) => Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
-                                                    )
-                                                  : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
-                                            ),
+                                          child: Stack(
+                                            children: [
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: posterPath != null
+                                                      ? CachedNetworkImage(
+                                                          imageUrl: AppConfig.getImageUrl(posterPath, size: 'w342'),
+                                                          fit: BoxFit.cover,
+                                                          errorWidget: (_, __, ___) => Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                                                        )
+                                                      : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                                                ),
+                                              ),
+                                              if (characterName.isNotEmpty)
+                                                Positioned(
+                                                  bottom: 0,
+                                                  left: 0,
+                                                  right: 0,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(12), bottomRight: Radius.circular(12)),
+                                                      gradient: LinearGradient(
+                                                        begin: Alignment.bottomCenter,
+                                                        end: Alignment.topCenter,
+                                                        colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      characterName,
+                                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ),
                                         const SizedBox(height: 6),
                                         Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        if (characterName.isNotEmpty && personId > 0 && id > 0)
+                                          _buildVoteButtons(context, personId, id, characterName),
                                       ],
                                     ),
                                   ),
@@ -217,4 +252,95 @@ class _PersonDetailView extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildVoteButtons(BuildContext context, int personId, int tmdbId, String characterName) {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) return const SizedBox();
+
+    final userId = authState.user.id;
+    final supabase = context.read<SupabaseService>();
+
+    return FutureBuilder<String?>(
+      future: supabase.getUserCharacterVote(
+        userId: userId,
+        personId: personId,
+        tmdbId: tmdbId,
+        characterName: characterName,
+      ),
+      builder: (context, snapshot) {
+        final currentVote = snapshot.data;
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: () async {
+                if (currentVote == 'up') {
+                  await supabase.removeCharacterVote(
+                    userId: userId,
+                    personId: personId,
+                    tmdbId: tmdbId,
+                    characterName: characterName,
+                  );
+                } else {
+                  await supabase.voteForCharacter(
+                    userId: userId,
+                    personId: personId,
+                    tmdbId: tmdbId,
+                    characterName: characterName,
+                    voteType: 'up',
+                  );
+                }
+              },
+              child: Icon(
+                currentVote == 'up' ? Icons.thumb_up : Icons.thumb_up_outlined,
+                color: currentVote == 'up' ? AppColors.success : AppColors.textMuted(context),
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () async {
+                if (currentVote == 'down') {
+                  await supabase.removeCharacterVote(
+                    userId: userId,
+                    personId: personId,
+                    tmdbId: tmdbId,
+                    characterName: characterName,
+                  );
+                } else {
+                  await supabase.voteForCharacter(
+                    userId: userId,
+                    personId: personId,
+                    tmdbId: tmdbId,
+                    characterName: characterName,
+                    voteType: 'down',
+                  );
+                }
+              },
+              child: Icon(
+                currentVote == 'down' ? Icons.thumb_down : Icons.thumb_down_outlined,
+                color: currentVote == 'down' ? AppColors.error : AppColors.textMuted(context),
+                size: 16,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

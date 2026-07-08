@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/glass_container.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/config/app_config.dart';
 
 class TrailerWidget extends StatelessWidget {
   final List<Map<String, dynamic>> videos;
@@ -167,7 +168,7 @@ class WatchProvidersWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: logoPath != null
                   ? Image.network(
-                      'https://image.tmdb.org/t/p/w92$logoPath',
+                      AppConfig.getImageUrl(logoPath, size: 'w92'),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Center(child: Text(name.isNotEmpty ? name.substring(0, name.length.clamp(0, 2)) : '?', style: TextStyle(color: AppColors.text(context), fontSize: 10))),
                     )

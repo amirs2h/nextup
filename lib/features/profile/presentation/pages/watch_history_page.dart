@@ -75,7 +75,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
     return BlocBuilder<WatchHistoryCubit, WatchHistoryState>(
       builder: (context, state) {
         if (state is WatchHistoryLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is WatchHistoryError) {
@@ -83,7 +83,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
               ],
@@ -107,72 +107,83 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: state.history.length,
-            itemBuilder: (context, index) {
-              final item = state.history[index];
-              final tmdbId = item['tmdb_id'] as int;
-              final mediaType = item['media_type'] as String;
-              final watchedAt = item['watched_at'] != null ? DateTime.parse(item['watched_at']) : DateTime.now();
-              final seasonNumber = item['season_number'];
-              final episodeNumber = item['episode_number'];
-
-              String title = '';
-              String? posterUrl;
-
-              if (mediaType == 'tv' && state.shows.containsKey(tmdbId)) {
-                title = state.shows[tmdbId]!.name;
-                posterUrl = state.shows[tmdbId]!.posterUrl;
-              } else if (mediaType == 'movie' && state.movies.containsKey(tmdbId)) {
-                title = state.movies[tmdbId]!.title;
-                posterUrl = state.movies[tmdbId]!.posterUrl;
-              }
-
-              String subtitle = '';
-              if (seasonNumber != null && episodeNumber != null) {
-                subtitle = 'S${seasonNumber}E${episodeNumber}';
-              } else if (mediaType == 'movie') {
-                subtitle = 'Movie';
-              }
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(12),
-                  onTap: () => context.push(mediaType == 'tv' ? '/show/$tmdbId' : '/movie/$tmdbId'),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 85,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: posterUrl != null
-                              ? CachedNetworkImage(imageUrl: posterUrl, fit: BoxFit.cover, errorWidget: (_, __, ___) => Icon(Icons.movie, color: AppColors.textMuted(context)))
-                              : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 4),
-                            if (subtitle.isNotEmpty)
-                              Text(subtitle, style: TextStyle(color: const Color(0xFF6C63FF), fontSize: 13, fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 4),
-                            Text(timeago.format(watchedAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              _loadHistory();
             },
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: state.history.length,
+              itemBuilder: (context, index) {
+                final item = state.history[index];
+                final tmdbId = item['tmdb_id'] as int;
+                final mediaType = item['media_type'] as String;
+                final watchedAt = item['watched_at'] != null ? DateTime.parse(item['watched_at']) : DateTime.now();
+                final seasonNumber = item['season_number'];
+                final episodeNumber = item['episode_number'];
+
+                String title = '';
+                String? posterUrl;
+
+                if (mediaType == 'tv' && state.shows.containsKey(tmdbId)) {
+                  title = state.shows[tmdbId]!.name;
+                  posterUrl = state.shows[tmdbId]!.posterUrl;
+                } else if (mediaType == 'movie' && state.movies.containsKey(tmdbId)) {
+                  title = state.movies[tmdbId]!.title;
+                  posterUrl = state.movies[tmdbId]!.posterUrl;
+                }
+
+                String subtitle = '';
+                if (seasonNumber != null && episodeNumber != null) {
+                  subtitle = 'S${seasonNumber}E${episodeNumber}';
+                } else if (mediaType == 'movie') {
+                  subtitle = 'Movie';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: GlassCard(
+                    padding: const EdgeInsets.all(12),
+                    onTap: () {
+                      if (mediaType == 'tv' && seasonNumber != null && episodeNumber != null) {
+                        context.push('/show/$tmdbId/season/$seasonNumber/episode/$episodeNumber');
+                      } else {
+                        context.push(mediaType == 'tv' ? '/show/$tmdbId' : '/movie/$tmdbId');
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 85,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: posterUrl != null
+                                ? CachedNetworkImage(imageUrl: posterUrl, fit: BoxFit.cover, errorWidget: (_, __, ___) => Icon(Icons.movie, color: AppColors.textMuted(context)))
+                                : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              if (subtitle.isNotEmpty)
+                                Text(subtitle, style: TextStyle(color: AppColors.electricPurple, fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 4),
+                              Text(timeago.format(watchedAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           );
         }
 
@@ -181,3 +192,17 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

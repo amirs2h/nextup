@@ -1,3 +1,5 @@
+import '../../core/config/app_config.dart';
+
 class PersonModel {
   final int id;
   final String name;
@@ -27,6 +29,6 @@ class PersonModel {
   }
 
   String? get profileUrl => profilePath != null
-      ? 'https://image.tmdb.org/t/p/w185$profilePath'
+      ? AppConfig.getImageUrl(profilePath, size: 'w185')
       : null;
 }

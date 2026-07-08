@@ -44,21 +44,53 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
     try {
       final history = await _supabaseService.getWatchHistory(userId: user.id);
 
+      if (history.isEmpty) {
+        emit(WatchHistoryLoaded(history: [], shows: {}, movies: {}));
+        return;
+      }
+
+      // Deduplicate by tmdb_id
+      final uniqueShowIds = <int>{};
+      final uniqueMovieIds = <int>{};
+      for (final item in history) {
+        final tmdbId = item['tmdb_id'] as int;
+        if (item['media_type'] == 'tv') {
+          uniqueShowIds.add(tmdbId);
+        } else {
+          uniqueMovieIds.add(tmdbId);
+        }
+      }
+
+      // Parallel TMDB calls for all unique items
+      final showFutures = uniqueShowIds.map((id) async {
+        try {
+          final data = await _tmdbService.getShowDetails(id);
+          return MapEntry(id, ShowModel.fromJson(data));
+        } catch (e) {
+          return null;
+        }
+      }).toList();
+
+      final movieFutures = uniqueMovieIds.map((id) async {
+        try {
+          final data = await _tmdbService.getMovieDetails(id);
+          return MapEntry(id, MovieModel.fromJson(data));
+        } catch (e) {
+          return null;
+        }
+      }).toList();
+
+      final results = await Future.wait([...showFutures, ...movieFutures]);
+
       Map<int, ShowModel> shows = {};
       Map<int, MovieModel> movies = {};
 
-      for (final item in history) {
-        final tmdbId = item['tmdb_id'] as int;
-        try {
-          if (item['media_type'] == 'tv' && !shows.containsKey(tmdbId)) {
-            final showData = await _tmdbService.getShowDetails(tmdbId);
-            shows[tmdbId] = ShowModel.fromJson(showData);
-          } else if (item['media_type'] == 'movie' && !movies.containsKey(tmdbId)) {
-            final movieData = await _tmdbService.getMovieDetails(tmdbId);
-            movies[tmdbId] = MovieModel.fromJson(movieData);
-          }
-        } catch (e) {
-          continue;
+      for (final result in results) {
+        if (result == null) continue;
+        if (result.value is ShowModel) {
+          shows[result.key] = result.value as ShowModel;
+        } else {
+          movies[result.key] = result.value as MovieModel;
         }
       }
 

@@ -16,7 +16,11 @@ class DiscoverLoaded extends DiscoverState {
   final List<ShowModel> shows;
   final List<MovieModel> movies;
   final int? selectedGenreId;
-  final String mediaType; // 'tv' or 'movie'
+  final String mediaType;
+  final String sortBy;
+  final int? year;
+  final double minRating;
+  final int? showStatus;
 
   DiscoverLoaded({
     required this.genres,
@@ -24,6 +28,10 @@ class DiscoverLoaded extends DiscoverState {
     required this.movies,
     this.selectedGenreId,
     this.mediaType = 'tv',
+    this.sortBy = 'popularity.desc',
+    this.year,
+    this.minRating = 0,
+    this.showStatus,
   });
 }
 
@@ -56,7 +64,6 @@ class DiscoverCubit extends Cubit<DiscoverState> {
           .map((json) => GenreModel.fromJson(json))
           .toList();
 
-      // Combine and deduplicate
       final allGenres = [...showGenres];
       for (final genre in movieGenres) {
         if (!allGenres.any((g) => g.id == genre.id)) {
@@ -64,7 +71,6 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         }
       }
 
-      // Load initial content
       final showsData = await _tmdbService.discoverShows();
       final moviesData = await _tmdbService.discoverMovies();
 
@@ -85,13 +91,26 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     }
   }
 
-  Future<void> filterByGenre(int genreId, String mediaType) async {
+  Future<void> applyFilters({
+    required String mediaType,
+    String? sortBy,
+    int? year,
+    double? minRating,
+    int? genreId,
+    int? showStatus,
+  }) async {
     emit(DiscoverLoading());
     try {
       final genres = state is DiscoverLoaded ? (state as DiscoverLoaded).genres : <GenreModel>[];
 
       if (mediaType == 'tv') {
-        final showsData = await _tmdbService.discoverShows(genreIds: [genreId]);
+        final showsData = await _tmdbService.discoverShows(
+          sortBy: sortBy,
+          genreIds: genreId != null ? [genreId] : null,
+          year: year,
+          minRating: minRating,
+          showStatus: showStatus,
+        );
         final shows = (showsData['results'] as List)
             .map((json) => ShowModel.fromJson(json))
             .toList();
@@ -101,9 +120,18 @@ class DiscoverCubit extends Cubit<DiscoverState> {
           movies: [],
           selectedGenreId: genreId,
           mediaType: 'tv',
+          sortBy: sortBy ?? 'popularity.desc',
+          year: year,
+          minRating: minRating ?? 0,
+          showStatus: showStatus,
         ));
       } else {
-        final moviesData = await _tmdbService.discoverMovies(genreIds: [genreId]);
+        final moviesData = await _tmdbService.discoverMovies(
+          sortBy: sortBy,
+          genreIds: genreId != null ? [genreId] : null,
+          year: year,
+          minRating: minRating,
+        );
         final movies = (moviesData['results'] as List)
             .map((json) => MovieModel.fromJson(json))
             .toList();
@@ -113,6 +141,68 @@ class DiscoverCubit extends Cubit<DiscoverState> {
           movies: movies,
           selectedGenreId: genreId,
           mediaType: 'movie',
+          sortBy: sortBy ?? 'popularity.desc',
+          year: year,
+          minRating: minRating ?? 0,
+        ));
+      }
+    } catch (e) {
+      emit(DiscoverError(e.toString()));
+    }
+  }
+
+  Future<void> filterByGenre(int genreId, String mediaType) async {
+    // Preserve existing filter state
+    final currentState = state is DiscoverLoaded ? state as DiscoverLoaded : null;
+    final sortBy = currentState?.sortBy;
+    final year = currentState?.year;
+    final minRating = currentState?.minRating;
+    final showStatus = currentState?.showStatus;
+    final genres = currentState?.genres ?? <GenreModel>[];
+
+    emit(DiscoverLoading());
+    try {
+      if (mediaType == 'tv') {
+        final showsData = await _tmdbService.discoverShows(
+          genreIds: [genreId],
+          sortBy: sortBy,
+          year: year,
+          minRating: minRating,
+          showStatus: showStatus,
+        );
+        final shows = (showsData['results'] as List)
+            .map((json) => ShowModel.fromJson(json))
+            .toList();
+        emit(DiscoverLoaded(
+          genres: genres,
+          shows: shows,
+          movies: [],
+          selectedGenreId: genreId,
+          mediaType: 'tv',
+          sortBy: sortBy ?? 'popularity.desc',
+          year: year,
+          minRating: minRating ?? 0,
+          showStatus: showStatus,
+        ));
+      } else {
+        final moviesData = await _tmdbService.discoverMovies(
+          genreIds: [genreId],
+          sortBy: sortBy,
+          year: year,
+          minRating: minRating,
+        );
+        final movies = (moviesData['results'] as List)
+            .map((json) => MovieModel.fromJson(json))
+            .toList();
+        emit(DiscoverLoaded(
+          genres: genres,
+          shows: [],
+          movies: movies,
+          selectedGenreId: genreId,
+          mediaType: 'movie',
+          sortBy: sortBy ?? 'popularity.desc',
+          year: year,
+          minRating: minRating ?? 0,
         ));
       }
     } catch (e) {
@@ -121,6 +211,19 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   }
 
   void clearFilter() {
-    loadGenres();
+    if (state is DiscoverLoaded) {
+      final currentState = state as DiscoverLoaded;
+      // Re-discover with defaults but preserve genre list
+      applyFilters(
+        mediaType: currentState.mediaType,
+        sortBy: 'popularity.desc',
+        year: null,
+        minRating: null,
+        genreId: null,
+        showStatus: null,
+      );
+    } else {
+      loadGenres();
+    }
   }
 }

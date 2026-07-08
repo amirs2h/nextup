@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/watchlist_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -35,45 +35,36 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0A0A0F), Color(0xFF1A1A2E)],
-          ),
-        ),
-        child: SafeArea(
-          child: BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, authState) {
-              if (authState is AuthUnauthenticated) {
-                return _buildLoginPrompt();
-              }
+    return AppBackground(
+      child: SafeArea(
+        child: BlocBuilder<AuthCubit, AuthState>(
+          builder: (context, authState) {
+            if (authState is AuthUnauthenticated) {
+              return _buildLoginPrompt(context);
+            }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  _buildFilterTabs(),
-                  Expanded(child: _buildContent()),
-                ],
-              );
-            },
-          ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context),
+                _buildFilterTabs(context),
+                Expanded(child: _buildContent(context)),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildLoginPrompt() {
+  Widget _buildLoginPrompt(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.bookmark_outline, size: 80, color: Colors.white.withOpacity(0.3)),
+          Icon(Icons.bookmark_outline_rounded, size: 60, color: AppColors.textMuted(context)),
           const SizedBox(height: 16),
-          const Text('Please login to view your watchlist', style: TextStyle(color: Colors.white70, fontSize: 16)),
+          Text('Please login to view your watchlist', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
           const SizedBox(height: 24),
           ElevatedButton(onPressed: () => context.go('/login'), child: const Text('Login')),
         ],
@@ -81,19 +72,19 @@ class _WatchlistPageState extends State<WatchlistPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
         children: [
-          const Text('Watchlist', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text('Watchlist', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
           const Spacer(),
           GestureDetector(
             onTap: _loadWatchlist,
             child: GlassContainer(
               padding: const EdgeInsets.all(10),
               borderRadius: BorderRadius.circular(14),
-              child: const Icon(Icons.refresh, color: Colors.white, size: 24),
+              child: Icon(Icons.refresh_rounded, color: AppColors.text(context), size: 22),
             ),
           ),
         ],
@@ -101,22 +92,27 @@ class _WatchlistPageState extends State<WatchlistPage> {
     );
   }
 
-  Widget _buildFilterTabs() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Row(
+  Widget _buildFilterTabs(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _buildFilterChip('All', 'all'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Shows', 'shows'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Movies', 'movies'),
+          _buildFilterChip(context, 'All', 'all'),
+          _buildFilterChip(context, 'Watching', 'watching'),
+          _buildFilterChip(context, 'Completed', 'completed'),
+          _buildFilterChip(context, 'Up to Date', 'up_to_date'),
+          _buildFilterChip(context, 'Watchlist', 'watchlist'),
+          _buildFilterChip(context, 'Stopped', 'stopped'),
+          _buildFilterChip(context, 'Shows', 'shows'),
+          _buildFilterChip(context, 'Movies', 'movies'),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
+  Widget _buildFilterChip(BuildContext context, String label, String value) {
     final isSelected = _filter == value;
     return GestureDetector(
       onTap: () {
@@ -124,23 +120,24 @@ class _WatchlistPageState extends State<WatchlistPage> {
         context.read<WatchlistCubit>().setFilter(value);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          gradient: isSelected ? const LinearGradient(colors: [Color(0xFFE50914), Color(0xFFFF3D47)]) : null,
-          color: isSelected ? null : Colors.white.withOpacity(0.08),
+          gradient: isSelected ? AppColors.primaryGradient : null,
+          color: isSelected ? null : AppColors.cardBg(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.1)),
+          border: Border.all(color: isSelected ? Colors.transparent : AppColors.border(context)),
         ),
-        child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+        child: Text(label, style: TextStyle(color: isSelected ? Colors.white : AppColors.textSecondary(context), fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, fontSize: 13)),
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     return BlocBuilder<WatchlistCubit, WatchlistState>(
       builder: (context, state) {
         if (state is WatchlistLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is WatchlistError) {
@@ -148,9 +145,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
-                Text(state.message, style: const TextStyle(color: Colors.white70)),
+                Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 16),
                 ElevatedButton(onPressed: _loadWatchlist, child: const Text('Retry')),
               ],
@@ -159,23 +156,23 @@ class _WatchlistPageState extends State<WatchlistPage> {
         }
 
         if (state is WatchlistLoaded) {
-          final shows = _filter == 'movies' ? [] : state.shows;
-          final movies = _filter == 'shows' ? [] : state.movies;
+          final showItems = state.showItems;
+          final movieItems = state.movieItems;
 
-          if (shows.isEmpty && movies.isEmpty) {
+          if (showItems.isEmpty && movieItems.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bookmark_outline, size: 60, color: Colors.white.withOpacity(0.2)),
+                  Icon(Icons.bookmark_outline_rounded, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('Your watchlist is empty', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16)),
+                  Text('Your watchlist is empty', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Add shows and movies to watch later', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 14)),
+                  Text('Add shows and movies to watch later', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     onPressed: () => context.go('/search'),
-                    icon: const Icon(Icons.search),
+                    icon: const Icon(Icons.search_rounded),
                     label: const Text('Find Shows'),
                   ),
                 ],
@@ -186,16 +183,16 @@ class _WatchlistPageState extends State<WatchlistPage> {
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
-              if (shows.isNotEmpty) ...[
-                const Text('Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              if (showItems.isNotEmpty) ...[
+                Text('Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                 const SizedBox(height: 12),
-                ...shows.map((show) => _buildShowCard(show)),
+                ...showItems.map((item) => _buildItemCard(context, item)),
                 const SizedBox(height: 20),
               ],
-              if (movies.isNotEmpty) ...[
-                const Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              if (movieItems.isNotEmpty) ...[
+                Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                 const SizedBox(height: 12),
-                ...movies.map((movie) => _buildMovieCard(movie)),
+                ...movieItems.map((item) => _buildItemCard(context, item)),
               ],
               const SizedBox(height: 100),
             ],
@@ -207,12 +204,19 @@ class _WatchlistPageState extends State<WatchlistPage> {
     );
   }
 
-  Widget _buildShowCard(ShowModel show) {
+  Widget _buildItemCard(BuildContext context, WatchlistItem item) {
+    final isShow = item.mediaType == 'tv';
+    final name = isShow ? (item.model as ShowModel).name : (item.model as MovieModel).title;
+    final rating = isShow ? (item.model as ShowModel).voteAverage : (item.model as MovieModel).voteAverage;
+    final posterUrl = isShow ? (item.model as ShowModel).posterUrl : (item.model as MovieModel).posterUrl;
+    final id = isShow ? (item.model as ShowModel).id : (item.model as MovieModel).id;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassCard(
         padding: const EdgeInsets.all(12),
-        onTap: () => context.push('/show/${show.id}'),
+        onTap: () => context.push(isShow ? '/show/$id' : '/movie/$id'),
+        onLongPress: () => _showStatusPicker(context, id, item.mediaType, item.status),
         child: Row(
           children: [
             Container(
@@ -221,9 +225,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: show.posterUrl != null
-                    ? CachedNetworkImage(imageUrl: show.posterUrl!, fit: BoxFit.cover, errorWidget: (_, __, ___) => const Icon(Icons.movie, color: Colors.white24))
-                    : Container(color: Colors.white.withOpacity(0.1), child: const Icon(Icons.movie, color: Colors.white24)),
+                child: posterUrl != null
+                    ? CachedNetworkImage(imageUrl: posterUrl, fit: BoxFit.cover, errorWidget: (_, __, ___) => Icon(Icons.movie_rounded, color: AppColors.textMuted(context)))
+                    : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie_rounded, color: AppColors.textMuted(context))),
               ),
             ),
             const SizedBox(width: 12),
@@ -231,15 +235,23 @@ class _WatchlistPageState extends State<WatchlistPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(show.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Row(children: [const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 16), const SizedBox(width: 4), Text(show.voteAverage.toStringAsFixed(1), style: TextStyle(color: Colors.white.withOpacity(0.7)))]),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
+                      const SizedBox(width: 4),
+                      Text(rating.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context))),
+                      const SizedBox(width: 12),
+                      _buildStatusBadge(context, item.status, id, item.mediaType),
+                    ],
+                  ),
                 ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: Color(0xFFFF4757)),
-              onPressed: () => context.read<WatchlistCubit>().removeFromWatchlist(show.id, 'tv'),
+              icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
+              onPressed: () => context.read<WatchlistCubit>().removeFromWatchlist(id, item.mediaType),
             ),
           ],
         ),
@@ -247,42 +259,79 @@ class _WatchlistPageState extends State<WatchlistPage> {
     );
   }
 
-  Widget _buildMovieCard(MovieModel movie) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassCard(
-        padding: const EdgeInsets.all(12),
-        onTap: () => context.push('/movie/${movie.id}'),
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: 85,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: movie.posterUrl != null
-                    ? CachedNetworkImage(imageUrl: movie.posterUrl!, fit: BoxFit.cover, errorWidget: (_, __, ___) => const Icon(Icons.movie, color: Colors.white24))
-                    : Container(color: Colors.white.withOpacity(0.1), child: const Icon(Icons.movie, color: Colors.white24)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(movie.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Row(children: [const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 16), const SizedBox(width: 4), Text(movie.voteAverage.toStringAsFixed(1), style: TextStyle(color: Colors.white.withOpacity(0.7)))]),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: Color(0xFFFF4757)),
-              onPressed: () => context.read<WatchlistCubit>().removeFromWatchlist(movie.id, 'movie'),
-            ),
-          ],
+  Widget _buildStatusBadge(BuildContext context, String status, int tmdbId, String mediaType) {
+    Color color;
+    String label;
+    switch (status) {
+      case 'watching':
+        color = AppColors.info;
+        label = 'Watching';
+        break;
+      case 'completed':
+        color = AppColors.success;
+        label = 'Completed';
+        break;
+      case 'up_to_date':
+        color = AppColors.warning;
+        label = 'Up to Date';
+        break;
+      case 'stopped':
+        color = AppColors.error;
+        label = 'Stopped';
+        break;
+      default:
+        color = AppColors.textMuted(context);
+        label = 'Watchlist';
+    }
+
+    return GestureDetector(
+      onTap: () => _showStatusPicker(context, tmdbId, mediaType, status),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
+        child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  void _showStatusPicker(BuildContext context, int tmdbId, String mediaType, String currentStatus) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Change Status', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        children: [
+          _buildStatusOption(ctx, 'Watchlist', 'watchlist', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, 'Watching', 'watching', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, 'Completed', 'completed', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, 'Up to Date', 'up_to_date', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, 'Stopped', 'stopped', currentStatus, tmdbId, mediaType),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusOption(BuildContext ctx, String label, String value, String current, int tmdbId, String mediaType) {
+    final isSelected = value == current;
+    return SimpleDialogOption(
+      onPressed: () {
+        Navigator.pop(ctx);
+        if (tmdbId > 0 && mediaType.isNotEmpty) {
+          context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, value);
+        }
+      },
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: TextStyle(color: isSelected ? AppColors.primary : AppColors.text(context), fontSize: 16)),
+          ),
+          if (isSelected) const Icon(Icons.check, color: AppColors.primary),
+        ],
       ),
     );
   }

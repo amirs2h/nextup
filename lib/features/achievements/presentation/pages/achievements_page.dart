@@ -62,7 +62,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
     return BlocBuilder<AchievementsCubit, AchievementsState>(
       builder: (context, state) {
         if (state is AchievementsLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is AchievementsError) {
@@ -70,9 +70,14 @@ class _AchievementsPageState extends State<AchievementsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.read<AchievementsCubit>().loadAchievements(),
+                  child: const Text('Retry'),
+                ),
               ],
             ),
           );
@@ -82,17 +87,22 @@ class _AchievementsPageState extends State<AchievementsPage> {
           final unlocked = state.achievements.where((a) => a.isUnlocked).length;
           final total = state.achievements.length;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _buildProgressCard(context, unlocked, total),
-                const SizedBox(height: 24),
-                _buildStatsRow(context, state),
-                const SizedBox(height: 24),
-                _buildAchievementsList(context, state.achievements),
-                const SizedBox(height: 100),
-              ],
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<AchievementsCubit>().loadAchievements();
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildProgressCard(context, unlocked, total),
+                  const SizedBox(height: 24),
+                  _buildStatsRow(context, state),
+                  const SizedBox(height: 24),
+                  _buildAchievementsList(context, state.achievements),
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
           );
         }
@@ -114,7 +124,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Progress', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-              Text('$unlocked/$total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF00FF88))),
+              Text('$unlocked/$total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.success)),
             ],
           ),
           const SizedBox(height: 16),
@@ -123,7 +133,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: AppColors.border(context),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00FF88)),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
               minHeight: 10,
             ),
           ),
@@ -137,11 +147,11 @@ class _AchievementsPageState extends State<AchievementsPage> {
   Widget _buildStatsRow(BuildContext context, AchievementsLoaded state) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard(context, 'Shows', state.totalShows.toString(), Icons.tv, const Color(0xFFE50914))),
+        Expanded(child: _buildStatCard(context, 'Shows', state.totalShows.toString(), Icons.tv, AppColors.primary)),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(context, 'Movies', state.totalMovies.toString(), Icons.movie, const Color(0xFF6C63FF))),
+        Expanded(child: _buildStatCard(context, 'Movies', state.totalMovies.toString(), Icons.movie, AppColors.electricPurple)),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(context, 'Hours', state.totalHours.toString(), Icons.access_time, const Color(0xFFFFD93D))),
+        Expanded(child: _buildStatCard(context, 'Hours', state.totalHours.toString(), Icons.access_time, AppColors.warning)),
       ],
     );
   }
@@ -178,7 +188,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
       child: GlassContainer(
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(12),
-        borderColor: achievement.isUnlocked ? const Color(0xFF00FF88).withOpacity(0.3) : null,
+        borderColor: achievement.isUnlocked ? AppColors.success.withOpacity(0.3) : null,
         child: Row(
           children: [
             Container(
@@ -186,7 +196,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
               height: 48,
               decoration: BoxDecoration(
                 color: achievement.isUnlocked
-                    ? const Color(0xFF00FF88).withOpacity(0.2)
+                    ? AppColors.success.withOpacity(0.2)
                     : AppColors.cardBg(context),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -222,7 +232,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
               ),
             ),
             if (achievement.isUnlocked)
-              const Icon(Icons.check_circle, color: Color(0xFF00FF88), size: 24)
+              const Icon(Icons.check_circle, color: AppColors.success, size: 24)
             else
               Icon(Icons.lock_outline, color: AppColors.textMuted(context), size: 24),
           ],
@@ -231,3 +241,17 @@ class _AchievementsPageState extends State<AchievementsPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

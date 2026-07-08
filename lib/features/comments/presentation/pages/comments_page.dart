@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
@@ -55,14 +56,7 @@ class _CommentsPageState extends State<CommentsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0A0A0F), Color(0xFF1A1A2E)],
-          ),
-        ),
+      body: AppBackground(
         child: SafeArea(
           child: Column(
             children: [
@@ -82,20 +76,20 @@ class _CommentsPageState extends State<CommentsPage> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
             child: Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                color: AppColors.cardBg(context),
+                border: Border.all(color: AppColors.border(context)),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 20),
             ),
           ),
           const SizedBox(width: 16),
-          const Text('Comments', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text('Comments', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -105,7 +99,7 @@ class _CommentsPageState extends State<CommentsPage> {
     return BlocBuilder<CommentsCubit, CommentsState>(
       builder: (context, state) {
         if (state is CommentsLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is CommentsError) {
@@ -113,9 +107,9 @@ class _CommentsPageState extends State<CommentsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
-                Text(state.message, style: const TextStyle(color: Colors.white70)),
+                Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 16),
                 ElevatedButton(onPressed: _loadComments, child: const Text('Retry')),
               ],
@@ -129,11 +123,11 @@ class _CommentsPageState extends State<CommentsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline, size: 60, color: Colors.white.withOpacity(0.2)),
+                  Icon(Icons.chat_bubble_outline, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No comments yet', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16)),
+                  Text('No comments yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Be the first to comment!', style: TextStyle(color: Colors.white.withOpacity(0.3))),
+                  Text('Be the first to comment!', style: TextStyle(color: AppColors.textMuted(context))),
                 ],
               ),
             );
@@ -172,10 +166,10 @@ class _CommentsPageState extends State<CommentsPage> {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: Colors.white.withOpacity(0.1),
+                  backgroundColor: AppColors.cardBg(context),
                   child: Text(
-                    (comment.username ?? 'U')[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    (comment.username ?? 'U').isNotEmpty ? (comment.username ?? 'U')[0].toUpperCase() : 'U',
+                    style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -183,20 +177,35 @@ class _CommentsPageState extends State<CommentsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        comment.username ?? 'User',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      Row(
+                        children: [
+                          Text(
+                            comment.username ?? 'User',
+                            style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600),
+                          ),
+                          if (comment.content.startsWith('[SPOILER]')) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD93D).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('Spoiler', style: TextStyle(color: Color(0xFFFFD93D), fontSize: 10, fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                        ],
                       ),
                       Text(
                         timeago.format(comment.createdAt),
-                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                        style: TextStyle(color: AppColors.textMuted(context), fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 if (isOwnComment)
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Color(0xFFFF4757), size: 20),
+                    icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
                     onPressed: () {
                       context.read<CommentsCubit>().deleteComment(
                         comment.id,
@@ -211,7 +220,7 @@ class _CommentsPageState extends State<CommentsPage> {
             ),
             const SizedBox(height: 12),
             SpoilerText(
-              text: comment.content,
+              text: comment.content.startsWith('[SPOILER] ') ? comment.content.substring(10) : comment.content,
               isSpoiler: comment.content.startsWith('[SPOILER]'),
             ),
             const SizedBox(height: 12),
@@ -241,13 +250,13 @@ class _CommentsPageState extends State<CommentsPage> {
                     children: [
                       Icon(
                         comment.isLikedByMe ? Icons.favorite : Icons.favorite_outline,
-                        color: comment.isLikedByMe ? const Color(0xFFE50914) : Colors.white54,
+                        color: comment.isLikedByMe ? AppColors.primary : AppColors.textMuted(context),
                         size: 18,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${comment.likesCount}',
-                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+                        style: TextStyle(color: AppColors.textMuted(context), fontSize: 13),
                       ),
                     ],
                   ),
@@ -260,7 +269,7 @@ class _CommentsPageState extends State<CommentsPage> {
                   },
                   child: Row(
                     children: [
-                      Icon(Icons.reply, color: Colors.white.withOpacity(0.5), size: 18),
+                      Icon(Icons.reply, color: AppColors.textMuted(context), size: 18),
                       const SizedBox(width: 4),
                       Text('Reply', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
                     ],
@@ -294,7 +303,7 @@ class _CommentsPageState extends State<CommentsPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.5),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+        border: Border(top: BorderSide(color: AppColors.border(context))),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -302,37 +311,9 @@ class _CommentsPageState extends State<CommentsPage> {
           // Spoiler toggle
           Row(
             children: [
-              GestureDetector(
-                onTap: () => setState(() => _isSpoiler = !_isSpoiler),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _isSpoiler ? const Color(0xFFFFD93D).withOpacity(0.2) : Colors.white.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _isSpoiler ? const Color(0xFFFFD93D) : Colors.white.withOpacity(0.1),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        color: _isSpoiler ? const Color(0xFFFFD93D) : Colors.white54,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Spoiler',
-                        style: TextStyle(
-                          color: _isSpoiler ? const Color(0xFFFFD93D) : Colors.white54,
-                          fontSize: 12,
-                          fontWeight: _isSpoiler ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              SpoilerToggle(
+                isSpoiler: _isSpoiler,
+                onChanged: (value) => setState(() => _isSpoiler = value),
               ),
             ],
           ),
@@ -344,16 +325,16 @@ class _CommentsPageState extends State<CommentsPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+                    color: AppColors.cardBg(context),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: AppColors.border(context)),
                   ),
                   child: TextField(
                     controller: _commentController,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.text(context)),
                     decoration: InputDecoration(
                       hintText: _isSpoiler ? 'Add a spoiler comment...' : 'Add a comment...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                      hintStyle: TextStyle(color: AppColors.textMuted(context)),
                       border: InputBorder.none,
                     ),
                   ),
@@ -382,10 +363,10 @@ class _CommentsPageState extends State<CommentsPage> {
                   height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(colors: [Color(0xFFE50914), Color(0xFFFF3D47)]),
-                    boxShadow: [BoxShadow(color: const Color(0xFFE50914).withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))],
+                    gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
+                    boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))],
                   ),
-                  child: const Icon(Icons.send, color: Colors.white, size: 20),
+                  child: Icon(Icons.send, color: AppColors.text(context), size: 20),
                 ),
               ),
             ],

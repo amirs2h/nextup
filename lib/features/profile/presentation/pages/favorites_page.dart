@@ -76,7 +76,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
     return BlocBuilder<FavoritesCubit, FavoritesState>(
       builder: (context, state) {
         if (state is FavoritesLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is FavoritesError) {
@@ -84,7 +84,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
               ],
@@ -100,30 +100,35 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 children: [
                   Icon(Icons.favorite_outline, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No favorites yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                Text('No favorites yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
                   const SizedBox(height: 8),
-                  Text('Add shows and movies to your favorites', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text('Add shows and movies to your favorites', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                 ],
               ),
             );
           }
 
-          return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            children: [
-              if (state.shows.isNotEmpty) ...[
-                Text('Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                const SizedBox(height: 12),
-                ...state.shows.map((show) => _buildShowCard(context, show)),
-                const SizedBox(height: 20),
+          return RefreshIndicator(
+            onRefresh: () async {
+              _loadFavorites();
+            },
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                if (state.shows.isNotEmpty) ...[
+                  Text('Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  const SizedBox(height: 12),
+                  ...state.shows.map((show) => _buildShowCard(context, show)),
+                  const SizedBox(height: 20),
+                ],
+                if (state.movies.isNotEmpty) ...[
+                  Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  const SizedBox(height: 12),
+                  ...state.movies.map((movie) => _buildMovieCard(context, movie)),
+                ],
+                const SizedBox(height: 100),
               ],
-              if (state.movies.isNotEmpty) ...[
-                Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                const SizedBox(height: 12),
-                ...state.movies.map((movie) => _buildMovieCard(context, movie)),
-              ],
-              const SizedBox(height: 100),
-            ],
+            ),
           );
         }
 
@@ -158,8 +163,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 children: [
                   Text(show.name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Row(children: [const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 16), const SizedBox(width: 4), Text(show.voteAverage.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context)))]),
+                  Row(children: [const Icon(Icons.star_rounded, color: AppColors.warning, size: 16), const SizedBox(width: 4), Text(show.voteAverage.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13))]),
                 ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => context.read<FavoritesCubit>().removeFromFavorites(show.id, 'tv'),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
               ),
             ),
           ],
@@ -194,8 +207,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 children: [
                   Text(movie.title, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Row(children: [const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 16), const SizedBox(width: 4), Text(movie.voteAverage.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context)))]),
+                  Row(children: [const Icon(Icons.star_rounded, color: AppColors.warning, size: 16), const SizedBox(width: 4), Text(movie.voteAverage.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13))]),
                 ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => context.read<FavoritesCubit>().removeFromFavorites(movie.id, 'movie'),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
               ),
             ),
           ],
@@ -204,3 +225,17 @@ class _FavoritesPageState extends State<FavoritesPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

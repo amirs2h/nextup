@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/widgets/app_background.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../domain/auth_cubit.dart';
 
 class LoginPage extends StatefulWidget {
@@ -25,7 +27,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
@@ -50,196 +52,187 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthCubit>().signIn(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: BlocListener<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            context.go('/');
-          } else if (state is AuthEmailConfirmationRequired) {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                backgroundColor: const Color(0xFF1A1A2E),
-                title: const Row(
-                  children: [
-                    Icon(Icons.email_outlined, color: Color(0xFF6C63FF)),
-                    SizedBox(width: 8),
-                    Text('Check Your Email', style: TextStyle(color: Colors.white)),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: BlocListener<AuthCubit, AuthState>(
+          listener: (context, state) {
+            if (state is AuthAuthenticated) {
+              context.go('/');
+            } else if (state is AuthEmailConfirmationRequired) {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: AppColors.surface(context),
+                  title: Row(
+                    children: [
+                      const Icon(Icons.email_outlined, color: AppColors.electricPurple),
+                      const SizedBox(width: 8),
+                      Text('Check Your Email', style: TextStyle(color: AppColors.text(context))),
+                    ],
+                  ),
+                  content: Text(
+                    'We sent a confirmation link to ${state.email}. Please check your email and click the link to activate your account.',
+                    style: TextStyle(color: AppColors.textSecondary(context)),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
                   ],
                 ),
-                content: Text(
-                  'We sent a confirmation link to ${state.email}. Please check your email and click the link to activate your account.',
-                  style: const TextStyle(color: Colors.white70),
+              );
+            } else if (state is AuthError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('OK'),
-                  ),
-                ],
-              ),
-            );
-          } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: const Color(0xFFFF4757),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
-          }
-        },
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF0A0A0F),
-                Color(0xFF1A1A2E),
-                Color(0xFF16213E),
-              ],
-            ),
-          ),
+              );
+            }
+          },
           child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 60),
-                        // Logo
-                        Center(
-                          child: Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFE50914), Color(0xFFFF3D47)],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFE50914).withOpacity(0.4),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 10),
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: GlassContainer(
+                          padding: const EdgeInsets.all(24),
+                          borderRadius: BorderRadius.circular(28),
+                          opacity: 0.06,
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Spacer(flex: 2),
+                              // Logo
+                              Center(
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: AppColors.primaryGradient,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withOpacity(0.4),
+                                        blurRadius: 25,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.play_arrow_rounded, size: 40, color: Colors.white),
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.play_arrow_rounded,
-                              size: 50,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        // Title
-                        const Text(
-                          'Welcome Back!',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Login to continue watching',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white.withOpacity(0.6),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 48),
-                        // Email Field
-                        GlassTextField(
-                          controller: _emailController,
-                          hintText: 'Email',
-                          prefixIcon: Icons.email_outlined,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your email';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        // Password Field
-                        GlassTextField(
-                          controller: _passwordController,
-                          hintText: 'Password',
-                          prefixIcon: Icons.lock_outlined,
-                          obscureText: !_isPasswordVisible,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: Colors.white.withOpacity(0.5),
-                            ),
+                              ),
+                              const SizedBox(height: 24),
+                              // Title
+                              Text(
+                                'Welcome Back!',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.text(context),
+                                  letterSpacing: -0.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Login to continue watching',
+                                style: TextStyle(fontSize: 14, color: AppColors.textMuted(context)),
+                                textAlign: TextAlign.center,
+                              ),
+                              const Spacer(flex: 1),
+                              // Email Field
+                              GlassTextField(
+                                controller: _emailController,
+                                hintText: 'Email',
+                                prefixIcon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) return 'Please enter your email';
+                                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(value)) return 'Please enter a valid email';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              // Password Field
+                              GlassTextField(
+                                controller: _passwordController,
+                                hintText: 'Password',
+                                prefixIcon: Icons.lock_outlined,
+                                obscureText: !_isPasswordVisible,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                    color: AppColors.textMuted(context),
+                                  ),
+                                  onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) return 'Please enter your password';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // Forgot Password
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
                             onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        // Forgot Password
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                              if (_emailController.text.isNotEmpty) {
-                                context.read<AuthCubit>().resetPassword(
-                                      _emailController.text.trim(),
-                                    );
+                              if (_emailController.text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('Password reset email sent!'),
-                                    backgroundColor: const Color(0xFF00FF88),
+                                    content: const Text('Please enter your email first'),
+                                    backgroundColor: AppColors.warning,
                                     behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 );
+                                return;
                               }
+                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(_emailController.text)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Please enter a valid email'),
+                                    backgroundColor: AppColors.error,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                );
+                                return;
+                              }
+                              context.read<AuthCubit>().resetPassword(_emailController.text.trim());
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Password reset email sent!'),
+                                  backgroundColor: AppColors.success,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              );
                             },
                             child: Text(
                               'Forgot Password?',
-                              style: TextStyle(
-                                color: const Color(0xFF6C63FF).withOpacity(0.8),
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: TextStyle(color: AppColors.electricPurple.withOpacity(0.8), fontWeight: FontWeight.w500),
                             ),
                           ),
                         ),
@@ -258,28 +251,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         // Divider
                         Row(
                           children: [
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: Colors.white.withOpacity(0.1),
-                              ),
-                            ),
+                            Expanded(child: Container(height: 1, color: AppColors.border(context))),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(
-                                'Or continue with',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.4),
-                                  fontSize: 13,
-                                ),
-                              ),
+                              child: Text('Or continue with', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                             ),
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: Colors.white.withOpacity(0.1),
-                              ),
-                            ),
+                            Expanded(child: Container(height: 1, color: AppColors.border(context))),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -288,85 +265,68 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           children: [
                             Expanded(
                               child: _buildSocialButton(
+                                context,
                                 icon: Icons.g_mobiledata_rounded,
                                 label: 'Google',
                                 onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: const Text('Coming soon!'), backgroundColor: const Color(0xFF6C63FF), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                                  );
+                                  context.read<AuthCubit>().signInWithGoogle();
                                 },
                               ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: _buildSocialButton(
+                                context,
                                 icon: Icons.apple_rounded,
                                 label: 'Apple',
                                 onTap: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: const Text('Coming soon!'), backgroundColor: const Color(0xFF6C63FF), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                    SnackBar(content: const Text('Coming soon!'), backgroundColor: AppColors.electricPurple, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                                   );
                                 },
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const Spacer(flex: 2),
                         // Register Link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              "Don't have an account? ",
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                              ),
-                            ),
+                            Text("Don't have an account? ", style: TextStyle(color: AppColors.textMuted(context))),
                             GestureDetector(
                               onTap: () => context.go('/register'),
-                              child: const Text(
-                                'Sign Up',
-                                style: TextStyle(
-                                  color: Color(0xFF6C63FF),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              child: const Text('Sign Up', style: TextStyle(color: AppColors.electricPurple, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const Spacer(flex: 1),
                       ],
                     ),
                   ),
                 ),
               ),
+              ),
+              ),
             ),
+            ],
           ),
         ),
       ),
+    ),
     );
   }
 
-  Widget _buildSocialButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildSocialButton(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
     return GlassContainer(
       padding: const EdgeInsets.symmetric(vertical: 14),
       borderRadius: BorderRadius.circular(14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Colors.white, size: 24),
+          Icon(icon, color: AppColors.text(context), size: 24),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text(label, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
         ],
       ),
     );

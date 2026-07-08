@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../shared/services/tmdb_service.dart';
@@ -19,19 +20,23 @@ class SeeAllPage extends StatefulWidget {
 }
 
 class _SeeAllPageState extends State<SeeAllPage> {
-  final TmdbService _tmdbService = TmdbService();
+  late final TmdbService _tmdbService;
   List<dynamic> _items = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   int _page = 1;
   bool _hasMore = true;
 
   @override
   void initState() {
     super.initState();
+    _tmdbService = context.read<TmdbService>();
     _loadItems();
   }
 
   Future<void> _loadItems() async {
+    if (_isLoadingMore) return;
+    _isLoadingMore = true;
     try {
       Map<String, dynamic> data;
 
@@ -57,10 +62,14 @@ class _SeeAllPageState extends State<SeeAllPage> {
       setState(() {
         _items.addAll(newItems);
         _isLoading = false;
+        _isLoadingMore = false;
         _hasMore = results.length >= 20;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
     }
   }
 
@@ -84,7 +93,7 @@ class _SeeAllPageState extends State<SeeAllPage> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
             child: Container(
               width: 44,
               height: 44,
@@ -133,7 +142,7 @@ class _SeeAllPageState extends State<SeeAllPage> {
         itemCount: _items.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == _items.length) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
 
           final item = _items[index];
@@ -177,7 +186,7 @@ class _SeeAllPageState extends State<SeeAllPage> {
                 ),
                 const SizedBox(height: 6),
                 Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Row(children: [const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 12), const SizedBox(width: 2), Text(rating.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11))]),
+                Row(children: [const Icon(Icons.star_rounded, color: AppColors.warning, size: 12), const SizedBox(width: 2), Text(rating.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11))]),
               ],
             ),
           );

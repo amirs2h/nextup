@@ -102,6 +102,9 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
         season: currentState.season,
         watchedEpisodes: newWatched,
       ));
+
+      // Auto-compute status after toggling episode
+      await _autoComputeStatus(user.id);
     } catch (e) {
       print('Error toggling episode: $e');
       // Reload to get actual state from DB
@@ -141,9 +144,26 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
         season: currentState.season,
         watchedEpisodes: newWatched,
       ));
+
+      // Auto-compute status after marking all episodes
+      await _autoComputeStatus(user.id);
     } catch (e) {
       print('Error marking all episodes: $e');
       await loadSeasonDetails();
+    }
+  }
+
+  Future<void> _autoComputeStatus(String userId) async {
+    try {
+      // Get show details to check status and total episodes
+      final showDetails = await _tmdbService.getShowDetails(showId);
+      await _supabaseService.computeAndSetShowStatus(
+        userId: userId,
+        tmdbId: showId,
+        showDetails: showDetails,
+      );
+    } catch (e) {
+      print('Error auto-computing status: $e');
     }
   }
 }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../../shared/widgets/glass_container.dart';
 import '../../domain/notifications_cubit.dart';
+import '../../../auth/domain/auth_cubit.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -61,7 +62,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               if (state is NotificationsLoaded && state.unreadCount > 0) {
                 return TextButton(
                   onPressed: () => context.read<NotificationsCubit>().markAllAsRead(),
-                  child: const Text('Mark all read', style: TextStyle(color: Color(0xFF6C63FF))),
+                  child: const Text('Mark all read', style: TextStyle(color: AppColors.electricPurple)),
                 );
               }
               return const SizedBox();
@@ -76,7 +77,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return BlocBuilder<NotificationsCubit, NotificationsState>(
       builder: (context, state) {
         if (state is NotificationsLoading) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
         if (state is NotificationsError) {
@@ -84,9 +85,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.read<NotificationsCubit>().loadNotifications(),
+                  child: const Text('Retry'),
+                ),
               ],
             ),
           );
@@ -106,13 +112,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: state.notifications.length,
-            itemBuilder: (context, index) {
-              final notification = state.notifications[index];
-              return _buildNotificationCard(context, notification);
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<NotificationsCubit>().loadNotifications();
             },
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: state.notifications.length,
+              itemBuilder: (context, index) {
+                final notification = state.notifications[index];
+                return _buildNotificationCard(context, notification);
+              },
+            ),
           );
         }
 
@@ -134,11 +145,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     switch (type) {
       case 'new_episode':
         icon = Icons.new_releases;
-        iconColor = const Color(0xFF00FF88);
+        iconColor = AppColors.success;
         break;
       case 'new_movie':
         icon = Icons.movie;
-        iconColor = const Color(0xFF6C63FF);
+        iconColor = AppColors.electricPurple;
         break;
       case 'new_follower':
         icon = Icons.person_add;
@@ -146,11 +157,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
         break;
       case 'comment_like':
         icon = Icons.favorite;
-        iconColor = const Color(0xFFE50914);
+        iconColor = AppColors.primary;
         break;
       default:
         icon = Icons.notifications;
-        iconColor = const Color(0xFFFFD93D);
+        iconColor = AppColors.warning;
     }
 
     return Padding(
@@ -158,12 +169,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: GlassContainer(
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(16),
-        borderColor: isRead ? null : const Color(0xFF6C63FF).withOpacity(0.3),
+        borderColor: isRead ? null : AppColors.electricPurple.withOpacity(0.3),
         child: InkWell(
           onTap: () {
             if (!isRead) {
               context.read<NotificationsCubit>().markAsRead(notification['id']);
             }
+            _navigateToContent(context, notification);
           },
           borderRadius: BorderRadius.circular(16),
           child: Row(
@@ -196,7 +208,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF6C63FF)),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.electricPurple),
                 ),
             ],
           ),
@@ -204,7 +216,44 @@ class _NotificationsPageState extends State<NotificationsPage> {
       ),
     );
   }
+
+  void _navigateToContent(BuildContext context, Map<String, dynamic> notification) {
+    final type = notification['type'] ?? '';
+    final data = notification['data'] as Map<String, dynamic>? ?? {};
+    final tmdbId = data['tmdb_id'];
+    final userId = data['user_id'];
+
+    switch (type) {
+      case 'new_episode':
+      case 'new_movie':
+      case 'comment_like':
+        if (tmdbId != null) {
+          final mediaType = data['media_type'] ?? 'tv';
+          context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+        }
+        break;
+      case 'new_follower':
+        if (userId != null) {
+          context.push('/user/$userId');
+        }
+        break;
+    }
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

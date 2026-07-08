@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import '../../core/theme/app_colors.dart';
@@ -12,13 +13,13 @@ class MainScaffold extends StatefulWidget {
   State<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> {
+class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMixin {
   final List<_NavItem> _items = [
-    _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home', path: '/'),
-    _NavItem(icon: Icons.search_outlined, activeIcon: Icons.search_rounded, label: 'Search', path: '/search'),
-    _NavItem(icon: Icons.explore_outlined, activeIcon: Icons.explore_rounded, label: 'Discover', path: '/discover'),
-    _NavItem(icon: Icons.bookmark_outline_rounded, activeIcon: Icons.bookmark_rounded, label: 'Watchlist', path: '/watchlist'),
-    _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profile', path: '/profile'),
+    _NavItem(icon: Icons.home_rounded, activeIcon: Icons.home_rounded, label: 'Home', path: '/'),
+    _NavItem(icon: Icons.search_rounded, activeIcon: Icons.search_rounded, label: 'Search', path: '/search'),
+    _NavItem(icon: Icons.explore_rounded, activeIcon: Icons.explore_rounded, label: 'Discover', path: '/discover'),
+    _NavItem(icon: Icons.bookmark_rounded, activeIcon: Icons.bookmark_rounded, label: 'Watchlist', path: '/watchlist'),
+    _NavItem(icon: Icons.person_rounded, activeIcon: Icons.person_rounded, label: 'Profile', path: '/profile'),
   ];
 
   int _getCurrentIndex(BuildContext context) {
@@ -30,6 +31,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   }
 
   void _onTap(int index) {
+    HapticFeedback.lightImpact();
     context.go(_items[index].path);
   }
 
@@ -39,78 +41,134 @@ class _MainScaffoldState extends State<MainScaffold> {
     final currentIndex = _getCurrentIndex(context);
 
     return Scaffold(
+      extendBody: true,
       body: widget.child,
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05),
-              blurRadius: 30,
-              offset: const Offset(0, -10),
-            ),
-          ],
-        ),
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
             child: Container(
-              height: 85,
-              padding: const EdgeInsets.only(bottom: 20),
+              height: 72,
               decoration: BoxDecoration(
-                color: isDark ? Colors.black.withOpacity(0.7) : Colors.white.withOpacity(0.9),
-                border: Border(
-                  top: BorderSide(
-                    color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(_items.length, (index) {
-                  final item = _items[index];
-                  final isActive = currentIndex == index;
-                  return GestureDetector(
-                    onTap: () => _onTap(index),
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: isActive
-                            ? const Color(0xFFE50914).withOpacity(0.15)
-                            : Colors.transparent,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isActive ? item.activeIcon : item.icon,
-                            color: isActive
-                                ? const Color(0xFFE50914)
-                                : AppColors.textMuted(context),
-                            size: 26,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item.label,
-                            style: TextStyle(
-                              color: isActive
-                                  ? const Color(0xFFE50914)
-                                  : AppColors.textMuted(context),
-                              fontSize: 11,
-                              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          ),
+                borderRadius: BorderRadius.circular(28),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          Colors.white.withOpacity(0.12),
+                          Colors.white.withOpacity(0.06),
+                        ]
+                      : [
+                          Colors.white.withOpacity(0.85),
+                          Colors.white.withOpacity(0.7),
                         ],
-                      ),
-                    ),
-                  );
-                }),
+                ),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.18)
+                      : Colors.white.withOpacity(0.9),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.4)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                    spreadRadius: -5,
+                ),
+              if (isDark)
+                BoxShadow(
+                  color: AppColors.electricPurple.withOpacity(0.08),
+                  blurRadius: 40,
+                  offset: const Offset(0, 5),
+                ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(_items.length, (index) {
+                    final item = _items[index];
+                    final isActive = currentIndex == index;
+                    return _buildNavItem(context, item, index, isActive, isDark);
+                  }),
+                ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(BuildContext context, _NavItem item, int index, bool isActive, bool isDark) {
+    return GestureDetector(
+      onTap: () => _onTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 18 : 14,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: isActive
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary.withOpacity(0.9),
+                    AppColors.primaryLight.withOpacity(0.8),
+                  ],
+                )
+              : null,
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              child: Icon(
+                isActive ? item.activeIcon : item.icon,
+                color: isActive
+                    ? Colors.white
+                    : isDark
+                        ? Colors.white.withOpacity(0.45)
+                        : Colors.black.withOpacity(0.4),
+                size: isActive ? 22 : 24,
+              ),
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 8),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+                child: Text(item.label),
+              ),
+            ],
+          ],
         ),
       ),
     );

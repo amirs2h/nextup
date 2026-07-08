@@ -1,3 +1,5 @@
+import '../../core/config/app_config.dart';
+
 class ShowModel {
   final int id;
   final String name;
@@ -14,6 +16,13 @@ class ShowModel {
   final int? numberOfEpisodes;
   final String? status;
   final List<SeasonModel>? seasons;
+  final String? tagline;
+  final List<Map<String, dynamic>>? networks;
+  final List<Map<String, dynamic>>? genres;
+  final List<Map<String, dynamic>>? productionCompanies;
+  final List<Map<String, dynamic>>? spokenLanguages;
+  final bool? inProduction;
+  final String? type;
 
   ShowModel({
     required this.id,
@@ -31,6 +40,13 @@ class ShowModel {
     this.numberOfEpisodes,
     this.status,
     this.seasons,
+    this.tagline,
+    this.networks,
+    this.genres,
+    this.productionCompanies,
+    this.spokenLanguages,
+    this.inProduction,
+    this.type,
   });
 
   factory ShowModel.fromJson(Map<String, dynamic> json) {
@@ -52,15 +68,22 @@ class ShowModel {
       seasons: json['seasons'] != null
           ? (json['seasons'] as List).map((s) => SeasonModel.fromJson(s)).toList()
           : null,
+      tagline: json['tagline'],
+      networks: json['networks'] != null ? List<Map<String, dynamic>>.from(json['networks']) : null,
+      genres: json['genres'] != null ? List<Map<String, dynamic>>.from(json['genres']) : null,
+      productionCompanies: json['production_companies'] != null ? List<Map<String, dynamic>>.from(json['production_companies']) : null,
+      spokenLanguages: json['spoken_languages'] != null ? List<Map<String, dynamic>>.from(json['spoken_languages']) : null,
+      inProduction: json['in_production'],
+      type: json['type'],
     );
   }
 
   String? get posterUrl => posterPath != null
-      ? 'https://image.tmdb.org/t/p/w500$posterPath'
+      ? AppConfig.getImageUrl(posterPath, size: 'w500')
       : null;
 
   String? get backdropUrl => backdropPath != null
-      ? 'https://image.tmdb.org/t/p/original$backdropPath'
+      ? AppConfig.getImageUrl(backdropPath, size: 'original')
       : null;
 }
 
@@ -101,7 +124,7 @@ class SeasonModel {
   }
 
   String? get posterUrl => posterPath != null
-      ? 'https://image.tmdb.org/t/p/w500$posterPath'
+      ? AppConfig.getImageUrl(posterPath, size: 'w500')
       : null;
 }
 
@@ -140,6 +163,6 @@ class EpisodeModel {
   }
 
   String? get stillUrl => stillPath != null
-      ? 'https://image.tmdb.org/t/p/w500$stillPath'
+      ? AppConfig.getImageUrl(stillPath, size: 'w500')
       : null;
 }

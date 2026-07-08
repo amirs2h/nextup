@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/app_config.dart';
 
@@ -55,6 +56,76 @@ class SupabaseService {
     await _client.auth.resetPasswordForEmail(email);
   }
 
+  Future<void> updatePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  Future<bool> signInWithGoogle() async {
+    return await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'io.supabase.nextup://login-callback/',
+    );
+  }
+
+  Future<void> deleteAccount(String userId) async {
+    // Delete user data from all tables with individual error handling
+    final deleteOperations = [
+      _client.from('comment_likes').delete().eq('user_id', userId),
+      _client.from('comments').delete().eq('user_id', userId),
+      _client.from('reactions').delete().eq('user_id', userId),
+      _client.from('ratings').delete().eq('user_id', userId),
+      _client.from('notifications').delete().eq('user_id', userId),
+      _client.from('watch_history').delete().eq('user_id', userId),
+      _client.from('favorites').delete().eq('user_id', userId),
+      _client.from('watchlist').delete().eq('user_id', userId),
+      _client.from('follows').delete().or('follower_id.eq.$userId,following_id.eq.$userId'),
+      _client.from('shared_list_members').delete().eq('user_id', userId),
+    ];
+
+    // Execute all deletes, catching individual errors
+    for (final op in deleteOperations) {
+      try {
+        await op;
+      } catch (e) {
+        print('Error during account deletion: $e');
+      }
+    }
+
+    // Delete custom list items (need to fetch list IDs first)
+    try {
+      final customLists = await _client.from('custom_lists').select('id').eq('user_id', userId);
+      final customListIds = (customLists as List).map((l) => l['id']).toList();
+      if (customListIds.isNotEmpty) {
+        await _client.from('custom_list_items').delete().inFilter('list_id', customListIds);
+      }
+    } catch (e) {
+      print('Error deleting custom list items: $e');
+    }
+
+    // Delete lists owned by user
+    try {
+      await _client.from('shared_lists').delete().eq('creator_id', userId);
+    } catch (e) {
+      print('Error deleting shared lists: $e');
+    }
+
+    try {
+      await _client.from('custom_lists').delete().eq('user_id', userId);
+    } catch (e) {
+      print('Error deleting custom lists: $e');
+    }
+
+    // Delete profile
+    try {
+      await _client.from('profiles').delete().eq('id', userId);
+    } catch (e) {
+      print('Error deleting profile: $e');
+    }
+
+    // Sign out
+    await _client.auth.signOut();
+  }
+
   // Profile - Trigger handles creation, we just read
   Future<Map<String, dynamic>?> getProfile(String userId) async {
     try {
@@ -78,18 +149,51 @@ class SupabaseService {
     }
   }
 
+  Future<String?> uploadAvatar(String userId, Uint8List fileBytes, String fileExt) async {
+    try {
+      final path = '$userId/avatar$fileExt';
+      await _client.storage.from('avatars').uploadBinary(
+        path,
+        fileBytes,
+        fileOptions: FileOptions(contentType: 'image/${fileExt.replaceAll('.', '')}'),
+      );
+      final url = _client.storage.from('avatars').getPublicUrl(path);
+      await updateProfile(userId, {'avatar_url': url});
+      return url;
+    } catch (e) {
+      print('Error uploading avatar: $e');
+      return null;
+    }
+  }
+
+  Future<void> deleteAvatar(String userId) async {
+    try {
+      final profile = await getProfile(userId);
+      if (profile != null && profile['avatar_url'] != null) {
+        final url = profile['avatar_url'] as String;
+        final path = url.split('/').last;
+        await _client.storage.from('avatars').remove(['$userId/$path']);
+        await updateProfile(userId, {'avatar_url': null});
+      }
+    } catch (e) {
+      print('Error deleting avatar: $e');
+    }
+  }
+
   // Watchlist
   Future<void> addToWatchlist({
     required String userId,
     required int tmdbId,
     required String mediaType,
     String listName = 'default',
+    String status = 'watchlist',
   }) async {
     await _client.from('watchlist').upsert({
       'user_id': userId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
       'list_name': listName,
+      'status': status,
     });
   }
 
@@ -159,24 +263,13 @@ class SupabaseService {
     int? episodeNumber,
   }) async {
     try {
-      // First check if already watched
-      final existing = await isWatched(
-        userId: userId,
-        tmdbId: tmdbId,
-        mediaType: mediaType,
-        seasonNumber: seasonNumber,
-        episodeNumber: episodeNumber,
-      );
-
-      if (existing) return; // Already marked
-
-      await _client.from('watch_history').insert({
+      await _client.from('watch_history').upsert({
         'user_id': userId,
         'tmdb_id': tmdbId,
         'media_type': mediaType,
         'season_number': seasonNumber,
         'episode_number': episodeNumber,
-      });
+      }, onConflict: 'user_id,tmdb_id,media_type,season_number,episode_number');
     } catch (e) {
       print('Error marking as watched: $e');
       rethrow;
@@ -365,6 +458,7 @@ class SupabaseService {
     required String mediaType,
     int? seasonNumber,
     int? episodeNumber,
+    String? userId,
   }) async {
     try {
       var query = _client.from('comments')
@@ -380,7 +474,34 @@ class SupabaseService {
       }
 
       final result = await query.order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(result);
+      final comments = List<Map<String, dynamic>>.from(result);
+      
+      if (comments.isEmpty) return comments;
+      
+      // Batch fetch all likes for these comments (1 query instead of 2N)
+      final commentIds = comments.map((c) => c['id']).toList();
+      final allLikes = await _client.from('comment_likes')
+          .select('comment_id, user_id')
+          .inFilter('comment_id', commentIds);
+      
+      // Group likes by comment_id
+      final Map<String, List<Map<String, dynamic>>> likesByComment = {};
+      for (final like in allLikes) {
+        final commentId = like['comment_id'] as String;
+        likesByComment.putIfAbsent(commentId, () => []).add(like);
+      }
+      
+      // Populate likes_count and is_liked_by_me
+      for (var comment in comments) {
+        final commentId = comment['id'] as String;
+        final likes = likesByComment[commentId] ?? [];
+        comment['likes_count'] = likes.length;
+        comment['is_liked_by_me'] = userId != null 
+            ? likes.any((l) => l['user_id'] == userId)
+            : false;
+      }
+      
+      return comments;
     } catch (e) {
       return [];
     }
@@ -392,10 +513,10 @@ class SupabaseService {
 
   // Comment Likes
   Future<void> likeComment(String userId, String commentId) async {
-    await _client.from('comment_likes').insert({
+    await _client.from('comment_likes').upsert({
       'user_id': userId,
       'comment_id': commentId,
-    });
+    }, onConflict: 'user_id,comment_id');
   }
 
   Future<void> unlikeComment(String userId, String commentId) async {
@@ -407,10 +528,10 @@ class SupabaseService {
 
   // Follows
   Future<void> followUser(String followerId, String followingId) async {
-    await _client.from('follows').insert({
+    await _client.from('follows').upsert({
       'follower_id': followerId,
       'following_id': followingId,
-    });
+    }, onConflict: 'follower_id,following_id');
   }
 
   Future<void> unfollowUser(String followerId, String followingId) async {
@@ -455,6 +576,19 @@ class SupabaseService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    try {
+      final response = await _client
+          .from('profiles')
+          .select('id, username, avatar_url, bio')
+          .ilike('username', '%$query%')
+          .limit(20);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
   // Reactions
   Future<void> addReaction({
     required String userId,
@@ -469,7 +603,7 @@ class SupabaseService {
       'season_number': seasonNumber,
       'episode_number': episodeNumber,
       'emoji': emoji,
-    });
+    }, onConflict: 'user_id,tmdb_id,season_number,episode_number');
   }
 
   Future<List<Map<String, dynamic>>> getReactions({
@@ -557,6 +691,44 @@ class SupabaseService {
     });
   }
 
+  Future<void> rateEpisode({
+    required String userId,
+    required int tmdbId,
+    required int seasonNumber,
+    required int episodeNumber,
+    required double rating,
+  }) async {
+    await _client.from('ratings').upsert({
+      'user_id': userId,
+      'tmdb_id': tmdbId,
+      'media_type': 'tv',
+      'season_number': seasonNumber,
+      'episode_number': episodeNumber,
+      'rating': rating,
+    });
+  }
+
+  Future<double?> getUserEpisodeRating({
+    required String userId,
+    required int tmdbId,
+    required int seasonNumber,
+    required int episodeNumber,
+  }) async {
+    try {
+      final response = await _client.from('ratings')
+          .select('rating')
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', 'tv')
+          .eq('season_number', seasonNumber)
+          .eq('episode_number', episodeNumber)
+          .maybeSingle();
+      return response?['rating']?.toDouble();
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<double?> getUserRating({
     required String userId,
     required int tmdbId,
@@ -583,14 +755,643 @@ class SupabaseService {
       final response = await _client.from('ratings')
           .select('rating')
           .eq('tmdb_id', tmdbId)
-          .eq('media_type', mediaType);
+          .eq('media_type', mediaType)
+          .not('rating', 'is', null)
+          .limit(1000);
       
       if (response.isEmpty) return 0;
       
       final ratings = response.map((r) => r['rating'] as num).toList();
+      if (ratings.isEmpty) return 0;
       return ratings.reduce((a, b) => a + b) / ratings.length;
     } catch (e) {
       return 0;
+    }
+  }
+
+  // Watchlist Status
+  Future<void> updateWatchlistStatus({
+    required String userId,
+    required int tmdbId,
+    required String mediaType,
+    required String status,
+  }) async {
+    await _client.from('watchlist')
+        .update({'status': status})
+        .eq('user_id', userId)
+        .eq('tmdb_id', tmdbId)
+        .eq('media_type', mediaType);
+  }
+
+  Future<List<Map<String, dynamic>>> getWatchlistByStatus({
+    required String userId,
+    required String status,
+  }) async {
+    try {
+      final response = await _client.from('watchlist')
+          .select()
+          .eq('user_id', userId)
+          .eq('status', status)
+          .order('added_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> computeAndSetShowStatus({
+    required String userId,
+    required int tmdbId,
+    required Map<String, dynamic> showDetails,
+  }) async {
+    try {
+      // Check if show is in watchlist
+      final watchlistItem = await _client.from('watchlist')
+          .select()
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', 'tv')
+          .maybeSingle();
+
+      if (watchlistItem == null) return; // Not in watchlist
+
+      // Get total watched episodes for this show
+      final watchedResponse = await _client.from('watch_history')
+          .select()
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', 'tv')
+          .not('season_number', 'is', null)
+          .not('episode_number', 'is', null);
+      final watchedCount = (watchedResponse as List).length;
+
+      // Get total episodes from TMDB
+      final totalEpisodes = showDetails['number_of_episodes'] ?? 0;
+      final showStatus = showDetails['status'] ?? '';
+
+      String newStatus;
+      if (watchedCount == 0) {
+        newStatus = 'watchlist';
+      } else if (watchedCount >= totalEpisodes && totalEpisodes > 0) {
+        // Watched all episodes
+        if (showStatus == 'Ended' || showStatus == 'Canceled') {
+          newStatus = 'completed';
+        } else {
+          newStatus = 'up_to_date';
+        }
+      } else {
+        // Watched some but not all
+        newStatus = 'watching';
+      }
+
+      // Update status if different
+      final currentStatus = watchlistItem['status'] ?? 'watchlist';
+      if (currentStatus != newStatus) {
+        await updateWatchlistStatus(
+          userId: userId,
+          tmdbId: tmdbId,
+          mediaType: 'tv',
+          status: newStatus,
+        );
+      }
+    } catch (e) {
+      print('Error computing show status: $e');
+    }
+  }
+
+  Future<void> computeAndSetMovieStatus({
+    required String userId,
+    required int tmdbId,
+    required bool isWatched,
+  }) async {
+    try {
+      // Check if movie is in watchlist
+      final watchlistItem = await _client.from('watchlist')
+          .select()
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', 'movie')
+          .maybeSingle();
+
+      if (watchlistItem == null) return; // Not in watchlist
+
+      final newStatus = isWatched ? 'completed' : 'watchlist';
+      final currentStatus = watchlistItem['status'] ?? 'watchlist';
+
+      if (currentStatus != newStatus) {
+        await updateWatchlistStatus(
+          userId: userId,
+          tmdbId: tmdbId,
+          mediaType: 'movie',
+          status: newStatus,
+        );
+      }
+    } catch (e) {
+      print('Error computing movie status: $e');
+    }
+  }
+
+  Future<int> getWatchedEpisodeCount({
+    required String userId,
+    required int tmdbId,
+  }) async {
+    try {
+      final response = await _client.from('watch_history')
+          .select()
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', 'tv');
+      return (response as List).length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Shared Lists
+  Future<String> createSharedList({
+    required String name,
+    String? description,
+    required String creatorId,
+  }) async {
+    final response = await _client.from('shared_lists').insert({
+      'name': name,
+      'description': description,
+      'creator_id': creatorId,
+    }).select('id').single();
+    return response['id'] as String;
+  }
+
+  Future<void> addSharedListMember({
+    required String listId,
+    required String userId,
+    String role = 'member',
+  }) async {
+    await _client.from('shared_list_members').insert({
+      'list_id': listId,
+      'user_id': userId,
+      'role': role,
+    });
+  }
+
+  Future<void> removeSharedListMember({
+    required String listId,
+    required String userId,
+  }) async {
+    await _client.from('shared_list_members')
+        .delete()
+        .eq('list_id', listId)
+        .eq('user_id', userId);
+  }
+
+  Future<void> addSharedListItem({
+    required String listId,
+    required int tmdbId,
+    required String mediaType,
+    required String addedBy,
+  }) async {
+    await _client.from('shared_list_items').insert({
+      'list_id': listId,
+      'tmdb_id': tmdbId,
+      'media_type': mediaType,
+      'added_by': addedBy,
+    });
+  }
+
+  Future<void> removeSharedListItem({
+    required String listId,
+    required int tmdbId,
+    required String mediaType,
+  }) async {
+    await _client.from('shared_list_items')
+        .delete()
+        .eq('list_id', listId)
+        .eq('tmdb_id', tmdbId)
+        .eq('media_type', mediaType);
+  }
+
+  Future<List<Map<String, dynamic>>> getSharedLists(String userId) async {
+    try {
+      final response = await _client.from('shared_list_members')
+          .select('list_id, shared_lists(id, name, description, creator_id, created_at)')
+          .eq('user_id', userId);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSharedListItems(String listId) async {
+    try {
+      final response = await _client.from('shared_list_items')
+          .select()
+          .eq('list_id', listId)
+          .order('added_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSharedListMembers(String listId) async {
+    try {
+      final response = await _client.from('shared_list_members')
+          .select('user_id, role, profiles(username, avatar_url)')
+          .eq('list_id', listId);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Custom Lists
+  Future<String> createCustomList({
+    required String name,
+    String? description,
+    required String userId,
+    bool isPublic = false,
+  }) async {
+    final response = await _client.from('custom_lists').insert({
+      'name': name,
+      'description': description,
+      'user_id': userId,
+      'is_public': isPublic,
+    }).select('id').single();
+    return response['id'] as String;
+  }
+
+  Future<void> addCustomListItem({
+    required String listId,
+    required int tmdbId,
+    required String mediaType,
+  }) async {
+    await _client.from('custom_list_items').insert({
+      'list_id': listId,
+      'tmdb_id': tmdbId,
+      'media_type': mediaType,
+    });
+  }
+
+  Future<void> removeCustomListItem({
+    required String listId,
+    required int tmdbId,
+    required String mediaType,
+  }) async {
+    await _client.from('custom_list_items')
+        .delete()
+        .eq('list_id', listId)
+        .eq('tmdb_id', tmdbId)
+        .eq('media_type', mediaType);
+  }
+
+  Future<List<Map<String, dynamic>>> getCustomLists(String userId) async {
+    try {
+      final response = await _client.from('custom_lists')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getCustomListItems(String listId) async {
+    try {
+      final response = await _client.from('custom_list_items')
+          .select()
+          .eq('list_id', listId)
+          .order('added_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Rankings - Get watch hours for following users (parallel)
+  Future<List<Map<String, dynamic>>> getFollowingWatchHours(String userId) async {
+    try {
+      final following = await getFollowing(userId);
+      
+      // Parallel: fetch watch history for all following + current user
+      final allUserIds = [...following.map((f) => f['following_id']), userId];
+      final historyFutures = allUserIds.map((id) => getWatchHistory(userId: id)).toList();
+      final allHistories = await Future.wait(historyFutures);
+      
+      List<Map<String, dynamic>> rankings = [];
+      
+      // Process following users
+      for (int i = 0; i < following.length; i++) {
+        final follow = following[i];
+        final followingId = follow['following_id'];
+        final username = follow['profiles']?['username'] ?? 'User';
+        final avatarUrl = follow['profiles']?['avatar_url'];
+        final history = allHistories[i];
+        
+        int totalMinutes = 0;
+        for (final item in history) {
+          totalMinutes += item['media_type'] == 'tv' ? 45 : 120;
+        }
+        
+        rankings.add({
+          'user_id': followingId,
+          'username': username,
+          'avatar_url': avatarUrl,
+          'total_minutes': totalMinutes,
+          'total_hours': (totalMinutes / 60).toStringAsFixed(1),
+        });
+      }
+      
+      // Add current user
+      final myHistory = allHistories.last;
+      int myMinutes = 0;
+      for (final item in myHistory) {
+        myMinutes += item['media_type'] == 'tv' ? 45 : 120;
+      }
+      final myProfile = await getProfile(userId);
+      rankings.add({
+        'user_id': userId,
+        'username': myProfile?['username'] ?? 'You',
+        'avatar_url': myProfile?['avatar_url'],
+        'total_minutes': myMinutes,
+        'total_hours': (myMinutes / 60).toStringAsFixed(1),
+        'is_me': true,
+      });
+      
+      // Sort by minutes descending
+      rankings.sort((a, b) => (b['total_minutes'] as int).compareTo(a['total_minutes'] as int));
+      
+      return rankings;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Get watch history with watched_at for episodes
+  Future<List<Map<String, dynamic>>> getWatchHistoryWithDates({
+    required String userId,
+    required int tmdbId,
+  }) async {
+    try {
+      final response = await _client.from('watch_history')
+          .select('season_number, episode_number, watched_at')
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', 'tv')
+          .order('watched_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Update profile header image
+  Future<void> updateProfileHeader({
+    required String userId,
+    required String headerImageUrl,
+  }) async {
+    await _client.from('profiles')
+        .update({'header_image_url': headerImageUrl})
+        .eq('id', userId);
+  }
+
+  // Character Votes
+  Future<void> voteForCharacter({
+    required String userId,
+    required int personId,
+    required int tmdbId,
+    required String characterName,
+    required String voteType,
+  }) async {
+    try {
+      await _client.from('character_votes').upsert({
+        'user_id': userId,
+        'person_id': personId,
+        'tmdb_id': tmdbId,
+        'character_name': characterName,
+        'vote_type': voteType,
+      });
+    } catch (e) {
+      print('Error voting for character: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> removeCharacterVote({
+    required String userId,
+    required int personId,
+    required int tmdbId,
+    required String characterName,
+  }) async {
+    try {
+      await _client.from('character_votes')
+          .delete()
+          .eq('user_id', userId)
+          .eq('person_id', personId)
+          .eq('tmdb_id', tmdbId)
+          .eq('character_name', characterName);
+    } catch (e) {
+      print('Error removing character vote: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getCharacterVotes({
+    required int personId,
+    required int tmdbId,
+    required String characterName,
+  }) async {
+    try {
+      final response = await _client.from('character_votes')
+          .select('vote_type')
+          .eq('person_id', personId)
+          .eq('tmdb_id', tmdbId)
+          .eq('character_name', characterName);
+
+      final votes = List<Map<String, dynamic>>.from(response);
+      final upVotes = votes.where((v) => v['vote_type'] == 'up').length;
+      final downVotes = votes.where((v) => v['vote_type'] == 'down').length;
+
+      return {
+        'up_votes': upVotes,
+        'down_votes': downVotes,
+        'total': upVotes - downVotes,
+      };
+    } catch (e) {
+      return {'up_votes': 0, 'down_votes': 0, 'total': 0};
+    }
+  }
+
+  Future<String?> getUserCharacterVote({
+    required String userId,
+    required int personId,
+    required int tmdbId,
+    required String characterName,
+  }) async {
+    try {
+      final response = await _client.from('character_votes')
+          .select('vote_type')
+          .eq('user_id', userId)
+          .eq('person_id', personId)
+          .eq('tmdb_id', tmdbId)
+          .eq('character_name', characterName)
+          .maybeSingle();
+
+      return response?['vote_type'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTopCharactersForShow({
+    required int tmdbId,
+    int limit = 10,
+  }) async {
+    try {
+      final response = await _client.from('character_votes')
+          .select('character_name, vote_type')
+          .eq('tmdb_id', tmdbId);
+
+      final votes = List<Map<String, dynamic>>.from(response);
+
+      // Group by character and calculate totals
+      Map<String, Map<String, int>> characterVotes = {};
+      for (final vote in votes) {
+        final name = vote['character_name'] as String;
+        final type = vote['vote_type'] as String;
+
+        if (!characterVotes.containsKey(name)) {
+          characterVotes[name] = {'up': 0, 'down': 0};
+        }
+
+        if (type == 'up') {
+          characterVotes[name]!['up'] = characterVotes[name]!['up']! + 1;
+        } else {
+          characterVotes[name]!['down'] = characterVotes[name]!['down']! + 1;
+        }
+      }
+
+      // Convert to list and sort by total
+      final result = characterVotes.entries.map((entry) {
+        final upVotes = entry.value['up'] ?? 0;
+        final downVotes = entry.value['down'] ?? 0;
+        return {
+          'character_name': entry.key,
+          'up_votes': upVotes,
+          'down_votes': downVotes,
+          'total': upVotes - downVotes,
+        };
+      }).toList();
+
+      result.sort((a, b) => (b['total'] as int).compareTo(a['total'] as int));
+
+      return result.take(limit).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Favorite Actor Voting
+  Future<void> voteFavoriteActor({
+    required String userId,
+    required int tmdbId,
+    required String mediaType,
+    required int personId,
+    String? characterName,
+  }) async {
+    try {
+      await _client.from('favorite_actor_votes').upsert({
+        'user_id': userId,
+        'tmdb_id': tmdbId,
+        'media_type': mediaType,
+        'person_id': personId,
+        'character_name': characterName,
+      }, onConflict: 'user_id,tmdb_id,media_type');
+    } catch (e) {
+      print('Error voting for favorite actor: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> removeFavoriteActorVote({
+    required String userId,
+    required int tmdbId,
+    required String mediaType,
+  }) async {
+    try {
+      await _client.from('favorite_actor_votes')
+          .delete()
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', mediaType);
+    } catch (e) {
+      print('Error removing favorite actor vote: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserFavoriteActorVote({
+    required String userId,
+    required int tmdbId,
+    required String mediaType,
+  }) async {
+    try {
+      final response = await _client.from('favorite_actor_votes')
+          .select('person_id, character_name')
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', mediaType)
+          .maybeSingle();
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFavoriteActorResults({
+    required int tmdbId,
+    required String mediaType,
+    int limit = 10,
+  }) async {
+    try {
+      final response = await _client.from('favorite_actor_votes')
+          .select('person_id, character_name')
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', mediaType);
+
+      final votes = List<Map<String, dynamic>>.from(response);
+      if (votes.isEmpty) return [];
+
+      // Count votes per person
+      Map<int, Map<String, dynamic>> personVotes = {};
+      for (final vote in votes) {
+        final personId = vote['person_id'] as int;
+        final characterName = vote['character_name'] as String? ?? 'Unknown';
+        if (!personVotes.containsKey(personId)) {
+          personVotes[personId] = {
+            'person_id': personId,
+            'character_name': characterName,
+            'votes': 0,
+          };
+        }
+        personVotes[personId]!['votes'] = (personVotes[personId]!['votes'] as int) + 1;
+      }
+
+      // Convert to list and calculate percentages
+      final totalVotes = votes.length;
+      final result = personVotes.values.map((pv) {
+        final voteCount = pv['votes'] as int;
+        return {
+          'person_id': pv['person_id'],
+          'character_name': pv['character_name'],
+          'votes': voteCount,
+          'percentage': totalVotes > 0 ? (voteCount / totalVotes * 100).round() : 0,
+        };
+      }).toList();
+
+      // Sort by votes descending
+      result.sort((a, b) => (b['votes'] as int).compareTo(a['votes'] as int));
+
+      return result.take(limit).toList();
+    } catch (e) {
+      return [];
     }
   }
 }
