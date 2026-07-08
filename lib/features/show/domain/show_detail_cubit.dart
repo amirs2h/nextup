@@ -44,6 +44,9 @@ class ShowDetailLoaded extends ShowDetailState {
     this.userRating,
     this.averageRating = 0,
   });
+
+  @override
+  List<Object?> get props => [show, cast, similarShows, isInWatchlist, isFavorite, watchedEpisodes, videos, watchProviders, imdbId, contentRating, rottenTomatoesScore, imdbRating, userRating, averageRating];
 }
 
 class ShowDetailError extends ShowDetailState {

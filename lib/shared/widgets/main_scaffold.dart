@@ -24,8 +24,13 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
 
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
+    // Check exact match first, then prefix match (except for root '/')
     for (int i = 0; i < _items.length; i++) {
       if (location == _items[i].path) return i;
+    }
+    // Prefix match for sub-routes (e.g., /profile/settings -> Profile tab)
+    for (int i = _items.length - 1; i >= 1; i--) {
+      if (location.startsWith('${_items[i].path}/')) return i;
     }
     return 0;
   }

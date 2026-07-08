@@ -12,6 +12,8 @@ import '../../../../shared/widgets/modern_widgets.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/trailer_widget.dart';
 import '../../../../shared/widgets/external_ratings_widget.dart';
+import '../../../../shared/widgets/favorite_actor_voting_widget.dart';
+import '../../../../shared/widgets/rating_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/movie_detail_cubit.dart';
@@ -258,7 +260,17 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
                           padding: const EdgeInsets.all(16),
                           borderRadius: BorderRadius.circular(16),
                           child: InkWell(
-                            onTap: () => _showRatingDialog(context, widget.movieId, 'movie', state.movie.title),
+                            onTap: () => showRatingDialog(
+                              context: context,
+                              title: state.movie.title,
+                              onRate: (rating) async {
+                                final supabase = context.read<SupabaseService>();
+                                final user = supabase.currentUser;
+                                if (user != null) {
+                                  await supabase.rateMovie(userId: user.id, tmdbId: widget.movieId, rating: rating);
+                                }
+                              },
+                            ),
                             borderRadius: BorderRadius.circular(16),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -371,7 +383,11 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                      child: _buildFavoriteActorSection(context, widget.movieId, 'movie', state.cast),
+                      child: FavoriteActorVotingWidget(
+                        tmdbId: widget.movieId,
+                        mediaType: 'movie',
+                        cast: state.cast,
+                      ),
                     ),
                   ),
                 if (state.videos.isNotEmpty)

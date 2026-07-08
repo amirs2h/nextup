@@ -33,6 +33,9 @@ class CalendarLoaded extends CalendarState {
     required this.events,
     required this.selectedMonth,
   });
+
+  @override
+  List<Object?> get props => [events, selectedMonth];
 }
 
 class CalendarError extends CalendarState {

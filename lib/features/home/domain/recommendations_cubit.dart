@@ -15,6 +15,9 @@ class RecommendationsLoaded extends RecommendationsState {
   final List<MovieModel> movies;
 
   RecommendationsLoaded({required this.shows, required this.movies});
+
+  @override
+  List<Object?> get props => [shows, movies];
 }
 
 class RecommendationsError extends RecommendationsState {

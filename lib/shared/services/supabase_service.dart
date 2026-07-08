@@ -80,6 +80,8 @@ class SupabaseService {
       _client.from('watchlist').delete().eq('user_id', userId),
       _client.from('follows').delete().or('follower_id.eq.$userId,following_id.eq.$userId'),
       _client.from('shared_list_members').delete().eq('user_id', userId),
+      _client.from('character_votes').delete().eq('user_id', userId),
+      _client.from('favorite_actor_votes').delete().eq('user_id', userId),
     ];
 
     // Execute all deletes, catching individual errors
@@ -461,7 +463,7 @@ class SupabaseService {
     String? userId,
   }) async {
     try {
-      var query = _client.from('comments')
+      var query = _client.from('comments_with_likes')
           .select('*, profiles(username, avatar_url)')
           .eq('tmdb_id', tmdbId)
           .eq('media_type', mediaType);
@@ -476,29 +478,21 @@ class SupabaseService {
       final result = await query.order('created_at', ascending: false);
       final comments = List<Map<String, dynamic>>.from(result);
       
-      if (comments.isEmpty) return comments;
-      
-      // Batch fetch all likes for these comments (1 query instead of 2N)
-      final commentIds = comments.map((c) => c['id']).toList();
-      final allLikes = await _client.from('comment_likes')
-          .select('comment_id, user_id')
-          .inFilter('comment_id', commentIds);
-      
-      // Group likes by comment_id
-      final Map<String, List<Map<String, dynamic>>> likesByComment = {};
-      for (final like in allLikes) {
-        final commentId = like['comment_id'] as String;
-        likesByComment.putIfAbsent(commentId, () => []).add(like);
-      }
-      
-      // Populate likes_count and is_liked_by_me
-      for (var comment in comments) {
-        final commentId = comment['id'] as String;
-        final likes = likesByComment[commentId] ?? [];
-        comment['likes_count'] = likes.length;
-        comment['is_liked_by_me'] = userId != null 
-            ? likes.any((l) => l['user_id'] == userId)
-            : false;
+      // Add is_liked_by_me for each comment
+      if (userId != null && comments.isNotEmpty) {
+        final commentIds = comments.map((c) => c['id']).toList();
+        final userLikes = await _client.from('comment_likes')
+            .select('comment_id')
+            .eq('user_id', userId)
+            .inFilter('comment_id', commentIds);
+        final likedIds = Set<String>.from((userLikes as List).map((l) => l['comment_id']));
+        for (var comment in comments) {
+          comment['is_liked_by_me'] = likedIds.contains(comment['id']);
+        }
+      } else {
+        for (var comment in comments) {
+          comment['is_liked_by_me'] = false;
+        }
       }
       
       return comments;
@@ -670,12 +664,26 @@ class SupabaseService {
     required int tmdbId,
     required double rating,
   }) async {
-    await _client.from('ratings').upsert({
-      'user_id': userId,
-      'tmdb_id': tmdbId,
-      'media_type': 'tv',
-      'rating': rating,
-    });
+    // Use query-first approach to avoid expression index issues
+    final existing = await _client.from('ratings')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('tmdb_id', tmdbId)
+        .eq('media_type', 'tv')
+        .isFilter('season_number', null)
+        .isFilter('episode_number', null)
+        .maybeSingle();
+    
+    if (existing != null) {
+      await _client.from('ratings').update({'rating': rating}).eq('id', existing['id']);
+    } else {
+      await _client.from('ratings').insert({
+        'user_id': userId,
+        'tmdb_id': tmdbId,
+        'media_type': 'tv',
+        'rating': rating,
+      });
+    }
   }
 
   Future<void> rateMovie({
@@ -683,12 +691,25 @@ class SupabaseService {
     required int tmdbId,
     required double rating,
   }) async {
-    await _client.from('ratings').upsert({
-      'user_id': userId,
-      'tmdb_id': tmdbId,
-      'media_type': 'movie',
-      'rating': rating,
-    });
+    final existing = await _client.from('ratings')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('tmdb_id', tmdbId)
+        .eq('media_type', 'movie')
+        .isFilter('season_number', null)
+        .isFilter('episode_number', null)
+        .maybeSingle();
+    
+    if (existing != null) {
+      await _client.from('ratings').update({'rating': rating}).eq('id', existing['id']);
+    } else {
+      await _client.from('ratings').insert({
+        'user_id': userId,
+        'tmdb_id': tmdbId,
+        'media_type': 'movie',
+        'rating': rating,
+      });
+    }
   }
 
   Future<void> rateEpisode({
@@ -698,14 +719,27 @@ class SupabaseService {
     required int episodeNumber,
     required double rating,
   }) async {
-    await _client.from('ratings').upsert({
-      'user_id': userId,
-      'tmdb_id': tmdbId,
-      'media_type': 'tv',
-      'season_number': seasonNumber,
-      'episode_number': episodeNumber,
-      'rating': rating,
-    });
+    final existing = await _client.from('ratings')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('tmdb_id', tmdbId)
+        .eq('media_type', 'tv')
+        .eq('season_number', seasonNumber)
+        .eq('episode_number', episodeNumber)
+        .maybeSingle();
+    
+    if (existing != null) {
+      await _client.from('ratings').update({'rating': rating}).eq('id', existing['id']);
+    } else {
+      await _client.from('ratings').insert({
+        'user_id': userId,
+        'tmdb_id': tmdbId,
+        'media_type': 'tv',
+        'season_number': seasonNumber,
+        'episode_number': episodeNumber,
+        'rating': rating,
+      });
+    }
   }
 
   Future<double?> getUserEpisodeRating({
@@ -752,18 +786,11 @@ class SupabaseService {
     required String mediaType,
   }) async {
     try {
-      final response = await _client.from('ratings')
-          .select('rating')
-          .eq('tmdb_id', tmdbId)
-          .eq('media_type', mediaType)
-          .not('rating', 'is', null)
-          .limit(1000);
-      
-      if (response.isEmpty) return 0;
-      
-      final ratings = response.map((r) => r['rating'] as num).toList();
-      if (ratings.isEmpty) return 0;
-      return ratings.reduce((a, b) => a + b) / ratings.length;
+      final result = await _client.rpc('get_average_rating', params: {
+        'p_tmdb_id': tmdbId,
+        'p_media_type': mediaType,
+      });
+      return (result as num?)?.toDouble() ?? 0;
     } catch (e) {
       return 0;
     }
@@ -1070,57 +1097,10 @@ class SupabaseService {
   // Rankings - Get watch hours for following users (parallel)
   Future<List<Map<String, dynamic>>> getFollowingWatchHours(String userId) async {
     try {
-      final following = await getFollowing(userId);
-      
-      // Parallel: fetch watch history for all following + current user
-      final allUserIds = [...following.map((f) => f['following_id']), userId];
-      final historyFutures = allUserIds.map((id) => getWatchHistory(userId: id)).toList();
-      final allHistories = await Future.wait(historyFutures);
-      
-      List<Map<String, dynamic>> rankings = [];
-      
-      // Process following users
-      for (int i = 0; i < following.length; i++) {
-        final follow = following[i];
-        final followingId = follow['following_id'];
-        final username = follow['profiles']?['username'] ?? 'User';
-        final avatarUrl = follow['profiles']?['avatar_url'];
-        final history = allHistories[i];
-        
-        int totalMinutes = 0;
-        for (final item in history) {
-          totalMinutes += item['media_type'] == 'tv' ? 45 : 120;
-        }
-        
-        rankings.add({
-          'user_id': followingId,
-          'username': username,
-          'avatar_url': avatarUrl,
-          'total_minutes': totalMinutes,
-          'total_hours': (totalMinutes / 60).toStringAsFixed(1),
-        });
-      }
-      
-      // Add current user
-      final myHistory = allHistories.last;
-      int myMinutes = 0;
-      for (final item in myHistory) {
-        myMinutes += item['media_type'] == 'tv' ? 45 : 120;
-      }
-      final myProfile = await getProfile(userId);
-      rankings.add({
-        'user_id': userId,
-        'username': myProfile?['username'] ?? 'You',
-        'avatar_url': myProfile?['avatar_url'],
-        'total_minutes': myMinutes,
-        'total_hours': (myMinutes / 60).toStringAsFixed(1),
-        'is_me': true,
+      final result = await _client.rpc('get_following_watch_hours', params: {
+        'p_user_id': userId,
       });
-      
-      // Sort by minutes descending
-      rankings.sort((a, b) => (b['total_minutes'] as int).compareTo(a['total_minutes'] as int));
-      
-      return rankings;
+      return List<Map<String, dynamic>>.from(result);
     } catch (e) {
       return [];
     }

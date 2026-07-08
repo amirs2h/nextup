@@ -8,6 +8,7 @@ import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/trailer_widget.dart';
+import '../../../../shared/widgets/spoiler_widget.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../domain/show_detail_cubit.dart';
@@ -143,6 +144,12 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     final user = supabase.currentUser;
     if (user == null) return;
 
+    // Optimistic update - show reaction immediately
+    final previousReactions = Map<String, int>.from(_reactions);
+    setState(() {
+      _reactions[emoji] = (_reactions[emoji] ?? 0) + 1;
+    });
+
     try {
       await supabase.addReaction(
         userId: user.id,
@@ -151,9 +158,31 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
         episodeNumber: widget.episodeNumber,
         emoji: emoji,
       );
-      await _loadEpisodeData();
+      // Reload actual reactions from server
+      final reactions = await supabase.getReactions(
+        tmdbId: widget.showId,
+        seasonNumber: widget.seasonNumber,
+        episodeNumber: widget.episodeNumber,
+      );
+      Map<String, int> reactionCounts = {};
+      for (final r in reactions) {
+        final emojiKey = r['emoji'] as String;
+        reactionCounts[emojiKey] = (reactionCounts[emojiKey] ?? 0) + 1;
+      }
+      if (mounted) setState(() => _reactions = reactionCounts);
     } catch (e) {
-      // Handle error
+      // Rollback on failure
+      if (mounted) {
+        setState(() => _reactions = previousReactions);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to add reaction'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
     }
   }
 
@@ -199,9 +228,15 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
             ],
           ),
           actions: [
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.surface(context),
+                foregroundColor: AppColors.text(context),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: rating > 0 ? () async {
@@ -470,6 +505,24 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                   ),
                                 ],
                               ),
+                              if (_userRating != null && _userRating! > 0) ...[
+                                const SizedBox(width: 24),
+                                Container(width: 1, height: 40, color: AppColors.border(context)),
+                                const SizedBox(width: 24),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _userRating!.toStringAsFixed(0),
+                                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFFFFD93D)),
+                                    ),
+                                    Text(
+                                      'Your Rating',
+                                      style: TextStyle(color: AppColors.textMuted(context), fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -566,6 +619,8 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     final username = comment['profiles']?['username'] ?? 'User';
     final content = comment['content'] ?? '';
     final createdAt = comment['created_at'] != null ? DateTime.parse(comment['created_at']) : DateTime.now();
+    final isSpoiler = content.startsWith('[SPOILER]');
+    final displayContent = isSpoiler ? content.substring(10) : content;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -598,7 +653,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(content, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14)),
+            SpoilerText(text: displayContent, isSpoiler: isSpoiler),
           ],
         ),
       ),

@@ -164,7 +164,36 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                             ),
                           ),
                           IconButton(
-                            onPressed: () => context.read<CustomListsCubit>().removeItemFromList(widget.listId, show.id, 'tv'),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  backgroundColor: AppColors.surface(context),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  title: const Text('Remove Item'),
+                                  content: Text('Remove "${show.name}" from this list?'),
+                                  actions: [
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(dialogContext),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.surface(context),
+                                        foregroundColor: AppColors.text(context),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                      ),
+                                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(dialogContext);
+                                        context.read<CustomListsCubit>().removeItemFromList(widget.listId, show.id, 'tv');
+                                      },
+                                      child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                             icon: const Icon(Icons.close, color: AppColors.error, size: 20),
                           ),
                         ],
@@ -210,7 +239,36 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                             ),
                           ),
                           IconButton(
-                            onPressed: () => context.read<CustomListsCubit>().removeItemFromList(widget.listId, movie.id, 'movie'),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  backgroundColor: AppColors.surface(context),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  title: const Text('Remove Item'),
+                                  content: Text('Remove "${movie.title}" from this list?'),
+                                  actions: [
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(dialogContext),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.surface(context),
+                                        foregroundColor: AppColors.text(context),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                      ),
+                                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(dialogContext);
+                                        context.read<CustomListsCubit>().removeItemFromList(widget.listId, movie.id, 'movie');
+                                      },
+                                      child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                             icon: const Icon(Icons.close, color: AppColors.error, size: 20),
                           ),
                         ],

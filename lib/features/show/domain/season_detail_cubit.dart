@@ -18,6 +18,9 @@ class SeasonDetailLoaded extends SeasonDetailState {
     required this.season,
     this.watchedEpisodes = const {},
   });
+
+  @override
+  List<Object?> get props => [season, watchedEpisodes];
 }
 
 class SeasonDetailError extends SeasonDetailState {

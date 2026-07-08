@@ -16,15 +16,8 @@ class CustomListsPage extends StatefulWidget {
 
 class _CustomListsPageState extends State<CustomListsPage> {
   @override
-  void initState() {
-    super.initState();
-    _loadLists();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload when page becomes visible again
     _loadLists();
   }
 

@@ -168,7 +168,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               ),
             ),
             GestureDetector(
-              onTap: () => context.read<FavoritesCubit>().removeFromFavorites(show.id, 'tv'),
+              onTap: () => _confirmRemove(context, show.name, () => context.read<FavoritesCubit>().removeFromFavorites(show.id, 'tv')),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
@@ -212,7 +212,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               ),
             ),
             GestureDetector(
-              onTap: () => context.read<FavoritesCubit>().removeFromFavorites(movie.id, 'movie'),
+              onTap: () => _confirmRemove(context, movie.title, () => context.read<FavoritesCubit>().removeFromFavorites(movie.id, 'movie')),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
@@ -221,6 +221,37 @@ class _FavoritesPageState extends State<FavoritesPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmRemove(BuildContext context, String name, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Remove from Favorites'),
+        content: Text('Remove "$name" from your favorites?'),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.surface(context),
+              foregroundColor: AppColors.text(context),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              onConfirm();
+            },
+            child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
       ),
     );
   }

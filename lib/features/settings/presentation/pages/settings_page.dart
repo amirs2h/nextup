@@ -252,12 +252,21 @@ class SettingsPage extends StatelessWidget {
             title: Text(isPersian ? 'خروج' : 'Sign Out', style: TextStyle(color: AppColors.text(context))),
             content: Text(isPersian ? 'آیا مطمئن هستید؟' : 'Are you sure?', style: TextStyle(color: AppColors.textSecondary(context))),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(isPersian ? 'لغو' : 'Cancel')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.surface(context),
+                  foregroundColor: AppColors.text(context),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                child: Text(isPersian ? 'لغو' : 'Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+              ),
               TextButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(dialogContext);
-                  context.read<AuthCubit>().signOut();
-                  context.go('/login');
+                  await context.read<AuthCubit>().signOut();
+                  if (context.mounted) context.go('/login');
                 },
                 child: Text(isPersian ? 'خروج' : 'Sign Out', style: const TextStyle(color: AppColors.error)),
               ),
@@ -353,6 +362,7 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showChangePasswordDialog(BuildContext context, bool isPersian) {
+    final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -368,6 +378,22 @@ class SettingsPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              TextFormField(
+                controller: currentPasswordController,
+                obscureText: true,
+                style: TextStyle(color: AppColors.text(context)),
+                decoration: InputDecoration(
+                  hintText: isPersian ? 'رمز عبور فعلی' : 'Current Password',
+                  hintStyle: TextStyle(color: AppColors.textMuted(context)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return isPersian ? 'رمز عبور فعلی را وارد کنید' : 'Please enter current password';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: newPasswordController,
                 obscureText: true,
@@ -407,22 +433,38 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(isPersian ? 'لغو' : 'Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.surface(context),
+              foregroundColor: AppColors.text(context),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(isPersian ? 'لغو' : 'Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 Navigator.pop(dialogContext);
                 try {
-                  await context.read<SupabaseService>().updatePassword(newPasswordController.text);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(isPersian ? 'رمز عبور تغییر کرد' : 'Password changed'), backgroundColor: AppColors.success),
-                    );
+                  final supabase = context.read<SupabaseService>();
+                  final user = supabase.currentUser;
+                  if (user?.email != null) {
+                    // Re-authenticate with current password
+                    await supabase.signIn(email: user!.email!, password: currentPasswordController.text);
+                    // Then update to new password
+                    await supabase.updatePassword(newPasswordController.text);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(isPersian ? 'رمز عبور تغییر کرد' : 'Password changed'), backgroundColor: AppColors.success),
+                      );
+                    }
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(isPersian ? 'خطا در تغییر رمز عبور' : 'Failed to change password'), backgroundColor: AppColors.error),
+                      SnackBar(content: Text(isPersian ? 'رمز عبور فعلی اشتباه است' : 'Current password is incorrect'), backgroundColor: AppColors.error),
                     );
                   }
                 }
@@ -437,25 +479,65 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showDeleteDialog(BuildContext context, bool isPersian) {
+    final passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(isPersian ? 'حذف حساب' : 'Delete Account', style: const TextStyle(color: AppColors.error)),
-        content: Text(
-          isPersian ? 'آیا مطمئن هستید؟ این عمل غیرقابل بازگشت است.' : 'Are you sure you want to delete your account? This action cannot be undone.',
-          style: TextStyle(color: AppColors.textSecondary(context)),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isPersian ? 'آیا مطمئن هستید؟ این عمل غیرقابل بازگشت است.' : 'Are you sure you want to delete your account? This action cannot be undone.',
+                style: TextStyle(color: AppColors.textSecondary(context)),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: passwordController,
+                obscureText: true,
+                style: TextStyle(color: AppColors.text(context)),
+                decoration: InputDecoration(
+                  hintText: isPersian ? 'رمز عبور فعلی را وارد کنید' : 'Enter your password to confirm',
+                  hintStyle: TextStyle(color: AppColors.textMuted(context)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.error)),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return isPersian ? 'رمز عبور را وارد کنید' : 'Please enter your password';
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(isPersian ? 'لغو' : 'Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.surface(context),
+              foregroundColor: AppColors.text(context),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(isPersian ? 'لغو' : 'Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+          ),
           ElevatedButton(
             onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
               Navigator.pop(dialogContext);
               try {
                 final supabase = context.read<SupabaseService>();
                 final user = supabase.currentUser;
-                if (user != null) {
+                if (user?.email != null) {
+                  // Re-authenticate first
+                  await supabase.signIn(email: user!.email!, password: passwordController.text);
+                  // Then delete
                   await supabase.deleteAccount(user.id);
                   if (context.mounted) {
                     context.read<AuthCubit>().signOut();
@@ -465,7 +547,7 @@ class SettingsPage extends StatelessWidget {
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(isPersian ? 'خطا در حذف حساب' : 'Failed to delete account'), backgroundColor: AppColors.error),
+                    SnackBar(content: Text(isPersian ? 'رمز عبور اشتباه است' : 'Incorrect password'), backgroundColor: AppColors.error),
                   );
                 }
               }

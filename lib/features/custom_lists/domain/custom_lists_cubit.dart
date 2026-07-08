@@ -14,6 +14,9 @@ class CustomListsLoading extends CustomListsState {}
 class CustomListsLoaded extends CustomListsState {
   final List<Map<String, dynamic>> lists;
   CustomListsLoaded({required this.lists});
+
+  @override
+  List<Object?> get props => [lists];
 }
 
 class CustomListDetailLoaded extends CustomListsState {
@@ -21,6 +24,9 @@ class CustomListDetailLoaded extends CustomListsState {
   final List<ShowModel> shows;
   final List<MovieModel> movies;
   CustomListDetailLoaded({required this.list, required this.shows, required this.movies});
+
+  @override
+  List<Object?> get props => [list, shows, movies];
 }
 
 class CustomListsError extends CustomListsState {

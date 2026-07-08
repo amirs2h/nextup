@@ -15,6 +15,9 @@ class FavoritesLoaded extends FavoritesState {
   final List<MovieModel> movies;
 
   FavoritesLoaded({required this.shows, required this.movies});
+
+  @override
+  List<Object?> get props => [shows, movies];
 }
 
 class FavoritesError extends FavoritesState {

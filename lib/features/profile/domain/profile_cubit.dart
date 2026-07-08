@@ -24,6 +24,9 @@ class ProfileLoaded extends ProfileState {
     this.followers = const [],
     this.following = const [],
   });
+
+  @override
+  List<Object?> get props => [profile, followersCount, followingCount, watchlistCount, followers, following];
 }
 
 class ProfileError extends ProfileState {

@@ -38,10 +38,10 @@ class ExternalRatingsWidget extends StatelessWidget {
             label: 'RT',
             value: '$rottenTomatoesScore%',
             color: rottenTomatoesScore! >= 60
-                ? const Color(0xFFFA320A)
+                ? const Color(0xFF5C7C2E)  // Green (Fresh)
                 : rottenTomatoesScore! >= 40
-                    ? const Color(0xFFFFD93D)
-                    : const Color(0xFF5C7C2E),
+                    ? const Color(0xFFFFD93D)  // Yellow (Mediocre)
+                    : const Color(0xFFFA320A), // Red (Rotten)
             icon: rottenTomatoesScore! >= 60 ? Icons.thumb_up : Icons.thumb_down,
           ),
         if (contentRating != null && contentRating!.isNotEmpty)

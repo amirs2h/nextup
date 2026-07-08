@@ -197,7 +197,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (_emailController.text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -220,15 +220,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 );
                                 return;
                               }
-                              context.read<AuthCubit>().resetPassword(_emailController.text.trim());
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('Password reset email sent!'),
-                                  backgroundColor: AppColors.success,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              );
+                              try {
+                                await context.read<AuthCubit>().resetPassword(_emailController.text.trim());
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Password reset email sent!'),
+                                      backgroundColor: AppColors.success,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Failed to send reset email. Please try again.'),
+                                      backgroundColor: AppColors.error,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  );
+                                }
+                              }
                             },
                             child: Text(
                               'Forgot Password?',

@@ -53,17 +53,26 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       // Wait for auth state to be determined (not AuthInitial)
       final authCubit = context.read<AuthCubit>();
       if (authCubit.state is AuthInitial) {
-        // Wait for auth state to settle
-        await for (final state in authCubit.stream) {
-          if (!mounted) return;
-          if (state is! AuthInitial) {
-            if (state is AuthAuthenticated) {
-              context.go('/');
-            } else {
-              context.go('/login');
+        // Wait for auth state to settle with timeout
+        try {
+          await for (final state in authCubit.stream.timeout(
+            const Duration(seconds: 10),
+            onTimeout: (sink) {
+              sink.add(AuthUnauthenticated());
+            },
+          )) {
+            if (!mounted) return;
+            if (state is! AuthInitial) {
+              if (state is AuthAuthenticated) {
+                context.go('/');
+              } else {
+                context.go('/login');
+              }
+              break;
             }
-            break;
           }
+        } catch (e) {
+          if (mounted) context.go('/login');
         }
       } else {
         // Auth state already determined

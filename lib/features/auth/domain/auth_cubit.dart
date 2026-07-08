@@ -13,6 +13,17 @@ class AuthAuthenticated extends AuthState {
   final User user;
   final Map<String, dynamic>? profile;
   AuthAuthenticated({required this.user, this.profile});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AuthAuthenticated &&
+          runtimeType == other.runtimeType &&
+          user.id == other.user.id &&
+          profile == other.profile;
+
+  @override
+  int get hashCode => Object.hash(user.id, profile);
 }
 
 class AuthUnauthenticated extends AuthState {}

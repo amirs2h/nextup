@@ -20,6 +20,9 @@ class WatchHistoryLoaded extends WatchHistoryState {
     required this.shows,
     required this.movies,
   });
+
+  @override
+  List<Object?> get props => [history, shows, movies];
 }
 
 class WatchHistoryError extends WatchHistoryState {

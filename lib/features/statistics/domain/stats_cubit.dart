@@ -24,6 +24,9 @@ class StatsLoaded extends StatsState {
     this.monthlyWatched = const {},
     this.topGenres = const [],
   });
+
+  @override
+  List<Object?> get props => [totalShows, totalMovies, totalEpisodes, totalHours, monthlyWatched, topGenres];
 }
 
 class StatsError extends StatsState {

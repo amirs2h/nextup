@@ -44,6 +44,9 @@ class MovieDetailLoaded extends MovieDetailState {
     this.userRating,
     this.averageRating = 0,
   });
+
+  @override
+  List<Object?> get props => [movie, cast, similarMovies, isInWatchlist, isFavorite, isWatched, videos, watchProviders, imdbId, contentRating, rottenTomatoesScore, imdbRating, userRating, averageRating];
 }
 
 class MovieDetailError extends MovieDetailState {

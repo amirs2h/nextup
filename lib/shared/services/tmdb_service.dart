@@ -6,10 +6,11 @@ class TmdbService {
   final bool _useProxy;
   String _language = 'en-US';
   
-  // Memory cache
+  // Memory cache with eviction
   final Map<String, dynamic> _cache = {};
   final Map<String, DateTime> _cacheTimestamps = {};
   static const Duration _cacheDuration = Duration(hours: 1);
+  static const int _maxCacheSize = 200;
 
   TmdbService({bool? useProxy}) : _useProxy = useProxy ?? AppConfig.useProxy {
     if (_useProxy) {
@@ -32,6 +33,28 @@ class TmdbService {
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ));
+    }
+  }
+
+  void _evictOldEntries() {
+    final now = DateTime.now();
+    final expiredKeys = _cacheTimestamps.entries
+        .where((e) => now.difference(e.value) > _cacheDuration)
+        .map((e) => e.key)
+        .toList();
+    for (final key in expiredKeys) {
+      _cache.remove(key);
+      _cacheTimestamps.remove(key);
+    }
+    // If still over limit, remove oldest entries
+    if (_cache.length > _maxCacheSize) {
+      final sortedKeys = _cacheTimestamps.entries.toList()
+        ..sort((a, b) => a.value.compareTo(b.value));
+      final toRemove = _cache.length - _maxCacheSize;
+      for (int i = 0; i < toRemove; i++) {
+        _cache.remove(sortedKeys[i].key);
+        _cacheTimestamps.remove(sortedKeys[i].key);
+      }
     }
   }
 
@@ -60,17 +83,43 @@ class TmdbService {
       }
     }
 
-    if (_useProxy) {
-      final response = await _dio.get('/functions/v1/tmdb-proxy', queryParameters: params);
-      data = response.data;
-    } else {
-      final response = await _dio.get(path, queryParameters: params);
-      data = response.data;
+    try {
+      if (_useProxy) {
+        final response = await _dio.get('/functions/v1/tmdb-proxy', queryParameters: params);
+        data = response.data;
+      } else {
+        final response = await _dio.get(path, queryParameters: params);
+        data = response.data;
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 429) {
+        // Rate limited — wait and retry once
+        await Future.delayed(const Duration(seconds: 2));
+        try {
+          if (_useProxy) {
+            final response = await _dio.get('/functions/v1/tmdb-proxy', queryParameters: params);
+            data = response.data;
+          } else {
+            final response = await _dio.get(path, queryParameters: params);
+            data = response.data;
+          }
+        } catch (retryError) {
+          throw Exception('TMDB API rate limited. Please try again later.');
+        }
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+                 e.type == DioExceptionType.receiveTimeout) {
+        throw Exception('Connection timeout. Please check your internet connection.');
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw Exception('No internet connection. Please check your network.');
+      } else {
+        throw Exception('Failed to load data from TMDB: ${e.message}');
+      }
     }
 
     if (useCache) {
       _cache[cacheKey] = data;
       _cacheTimestamps[cacheKey] = DateTime.now();
+      _evictOldEntries();
     }
     
     return data;

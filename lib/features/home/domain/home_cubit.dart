@@ -20,6 +20,9 @@ class HomeLoaded extends HomeState {
     required this.trendingMovies,
     required this.topRatedShows,
   });
+
+  @override
+  List<Object?> get props => [trendingShows, trendingMovies, topRatedShows];
 }
 
 class HomeError extends HomeState {

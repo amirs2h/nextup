@@ -17,6 +17,9 @@ class ComingSoonLoaded extends ComingSoonState {
     required this.airingToday,
     required this.upcomingMovies,
   });
+
+  @override
+  List<Object?> get props => [airingToday, upcomingMovies];
 }
 
 class ComingSoonError extends ComingSoonState {

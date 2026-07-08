@@ -44,6 +44,9 @@ class WatchlistLoaded extends WatchlistState {
 
   List<WatchlistItem> get showItems => filteredItems.where((i) => i.mediaType == 'tv').toList();
   List<WatchlistItem> get movieItems => filteredItems.where((i) => i.mediaType == 'movie').toList();
+
+  @override
+  List<Object?> get props => [items, filter];
 }
 
 class WatchlistError extends WatchlistState {

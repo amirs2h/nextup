@@ -29,6 +29,19 @@ class SettingsState {
       emailNotifications: emailNotifications ?? this.emailNotifications,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SettingsState &&
+          runtimeType == other.runtimeType &&
+          themeMode == other.themeMode &&
+          locale == other.locale &&
+          notificationsEnabled == other.notificationsEnabled &&
+          emailNotifications == other.emailNotifications;
+
+  @override
+  int get hashCode => Object.hash(themeMode, locale, notificationsEnabled, emailNotifications);
 }
 
 class SettingsCubit extends Cubit<SettingsState> {

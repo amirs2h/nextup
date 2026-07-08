@@ -11,6 +11,9 @@ class RankingsLoading extends RankingsState {}
 class RankingsLoaded extends RankingsState {
   final List<Map<String, dynamic>> rankings;
   RankingsLoaded({required this.rankings});
+
+  @override
+  List<Object?> get props => [rankings];
 }
 
 class RankingsError extends RankingsState {

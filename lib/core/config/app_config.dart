@@ -1,6 +1,6 @@
 class AppConfig {
   // TMDB API
-  static const String tmdbApiKey = String.fromEnvironment('TMDB_API_KEY', defaultValue: '17dc9b5c7bedf50c8146220be73d8a50');
+  static const String tmdbApiKey = String.fromEnvironment('TMDB_API_KEY');
   static const String tmdbBaseUrl = 'https://api.themoviedb.org/3';
   static const String tmdbImageBaseUrl = 'https://image.tmdb.org/t/p';
   static const String tmdbPosterSize = '/w500';
@@ -13,12 +13,12 @@ class AppConfig {
   static const bool useProxy = true; // Set to false if not in Iran
 
   // OMDB API (for Rotten Tomatoes ratings)
-  static const String omdbApiKey = String.fromEnvironment('OMDB_API_KEY', defaultValue: 'b10338ed');
+  static const String omdbApiKey = String.fromEnvironment('OMDB_API_KEY');
   static const String omdbBaseUrl = 'https://www.omdbapi.com';
 
   // Supabase
-  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://tnjowttfshtmgirklosh.supabase.co');
-  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_Ip2Eb2vVSuJddFocDoHKGg_HociyHP4');
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
   // App
   static const String appName = 'NextUp';
@@ -35,4 +35,13 @@ class AppConfig {
     if (path == null || path.isEmpty) return '';
     return 'https://images.weserv.nl/?url=image.tmdb.org/t/p/$size$path';
   }
+
+  // Validation: Check if all required keys are configured
+  static bool get isConfigured =>
+      tmdbApiKey.isNotEmpty &&
+      supabaseUrl.isNotEmpty &&
+      supabaseAnonKey.isNotEmpty;
+
+  // Build command:
+  // flutter build apk --dart-define=TMDB_API_KEY=xxx --dart-define=OMDB_API_KEY=xxx --dart-define=SUPABASE_URL=xxx --dart-define=SUPABASE_ANON_KEY=xxx
 }

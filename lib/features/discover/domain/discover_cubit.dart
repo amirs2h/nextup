@@ -33,6 +33,9 @@ class DiscoverLoaded extends DiscoverState {
     this.minRating = 0,
     this.showStatus,
   });
+
+  @override
+  List<Object?> get props => [genres, shows, movies, selectedGenreId, mediaType, sortBy, year, minRating, showStatus];
 }
 
 class DiscoverError extends DiscoverState {

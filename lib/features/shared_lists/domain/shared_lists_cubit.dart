@@ -14,6 +14,9 @@ class SharedListsLoading extends SharedListsState {}
 class SharedListsLoaded extends SharedListsState {
   final List<Map<String, dynamic>> lists;
   SharedListsLoaded({required this.lists});
+
+  @override
+  List<Object?> get props => [lists];
 }
 
 class SharedListDetailLoaded extends SharedListsState {
@@ -21,6 +24,9 @@ class SharedListDetailLoaded extends SharedListsState {
   final List<Map<String, dynamic>> items;
   final List<Map<String, dynamic>> members;
   SharedListDetailLoaded({required this.list, required this.items, required this.members});
+
+  @override
+  List<Object?> get props => [list, items, members];
 }
 
 class SharedListsError extends SharedListsState {
