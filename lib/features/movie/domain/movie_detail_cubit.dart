@@ -49,6 +49,40 @@ class MovieDetailLoaded extends MovieDetailState {
     this.averageRating = 0,
   });
 
+  MovieDetailLoaded copyWith({
+    MovieModel? movie,
+    List<PersonModel>? cast,
+    List<MovieModel>? similarMovies,
+    bool? isInWatchlist,
+    bool? isFavorite,
+    bool? isWatched,
+    List<Map<String, dynamic>>? videos,
+    Map<String, dynamic>? watchProviders,
+    String? imdbId,
+    String? contentRating,
+    int? rottenTomatoesScore,
+    String? imdbRating,
+    double? userRating,
+    double? averageRating,
+  }) {
+    return MovieDetailLoaded(
+      movie: movie ?? this.movie,
+      cast: cast ?? this.cast,
+      similarMovies: similarMovies ?? this.similarMovies,
+      isInWatchlist: isInWatchlist ?? this.isInWatchlist,
+      isFavorite: isFavorite ?? this.isFavorite,
+      isWatched: isWatched ?? this.isWatched,
+      videos: videos ?? this.videos,
+      watchProviders: watchProviders ?? this.watchProviders,
+      imdbId: imdbId ?? this.imdbId,
+      contentRating: contentRating ?? this.contentRating,
+      rottenTomatoesScore: rottenTomatoesScore ?? this.rottenTomatoesScore,
+      imdbRating: imdbRating ?? this.imdbRating,
+      userRating: userRating ?? this.userRating,
+      averageRating: averageRating ?? this.averageRating,
+    );
+  }
+
   @override
   List<Object?> get props => [movie, cast, similarMovies, isInWatchlist, isFavorite, isWatched, videos, watchProviders, imdbId, contentRating, rottenTomatoesScore, imdbRating, userRating, averageRating];
 }
@@ -74,6 +108,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
   }
 
   Future<void> loadMovieDetails() async {
+    if (isClosed) return;
     emit(MovieDetailLoading());
     try {
       // Parallel TMDB calls (7 calls in parallel)
@@ -212,22 +247,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
       }
 
       if (isClosed) return;
-      emit(MovieDetailLoaded(
-        movie: currentState.movie,
-        cast: currentState.cast,
-        similarMovies: currentState.similarMovies,
-        isInWatchlist: !currentState.isInWatchlist,
-        isFavorite: currentState.isFavorite,
-        isWatched: currentState.isWatched,
-        videos: currentState.videos,
-        watchProviders: currentState.watchProviders,
-        imdbId: currentState.imdbId,
-        contentRating: currentState.contentRating,
-        rottenTomatoesScore: currentState.rottenTomatoesScore,
-        imdbRating: currentState.imdbRating,
-        userRating: currentState.userRating,
-        averageRating: currentState.averageRating,
-      ));
+      emit(currentState.copyWith(isInWatchlist: !currentState.isInWatchlist));
     } catch (e) {
       if (isClosed) return;
       emit(currentState);
@@ -257,22 +277,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
       }
 
       if (isClosed) return;
-      emit(MovieDetailLoaded(
-        movie: currentState.movie,
-        cast: currentState.cast,
-        similarMovies: currentState.similarMovies,
-        isInWatchlist: currentState.isInWatchlist,
-        isFavorite: !currentState.isFavorite,
-        isWatched: currentState.isWatched,
-        videos: currentState.videos,
-        watchProviders: currentState.watchProviders,
-        imdbId: currentState.imdbId,
-        contentRating: currentState.contentRating,
-        rottenTomatoesScore: currentState.rottenTomatoesScore,
-        imdbRating: currentState.imdbRating,
-        userRating: currentState.userRating,
-        averageRating: currentState.averageRating,
-      ));
+      emit(currentState.copyWith(isFavorite: !currentState.isFavorite));
     } catch (e) {
       if (isClosed) return;
       emit(currentState);
@@ -303,34 +308,29 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         );
       }
 
-      if (isClosed) return;
-      emit(MovieDetailLoaded(
-        movie: currentState.movie,
-        cast: currentState.cast,
-        similarMovies: currentState.similarMovies,
-        isInWatchlist: currentState.isInWatchlist,
-        isFavorite: currentState.isFavorite,
-        isWatched: newIsWatched,
-        videos: currentState.videos,
-        watchProviders: currentState.watchProviders,
-        imdbId: currentState.imdbId,
-        contentRating: currentState.contentRating,
-        rottenTomatoesScore: currentState.rottenTomatoesScore,
-        imdbRating: currentState.imdbRating,
-        userRating: currentState.userRating,
-        averageRating: currentState.averageRating,
-      ));
-
-      // Auto-compute status after toggling watched (separate try/catch to avoid reverting UI)
+      // Auto-compute status and refresh watchlist status
+      bool newIsInWatchlist = currentState.isInWatchlist;
       try {
         await _supabaseService.computeAndSetMovieStatus(
           userId: user.id,
           tmdbId: movieId,
           isWatched: newIsWatched,
         );
+        // Refresh watchlist status after auto-compute
+        newIsInWatchlist = await _supabaseService.isInWatchlist(
+          userId: user.id,
+          tmdbId: movieId,
+          mediaType: 'movie',
+        );
       } catch (statusError) {
         // Don't revert UI if status computation fails
-}
+      }
+
+      if (isClosed) return;
+      emit(currentState.copyWith(
+        isWatched: newIsWatched,
+        isInWatchlist: newIsInWatchlist,
+      ));
     } catch (e) {
       if (isClosed) return;
       emit(currentState);

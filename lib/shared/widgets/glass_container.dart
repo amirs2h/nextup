@@ -43,7 +43,7 @@ class GlassContainer extends StatelessWidget {
         borderRadius: radius,
         boxShadow: boxShadow ?? [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.25) : Colors.black.withOpacity(0.06),
+            color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -69,12 +69,12 @@ class GlassContainer extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [Colors.white.withOpacity(opacity), Colors.white.withOpacity(opacity * 0.5)]
-              : [Colors.white.withOpacity(0.85), Colors.white.withOpacity(0.65)],
+              ? [Colors.white.withValues(alpha: opacity), Colors.white.withValues(alpha: opacity * 0.5)]
+              : [Colors.white.withValues(alpha: 0.85), Colors.white.withValues(alpha: 0.65)],
         ),
         borderRadius: radius,
         border: Border.all(
-          color: borderColor ?? (isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.5)),
+          color: borderColor ?? (isDark ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.5)),
           width: 1,
         ),
       ),
@@ -122,7 +122,7 @@ class GlassCard extends StatelessWidget {
 
 class GlassButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
   final Gradient? gradient;
   final double? width;
@@ -131,7 +131,7 @@ class GlassButton extends StatelessWidget {
   const GlassButton({
     super.key,
     required this.text,
-    required this.onPressed,
+    this.onPressed,
     this.icon,
     this.gradient,
     this.width,
@@ -141,14 +141,15 @@ class GlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppColors.isDark(context);
+    final isDisabled = onPressed == null;
     return Container(
       width: width ?? double.infinity,
       height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: isDisabled ? [] : [
           BoxShadow(
-            color: (gradient != null ? AppColors.electricPurple : AppColors.primary).withOpacity(0.3),
+            color: (gradient != null ? AppColors.electricPurple : AppColors.primary).withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -160,16 +161,17 @@ class GlassButton extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             decoration: BoxDecoration(
-              gradient: gradient ?? LinearGradient(
+              gradient: isDisabled ? null : gradient ?? LinearGradient(
                 colors: [
-                  AppColors.primary.withOpacity(isDark ? 0.85 : 0.9),
-                  AppColors.primaryLight.withOpacity(isDark ? 0.75 : 0.85),
+                  AppColors.primary.withValues(alpha: isDark ? 0.85 : 0.9),
+                  AppColors.primaryLight.withValues(alpha: isDark ? 0.75 : 0.85),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
+              color: isDisabled ? AppColors.textMuted(context).withValues(alpha: 0.3) : null,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
+              border: Border.all(color: isDisabled ? AppColors.border(context) : Colors.white.withValues(alpha: 0.15)),
             ),
             child: Material(
               color: Colors.transparent,
@@ -181,12 +183,12 @@ class GlassButton extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       if (icon != null) ...[
-                        Icon(icon, color: Colors.white, size: 22),
+                        Icon(icon, color: isDisabled ? AppColors.textMuted(context) : Colors.white, size: 22),
                         const SizedBox(width: 8),
                       ],
                       Text(
                         text,
-                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+                        style: TextStyle(color: isDisabled ? AppColors.textMuted(context) : Colors.white, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.3),
                       ),
                     ],
                   ),
@@ -230,7 +232,7 @@ class GlassTextField extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../auth/domain/auth_cubit.dart';
+
 import '../../domain/watch_history_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';

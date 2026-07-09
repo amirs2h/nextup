@@ -41,7 +41,7 @@ class ModernShowCard extends StatelessWidget {
               height: 180,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -106,7 +106,7 @@ class ModernEpisodeCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       borderRadius: BorderRadius.circular(16),
-      borderColor: isWatched ? AppColors.success.withOpacity(0.3) : null,
+      borderColor: isWatched ? AppColors.success.withValues(alpha: 0.3) : null,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -158,7 +158,7 @@ class ModernEpisodeCard extends StatelessWidget {
                   height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isWatched ? AppColors.success.withOpacity(0.2) : AppColors.cardBg(context),
+                    color: isWatched ? AppColors.success.withValues(alpha: 0.2) : AppColors.cardBg(context),
                     border: Border.all(color: isWatched ? AppColors.success : AppColors.border(context)),
                   ),
                   child: Icon(
@@ -278,9 +278,9 @@ class RatingBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8 * size, vertical: 4 * size),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(6 * size),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

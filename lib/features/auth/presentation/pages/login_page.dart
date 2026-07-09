@@ -133,7 +133,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                     gradient: AppColors.primaryGradient,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.primary.withOpacity(0.4),
+                                        color: AppColors.primary.withValues(alpha: 0.4),
                                         blurRadius: 25,
                                         offset: const Offset(0, 8),
                                       ),
@@ -247,7 +247,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             },
                             child: Text(
                               'Forgot Password?',
-                              style: TextStyle(color: AppColors.electricPurple.withOpacity(0.8), fontWeight: FontWeight.w500),
+                              style: TextStyle(color: AppColors.electricPurple.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
                             ),
                           ),
                         ),
@@ -258,7 +258,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             return GlassButton(
                               text: state is AuthLoading ? 'Loading...' : 'Login',
                               icon: state is AuthLoading ? null : Icons.login_rounded,
-                              onPressed: state is AuthLoading ? () {} : _handleLogin,
+                              onPressed: state is AuthLoading ? null : _handleLogin,
                             );
                           },
                         ),

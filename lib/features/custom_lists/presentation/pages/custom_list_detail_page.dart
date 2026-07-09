@@ -322,12 +322,24 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                       onPressed: () async {
                         if (searchController.text.isNotEmpty) {
                           setDialogState(() => isSearching = true);
-                          final tmdb = context.read<TmdbService>();
-                          final results = await tmdb.searchMulti(searchController.text);
-                          setDialogState(() {
-                            searchResults = List<Map<String, dynamic>>.from(results['results'] ?? []).take(10).toList();
-                            isSearching = false;
-                          });
+                          try {
+                            final tmdb = context.read<TmdbService>();
+                            final results = await tmdb.searchMulti(searchController.text);
+                            setDialogState(() {
+                              searchResults = List<Map<String, dynamic>>.from(results['results'] ?? []).take(10).toList();
+                              isSearching = false;
+                            });
+                          } catch (e) {
+                            setDialogState(() {
+                              searchResults = [];
+                              isSearching = false;
+                            });
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: const Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                              );
+                            }
+                          }
                         }
                       },
                       icon: const Icon(Icons.search, color: AppColors.electricPurple),
@@ -336,12 +348,24 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                   onSubmitted: (_) async {
                     if (searchController.text.isNotEmpty) {
                       setDialogState(() => isSearching = true);
-                      final tmdb = context.read<TmdbService>();
-                      final results = await tmdb.searchMulti(searchController.text);
-                      setDialogState(() {
-                        searchResults = List<Map<String, dynamic>>.from(results['results'] ?? []).take(10).toList();
-                        isSearching = false;
-                      });
+                      try {
+                        final tmdb = context.read<TmdbService>();
+                        final results = await tmdb.searchMulti(searchController.text);
+                        setDialogState(() {
+                          searchResults = List<Map<String, dynamic>>.from(results['results'] ?? []).take(10).toList();
+                          isSearching = false;
+                        });
+                      } catch (e) {
+                        setDialogState(() {
+                          searchResults = [];
+                          isSearching = false;
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: const Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                          );
+                        }
+                      }
                     }
                   },
                 ),

@@ -41,10 +41,12 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   Future<void> loadNotifications() async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(NotificationsLoaded(notifications: []));
       return;
     }
 
+    if (isClosed) return;
     emit(NotificationsLoading());
     try {
       final data = await _supabaseService.getNotifications(user.id);
@@ -77,8 +79,10 @@ class NotificationsCubit extends Cubit<NotificationsState> {
             value: user.id,
           ),
           callback: (payload) {
-            // Reload notifications when new one arrives
-            loadNotifications();
+            // Reload notifications when new one arrives (check if cubit is still open)
+            if (!isClosed) {
+              loadNotifications();
+            }
           },
         )
         .subscribe();

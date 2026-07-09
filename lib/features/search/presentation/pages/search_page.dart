@@ -46,12 +46,12 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: AppBackground(
-        child: SafeArea(
-          child: Column(
-          children: [
-            Padding(
+        backgroundColor: Colors.transparent,
+        body: AppBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
@@ -73,7 +73,10 @@ class _SearchPageState extends State<SearchPage> {
                                 hintStyle: TextStyle(color: AppColors.textMuted(context)),
                                 border: InputBorder.none,
                               ),
-                              onChanged: _onSearchChanged,
+                              onChanged: (value) {
+                                _onSearchChanged(value);
+                                setState(() {}); // Update clear button visibility
+                              },
                             ),
                           ),
                           if (_searchController.text.isNotEmpty)
@@ -190,8 +193,8 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
           ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -276,10 +279,6 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 }
-
-
-
-
 
 
 

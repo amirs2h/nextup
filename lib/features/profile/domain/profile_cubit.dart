@@ -48,6 +48,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   ProfileCubit(this._supabaseService) : super(ProfileInitial());
 
   Future<void> loadProfile(String userId) async {
+    if (isClosed) return;
     emit(ProfileLoading());
     try {
       final profile = await _supabaseService.getProfile(userId);

@@ -143,7 +143,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: const LinearGradient(colors: [AppColors.electricPurple, AppColors.neonPurple]),
-            boxShadow: [BoxShadow(color: AppColors.electricPurple.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+            boxShadow: [BoxShadow(color: AppColors.electricPurple.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
           ),
           child: ClipOval(
             child: avatarUrl != null

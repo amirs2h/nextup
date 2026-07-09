@@ -36,8 +36,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
     _controller.forward();
 
-    // Wait for animation + auth state to be determined
-    Future.delayed(const Duration(seconds: 2), () async {
+    // Navigate based on auth state after animation completes
+    Future.delayed(const Duration(milliseconds: 1500), () async {
       if (!mounted) return;
 
       final prefs = await SharedPreferences.getInstance();
@@ -56,7 +56,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
         // Wait for auth state to settle with timeout
         try {
           await for (final state in authCubit.stream.timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 5),
             onTimeout: (sink) {
               sink.add(AuthUnauthenticated());
             },
@@ -114,7 +114,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           gradient: AppColors.primaryGradient,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.5),
+                              color: AppColors.primary.withValues(alpha: 0.5),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             ),

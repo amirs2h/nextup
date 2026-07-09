@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import '../../core/config/app_config.dart';
 
+// TODO: OMDB API requires direct access and is not available through the Supabase proxy.
+// This may not work in regions with restricted internet access (e.g. Iran).
 class OmdbService {
   late final Dio _dio;
 

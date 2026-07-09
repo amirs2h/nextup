@@ -49,6 +49,7 @@ class CustomListsCubit extends Cubit<CustomListsState> {
   CustomListsCubit(this._supabaseService, this._tmdbService) : super(CustomListsInitial());
 
   Future<void> loadCustomLists() async {
+    if (isClosed) return;
     emit(CustomListsLoading());
     try {
       final user = _supabaseService.currentUser;
@@ -70,6 +71,7 @@ class CustomListsCubit extends Cubit<CustomListsState> {
     emit(CustomListsLoading());
     try {
       final items = await _supabaseService.getCustomListItems(listId);
+      final listData = await _supabaseService.client.from('custom_lists').select().eq('id', listId).maybeSingle();
       
       List<ShowModel> shows = [];
       List<MovieModel> movies = [];
@@ -100,8 +102,9 @@ class CustomListsCubit extends Cubit<CustomListsState> {
         }
       }
 
+      if (isClosed) return;
       emit(CustomListDetailLoaded(
-        list: {'id': listId},
+        list: listData ?? {'id': listId},
         shows: shows,
         movies: movies,
       ));

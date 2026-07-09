@@ -166,7 +166,7 @@ class SettingsPage extends StatelessWidget {
       leading: Container(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(color: AppColors.electricPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: AppColors.electricPurple.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
         child: const Icon(Icons.palette_outlined, color: AppColors.electricPurple, size: 20),
       ),
       title: Text(state.locale.languageCode == 'fa' ? 'تم' : 'Theme', style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
@@ -184,7 +184,7 @@ class SettingsPage extends StatelessWidget {
       leading: Container(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(color: AppColors.neonBlue.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: AppColors.neonBlue.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
         child: const Icon(Icons.language_rounded, color: AppColors.neonBlue, size: 20),
       ),
       title: Text(state.locale.languageCode == 'fa' ? 'زبان' : 'Language', style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
@@ -202,7 +202,7 @@ class SettingsPage extends StatelessWidget {
       leading: Container(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, color: AppColors.accent, size: 20),
       ),
       title: Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
@@ -286,9 +286,9 @@ class SettingsPage extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.error.withOpacity(0.1),
+          color: AppColors.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.error.withOpacity(0.2)),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -442,7 +442,12 @@ class SettingsPage extends StatelessWidget {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () {
+              currentPasswordController.dispose();
+              newPasswordController.dispose();
+              confirmPasswordController.dispose();
+              Navigator.pop(dialogContext);
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.surface(context),
               foregroundColor: AppColors.text(context),
@@ -475,6 +480,10 @@ class SettingsPage extends StatelessWidget {
                       SnackBar(content: Text(isPersian ? 'رمز عبور فعلی اشتباه است' : 'Current password is incorrect'), backgroundColor: AppColors.error),
                     );
                   }
+                } finally {
+                  currentPasswordController.dispose();
+                  newPasswordController.dispose();
+                  confirmPasswordController.dispose();
                 }
               }
             },
@@ -526,7 +535,10 @@ class SettingsPage extends StatelessWidget {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () {
+              passwordController.dispose();
+              Navigator.pop(dialogContext);
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.surface(context),
               foregroundColor: AppColors.text(context),
@@ -558,6 +570,8 @@ class SettingsPage extends StatelessWidget {
                     SnackBar(content: Text(isPersian ? 'رمز عبور اشتباه است' : 'Incorrect password'), backgroundColor: AppColors.error),
                   );
                 }
+              } finally {
+                passwordController.dispose();
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),

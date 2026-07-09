@@ -4,8 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../../shared/services/tmdb_service.dart';
 import '../../../../shared/services/supabase_service.dart';
+import '../../../../shared/services/tmdb_service.dart';
 import '../../../../shared/services/omdb_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/modern_widgets.dart';
@@ -15,8 +15,8 @@ import '../../../../shared/widgets/external_ratings_widget.dart';
 import '../../../../shared/widgets/favorite_actor_voting_widget.dart';
 import '../../../../shared/widgets/rating_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/movie_detail_cubit.dart';
+import '../../../../shared/mixins/toggle_lock_mixin.dart';
 
 class MovieDetailPage extends StatelessWidget {
   final int movieId;
@@ -45,15 +45,7 @@ class _MovieDetailView extends StatefulWidget {
   State<_MovieDetailView> createState() => _MovieDetailViewState();
 }
 
-class _MovieDetailViewState extends State<_MovieDetailView> {
-  int _voteRefreshKey = 0;
-
-  void _refreshVotes() {
-    setState(() {
-      _voteRefreshKey++;
-    });
-  }
-
+class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<MovieDetailCubit, MovieDetailState>(
@@ -137,7 +129,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
                                 height: 150,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 10))],
+                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 10))],
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
@@ -206,7 +198,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
                   actions: [
                     IconButton(
                       icon: Icon(state.isFavorite ? Icons.favorite : Icons.favorite_outline, color: state.isFavorite ? const Color(0xFFE50914) : AppColors.text(context)),
-                      onPressed: () => context.read<MovieDetailCubit>().toggleFavorite(),
+                      onPressed: () => withToggleLock(() => context.read<MovieDetailCubit>().toggleFavorite()),
                     ),
                     IconButton(
                       icon: Icon(Icons.playlist_add, color: AppColors.text(context)),
@@ -230,7 +222,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
                                 text: state.isInWatchlist ? 'In Watchlist' : 'Add to Watchlist',
                                 icon: state.isInWatchlist ? Icons.check : Icons.add,
                                 gradient: state.isInWatchlist ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)]) : null,
-                                onPressed: () => context.read<MovieDetailCubit>().toggleWatchlist(),
+                                onPressed: () => withToggleLock(() => context.read<MovieDetailCubit>().toggleWatchlist()),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -239,7 +231,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
                                 text: state.isWatched ? 'Watched' : 'Mark Watched',
                                 icon: state.isWatched ? Icons.check_circle : Icons.check_circle_outline,
                                 gradient: state.isWatched ? const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]) : null,
-                                onPressed: () => context.read<MovieDetailCubit>().toggleWatched(),
+                                onPressed: () => withToggleLock(() => context.read<MovieDetailCubit>().toggleWatched()),
                               ),
                             ),
                           ],
@@ -437,77 +429,6 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
     );
   }
 
-  void _showRatingDialog(BuildContext context, int tmdbId, String mediaType, String title) {
-    double rating = 0;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: AppColors.surface(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Rate $title', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                rating > 0 ? '${rating.toStringAsFixed(0)} / 10' : 'Tap to rate',
-                style: TextStyle(
-                  color: rating > 0 ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(10, (index) {
-                  final starValue = index + 1.0;
-                  return GestureDetector(
-                    onTap: () => setState(() => rating = starValue),
-                    child: Icon(
-                      rating >= starValue ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: rating >= starValue ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
-                      size: 32,
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context)))),
-            ElevatedButton(
-              onPressed: rating > 0 ? () async {
-                final currentRating = rating;
-                final supabase = context.read<SupabaseService>();
-                final user = supabase.currentUser;
-                Navigator.pop(dialogContext);
-                try {
-                  if (user != null) {
-                    await supabase.rateMovie(userId: user.id, tmdbId: tmdbId, rating: currentRating);
-                  }
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Rated $currentRating/10'), backgroundColor: const Color(0xFF00FF88), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: const Text('Failed to save rating'), backgroundColor: const Color(0xFFFF4757), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    );
-                  }
-                }
-              } : null,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE50914), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('Rate'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showAddToListDialog(BuildContext context, int tmdbId, String mediaType, String title) {
     showDialog(
       context: context,
@@ -557,239 +478,4 @@ class _MovieDetailViewState extends State<_MovieDetailView> {
       ],
     );
   }
-
-  Widget _buildFavoriteActorSection(BuildContext context, int tmdbId, String mediaType, List<dynamic> cast) {
-    final supabase = context.read<SupabaseService>();
-    final authState = context.read<AuthCubit>().state;
-    final userId = authState is AuthAuthenticated ? authState.user.id : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Who's Your Favorite?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-        const SizedBox(height: 4),
-        Text('Vote for your favorite actor in this movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
-        const SizedBox(height: 12),
-        // Show voting results if user has voted, otherwise show voting UI
-        FutureBuilder<Map<String, dynamic>?>(
-          key: ValueKey(_voteRefreshKey),
-          future: userId != null ? supabase.getUserFavoriteActorVote(userId: userId, tmdbId: tmdbId, mediaType: mediaType) : null,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator(color: AppColors.primary));
-            }
-            if (snapshot.hasError) {
-              return SizedBox();
-            }
-            final userVote = snapshot.data;
-            if (userVote != null) {
-              // User has voted - show results
-              return _buildVotingResults(context, tmdbId, mediaType, userVote, cast);
-            }
-            // User hasn't voted - show voting UI
-            return _buildVotingUI(context, tmdbId, mediaType, cast, userId);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVotingUI(BuildContext context, int tmdbId, String mediaType, List<dynamic> cast, String? userId) {
-    return SizedBox(
-      height: 140,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: cast.length.clamp(0, 10),
-        itemBuilder: (context, index) {
-          final person = cast[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () async {
-                if (userId == null) return;
-                try {
-                  final supabase = context.read<SupabaseService>();
-                  await supabase.voteFavoriteActor(
-                    userId: userId,
-                    tmdbId: tmdbId,
-                    mediaType: mediaType,
-                    personId: person.id,
-                    characterName: person.character,
-                  );
-                  if (context.mounted) {
-                    _refreshVotes();
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to vote. Please try again.'), backgroundColor: AppColors.error),
-                    );
-                  }
-                }
-              },
-              child: Column(
-                children: [
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.border(context), width: 2),
-                      image: person.profileUrl != null
-                          ? DecorationImage(image: CachedNetworkImageProvider(person.profileUrl!), fit: BoxFit.cover)
-                          : null,
-                    ),
-                    child: person.profileUrl == null
-                        ? Icon(Icons.person, color: AppColors.textMuted(context), size: 30)
-                        : null,
-                  ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      person.name,
-                      style: TextStyle(color: AppColors.text(context), fontSize: 11, fontWeight: FontWeight.w500),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.electricPurple.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text('Vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10, fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildVotingResults(BuildContext context, int tmdbId, String mediaType, Map<String, dynamic> userVote, List<dynamic> cast) {
-    final supabase = context.read<SupabaseService>();
-    final votedPersonId = userVote['person_id'] as int? ?? 0;
-
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: supabase.getFavoriteActorResults(tmdbId: tmdbId, mediaType: mediaType),
-      builder: (context, snapshot) {
-        final results = snapshot.data ?? [];
-        if (results.isEmpty) {
-          return const SizedBox();
-        }
-
-        return Column(
-          children: results.map((result) {
-            final personId = result['person_id'] as int? ?? 0;
-            final characterName = result['character_name'] as String? ?? 'Unknown';
-            final percentage = result['percentage'] as int? ?? 0;
-            final isUserVote = personId == votedPersonId;
-            dynamic person;
-            for (final p in cast) {
-              if (p.id == personId) { person = p; break; }
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GlassContainer(
-                padding: const EdgeInsets.all(12),
-                borderRadius: BorderRadius.circular(12),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isUserVote ? AppColors.electricPurple : AppColors.border(context),
-                          width: isUserVote ? 2 : 1,
-                        ),
-                        image: person?.profileUrl != null
-                            ? DecorationImage(image: CachedNetworkImageProvider(person!.profileUrl!), fit: BoxFit.cover)
-                            : null,
-                      ),
-                      child: person?.profileUrl == null
-                          ? Icon(Icons.person, color: AppColors.textMuted(context), size: 20)
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  person?.name ?? 'Unknown',
-                                  style: TextStyle(
-                                    color: AppColors.text(context),
-                                    fontWeight: isUserVote ? FontWeight.bold : FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isUserVote)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.electricPurple.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text('Your vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10)),
-                                ),
-                            ],
-                          ),
-                          Text(characterName, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$percentage%',
-                          style: TextStyle(
-                            color: isUserVote ? AppColors.electricPurple : AppColors.text(context),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        SizedBox(
-                          width: 60,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: percentage / 100,
-                              backgroundColor: AppColors.cardBg(context),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isUserVote ? AppColors.electricPurple : AppColors.primary,
-                              ),
-                              minHeight: 4,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
 }
-

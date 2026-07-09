@@ -35,10 +35,12 @@ class RankingsCubit extends Cubit<RankingsState> {
   RankingsCubit(this._supabaseService) : super(RankingsInitial());
 
   Future<void> loadRankings() async {
+    if (isClosed) return;
     emit(RankingsLoading());
     try {
       final user = _supabaseService.currentUser;
       if (user == null) {
+        if (isClosed) return;
         emit(RankingsLoaded(rankings: []));
         return;
       }

@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 
-class Achievement {
+class Achievement extends Equatable {
   final String id;
   final String title;
   final String description;
@@ -11,7 +11,7 @@ class Achievement {
   final String type; // 'shows', 'movies', 'hours', 'episodes'
   final bool isUnlocked;
 
-  Achievement({
+  const Achievement({
     required this.id,
     required this.title,
     required this.description,
@@ -20,6 +20,9 @@ class Achievement {
     required this.type,
     this.isUnlocked = false,
   });
+
+  @override
+  List<Object?> get props => [id, title, description, icon, requirement, type, isUnlocked];
 }
 
 abstract class AchievementsState extends Equatable {
@@ -66,10 +69,12 @@ class AchievementsCubit extends Cubit<AchievementsState> {
   Future<void> loadAchievements() async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(AchievementsLoaded(achievements: _getAchievements(0, 0, 0, 0)));
       return;
     }
 
+    if (isClosed) return;
     emit(AchievementsLoading());
     try {
       final history = await _supabaseService.getWatchHistory(userId: user.id);
@@ -95,6 +100,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       totalMovies = movieIds.length;
       final totalHours = (totalEpisodes * 45 + totalMovies * 120) ~/ 60;
 
+      if (isClosed) return;
       emit(AchievementsLoaded(
         achievements: _getAchievements(totalShows, totalMovies, totalEpisodes, totalHours),
         totalShows: totalShows,

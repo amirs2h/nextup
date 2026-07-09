@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../widgets/glass_container.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/config/app_config.dart';
 
@@ -40,7 +39,7 @@ class TrailerWidget extends StatelessWidget {
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -60,7 +59,7 @@ class TrailerWidget extends StatelessWidget {
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
                             ),
                           ),
                         ),

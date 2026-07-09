@@ -59,6 +59,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   }
 
   Future<void> loadGenres() async {
+    if (isClosed) return;
     emit(DiscoverLoading());
     try {
       final results = await Future.wait([
@@ -91,6 +92,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
           .map((json) => MovieModel.fromJson(json))
           .toList();
 
+      if (isClosed) return;
       emit(DiscoverLoaded(
         genres: allGenres,
         shows: shows,
@@ -126,6 +128,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         final shows = (showsData['results'] as List)
             .map((json) => ShowModel.fromJson(json))
             .toList();
+        if (isClosed) return;
         emit(DiscoverLoaded(
           genres: genres,
           shows: shows,
@@ -147,6 +150,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         final movies = (moviesData['results'] as List)
             .map((json) => MovieModel.fromJson(json))
             .toList();
+        if (isClosed) return;
         emit(DiscoverLoaded(
           genres: genres,
           shows: [],
@@ -187,6 +191,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         final shows = (showsData['results'] as List)
             .map((json) => ShowModel.fromJson(json))
             .toList();
+        if (isClosed) return;
         emit(DiscoverLoaded(
           genres: genres,
           shows: shows,
@@ -208,6 +213,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         final movies = (moviesData['results'] as List)
             .map((json) => MovieModel.fromJson(json))
             .toList();
+        if (isClosed) return;
         emit(DiscoverLoaded(
           genres: genres,
           shows: [],
@@ -225,11 +231,11 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     }
   }
 
-  void clearFilter() {
+  Future<void> clearFilter() async {
     if (state is DiscoverLoaded) {
       final currentState = state as DiscoverLoaded;
       // Re-discover with defaults but preserve genre list
-      applyFilters(
+      await applyFilters(
         mediaType: currentState.mediaType,
         sortBy: 'popularity.desc',
         year: null,
@@ -238,7 +244,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         showStatus: null,
       );
     } else {
-      loadGenres();
+      await loadGenres();
     }
   }
 }

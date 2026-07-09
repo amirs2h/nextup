@@ -60,9 +60,10 @@ class AuthCubit extends Cubit<AuthState> {
 
   void _checkAuth() {
     final user = _supabaseService.currentUser;
-    if (user != null) {
+      if (user != null) {
       _loadProfile(user);
     } else {
+      if (isClosed) return;
       emit(AuthUnauthenticated());
     }
   }
@@ -119,7 +120,12 @@ class AuthCubit extends Cubit<AuthState> {
     if (isClosed) return;
     emit(AuthLoading());
     try {
-      await _supabaseService.signInWithGoogle();
+      final result = await _supabaseService.signInWithGoogle();
+      // If result is false, the redirect didn't start
+      if (!result) {
+        if (isClosed) return;
+        emit(AuthUnauthenticated());
+      }
       // OAuth redirects, so we don't need to handle the response here
       // The auth state listener will pick up the session
     } catch (e) {

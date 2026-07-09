@@ -78,16 +78,16 @@ class AppColors {
       isDark(context) ? darkSurface : lightSurface;
 
   static Color cardBg(BuildContext context) =>
-      isDark(context) ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.03);
+      isDark(context) ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.03);
 
   static Color cardBgStrong(BuildContext context) =>
-      isDark(context) ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05);
+      isDark(context) ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05);
 
   static Color border(BuildContext context) =>
-      isDark(context) ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+      isDark(context) ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08);
 
   static Color borderLight(BuildContext context) =>
-      isDark(context) ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04);
+      isDark(context) ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04);
 
   static Color text(BuildContext context) =>
       isDark(context) ? darkText : lightText;
@@ -105,7 +105,7 @@ class AppColors {
       isDark(context) ? Colors.white38 : Colors.black26;
 
   static Color divider(BuildContext context) =>
-      isDark(context) ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08);
+      isDark(context) ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08);
 
   static List<Color> pageGradient(BuildContext context) =>
       isDark(context)
@@ -114,18 +114,18 @@ class AppColors {
 
   // Glass effect colors
   static Color glassBg(BuildContext context) =>
-      isDark(context) ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.7);
+      isDark(context) ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.7);
 
   static Color glassBorder(BuildContext context) =>
-      isDark(context) ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.5);
+      isDark(context) ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.5);
 
   static Color glassShadow(BuildContext context) =>
-      isDark(context) ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.08);
+      isDark(context) ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.08);
 
   // Rating colors
-  static Color ratingHigh = const Color(0xFF00FF88);
-  static Color ratingMid = const Color(0xFFFFD93D);
-  static Color ratingLow = const Color(0xFFFF4757);
+  static const Color ratingHigh = Color(0xFF00FF88);
+  static const Color ratingMid = Color(0xFFFFD93D);
+  static const Color ratingLow = Color(0xFFFF4757);
 
   static Color ratingColor(double rating) {
     if (rating >= 7) return ratingHigh;

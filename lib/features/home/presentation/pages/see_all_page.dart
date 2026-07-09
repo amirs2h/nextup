@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../shared/services/tmdb_service.dart';
-import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
@@ -174,7 +173,7 @@ class _SeeAllPageState extends State<SeeAllPage> {
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),

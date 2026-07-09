@@ -13,6 +13,8 @@ dependencies:
     sdk: flutter
 
   # UI
+  # Vazirmatn font loaded via google_fonts. If deploying in Iran or offline,
+  # bundle the font as a local asset instead (see assets/fonts/vazirmatn/).
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
@@ -57,3 +59,16 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/vazirmatn/Vazirmatn-Regular.ttf
+        - asset: assets/fonts/vazirmatn/Vazirmatn-Light.ttf
+          weight: 300
+        - asset: assets/fonts/vazirmatn/Vazirmatn-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/vazirmatn/Vazirmatn-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/vazirmatn/Vazirmatn-Bold.ttf
+          weight: 700

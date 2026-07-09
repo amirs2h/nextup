@@ -42,6 +42,7 @@ class CommentsCubit extends Cubit<CommentsState> {
     int? seasonNumber,
     int? episodeNumber,
   }) async {
+    if (isClosed) return;
     emit(CommentsLoading());
     try {
       final user = _supabaseService.currentUser;
@@ -54,6 +55,7 @@ class CommentsCubit extends Cubit<CommentsState> {
       );
 
       final comments = data.map((json) => CommentModel.fromJson(json)).toList();
+      if (isClosed) return;
       emit(CommentsLoaded(comments: comments));
     } catch (e) {
       if (isClosed) return;

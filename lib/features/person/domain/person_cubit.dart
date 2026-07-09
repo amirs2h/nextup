@@ -38,6 +38,7 @@ class PersonCubit extends Cubit<PersonState> {
   }
 
   Future<void> loadPerson() async {
+    if (isClosed) return;
     emit(PersonLoading());
     try {
       final results = await Future.wait([

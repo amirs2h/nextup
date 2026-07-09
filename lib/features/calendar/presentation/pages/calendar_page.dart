@@ -8,14 +8,23 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/calendar_cubit.dart';
 
-class CalendarPage extends StatefulWidget {
+class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
 
   @override
-  State<CalendarPage> createState() => _CalendarPageState();
+  Widget build(BuildContext context) {
+    return const _CalendarPageView();
+  }
 }
 
-class _CalendarPageState extends State<CalendarPage> {
+class _CalendarPageView extends StatefulWidget {
+  const _CalendarPageView();
+
+  @override
+  State<_CalendarPageView> createState() => _CalendarPageViewState();
+}
+
+class _CalendarPageViewState extends State<_CalendarPageView> {
   late DateTime _selectedMonth;
   late DateTime _selectedDay;
 
@@ -25,7 +34,10 @@ class _CalendarPageState extends State<CalendarPage> {
     final now = DateTime.now();
     _selectedMonth = DateTime(now.year, now.month);
     _selectedDay = now;
-    _loadCalendar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadCalendar();
+    });
   }
 
   void _loadCalendar() {
@@ -190,9 +202,9 @@ class _CalendarPageState extends State<CalendarPage> {
                     margin: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.primary.withOpacity(0.3)
+                          ? AppColors.primary.withValues(alpha: 0.3)
                           : isToday
-                              ? AppColors.electricPurple.withOpacity(0.2)
+                              ? AppColors.electricPurple.withValues(alpha: 0.2)
                               : null,
                       borderRadius: BorderRadius.circular(8),
                       border: isToday
@@ -323,7 +335,7 @@ class _CalendarPageState extends State<CalendarPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isToday ? AppColors.electricPurple.withOpacity(0.2) : AppColors.cardBg(context),
+                  color: isToday ? AppColors.electricPurple.withValues(alpha: 0.2) : AppColors.cardBg(context),
                   borderRadius: BorderRadius.circular(8),
                   border: isToday ? Border.all(color: AppColors.electricPurple, width: 1) : null,
                 ),
@@ -408,7 +420,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.electricPurple.withOpacity(0.15),
+                            color: AppColors.electricPurple.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -434,8 +446,8 @@ class _CalendarPageState extends State<CalendarPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isPast
-                      ? AppColors.success.withOpacity(0.15)
-                      : AppColors.warning.withOpacity(0.15),
+                      ? AppColors.success.withValues(alpha: 0.15)
+                      : AppColors.warning.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

@@ -89,7 +89,7 @@ class SupabaseService {
       try {
         await op;
       } catch (e) {
-        print('Error during account deletion: $e');
+        // Silently continue deletion
       }
     }
 
@@ -101,27 +101,37 @@ class SupabaseService {
         await _client.from('custom_list_items').delete().inFilter('list_id', customListIds);
       }
     } catch (e) {
-      print('Error deleting custom list items: $e');
+      // Silently continue
     }
 
     // Delete lists owned by user
     try {
       await _client.from('shared_lists').delete().eq('creator_id', userId);
     } catch (e) {
-      print('Error deleting shared lists: $e');
+      // Silently continue
     }
 
     try {
       await _client.from('custom_lists').delete().eq('user_id', userId);
     } catch (e) {
-      print('Error deleting custom lists: $e');
+      // Silently continue
     }
 
     // Delete profile
     try {
       await _client.from('profiles').delete().eq('id', userId);
     } catch (e) {
-      print('Error deleting profile: $e');
+      // Silently continue
+    }
+
+    // Delete auth user via Edge Function (requires service_role key)
+    try {
+      final response = await _client.functions.invoke('delete-user', body: {'user_id': userId});
+      if (response.status != 200) {
+        // Log but don't throw - data is already deleted
+      }
+    } catch (e) {
+      // Edge Function may not be deployed yet - continue with sign out
     }
 
     // Sign out
@@ -146,7 +156,6 @@ class SupabaseService {
     try {
       await _client.from('profiles').update(data).eq('id', userId);
     } catch (e) {
-      print('Error updating profile: $e');
       rethrow;
     }
   }
@@ -163,7 +172,6 @@ class SupabaseService {
       await updateProfile(userId, {'avatar_url': url});
       return url;
     } catch (e) {
-      print('Error uploading avatar: $e');
       return null;
     }
   }
@@ -178,7 +186,7 @@ class SupabaseService {
         await updateProfile(userId, {'avatar_url': null});
       }
     } catch (e) {
-      print('Error deleting avatar: $e');
+      // Silently continue
     }
   }
 
@@ -273,7 +281,6 @@ class SupabaseService {
         'episode_number': episodeNumber,
       }, onConflict: 'user_id,tmdb_id,media_type,season_number,episode_number');
     } catch (e) {
-      print('Error marking as watched: $e');
       rethrow;
     }
   }
@@ -294,14 +301,17 @@ class SupabaseService {
 
       if (seasonNumber != null) {
         query = query.eq('season_number', seasonNumber);
+      } else {
+        query = query.isFilter('season_number', null);
       }
       if (episodeNumber != null) {
         query = query.eq('episode_number', episodeNumber);
+      } else {
+        query = query.isFilter('episode_number', null);
       }
 
       await query;
     } catch (e) {
-      print('Error unmarking as watched: $e');
       rethrow;
     }
   }
@@ -322,15 +332,18 @@ class SupabaseService {
 
       if (seasonNumber != null) {
         query = query.eq('season_number', seasonNumber);
+      } else {
+        query = query.isFilter('season_number', null);
       }
       if (episodeNumber != null) {
         query = query.eq('episode_number', episodeNumber);
+      } else {
+        query = query.isFilter('episode_number', null);
       }
 
       final response = await query.maybeSingle();
       return response != null;
     } catch (e) {
-      print('Error checking if watched: $e');
       return false;
     }
   }
@@ -572,10 +585,12 @@ class SupabaseService {
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
     try {
+      // Escape SQL wildcard characters to prevent injection
+      final sanitized = query.replaceAll('%', '\\%').replaceAll('_', '\\_');
       final response = await _client
           .from('profiles')
           .select('id, username, avatar_url, bio')
-          .ilike('username', '%$query%')
+          .ilike('username', '%$sanitized%')
           .limit(20);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -879,7 +894,7 @@ class SupabaseService {
         );
       }
     } catch (e) {
-      print('Error computing show status: $e');
+      // Non-critical
     }
   }
 
@@ -911,7 +926,7 @@ class SupabaseService {
         );
       }
     } catch (e) {
-      print('Error computing movie status: $e');
+      // Non-critical
     }
   }
 
@@ -1146,9 +1161,8 @@ class SupabaseService {
         'tmdb_id': tmdbId,
         'character_name': characterName,
         'vote_type': voteType,
-      });
+      }, onConflict: 'user_id,person_id,tmdb_id,character_name');
     } catch (e) {
-      print('Error voting for character: $e');
       rethrow;
     }
   }
@@ -1167,7 +1181,7 @@ class SupabaseService {
           .eq('tmdb_id', tmdbId)
           .eq('character_name', characterName);
     } catch (e) {
-      print('Error removing character vote: $e');
+      // Silently continue
     }
   }
 
@@ -1283,7 +1297,6 @@ class SupabaseService {
         'character_name': characterName,
       }, onConflict: 'user_id,tmdb_id,media_type');
     } catch (e) {
-      print('Error voting for favorite actor: $e');
       rethrow;
     }
   }
@@ -1300,7 +1313,7 @@ class SupabaseService {
           .eq('tmdb_id', tmdbId)
           .eq('media_type', mediaType);
     } catch (e) {
-      print('Error removing favorite actor vote: $e');
+      // Silently continue
     }
   }
 

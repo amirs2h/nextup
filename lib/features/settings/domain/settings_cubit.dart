@@ -1,15 +1,16 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/services/tmdb_service.dart';
 
-class SettingsState {
+class SettingsState extends Equatable {
   final ThemeMode themeMode;
   final Locale locale;
   final bool notificationsEnabled;
   final bool emailNotifications;
 
-  SettingsState({
+  const SettingsState({
     this.themeMode = ThemeMode.dark,
     this.locale = const Locale('en'),
     this.notificationsEnabled = true,
@@ -31,17 +32,7 @@ class SettingsState {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is SettingsState &&
-          runtimeType == other.runtimeType &&
-          themeMode == other.themeMode &&
-          locale == other.locale &&
-          notificationsEnabled == other.notificationsEnabled &&
-          emailNotifications == other.emailNotifications;
-
-  @override
-  int get hashCode => Object.hash(themeMode, locale, notificationsEnabled, emailNotifications);
+  List<Object?> get props => [themeMode, locale, notificationsEnabled, emailNotifications];
 }
 
 class SettingsCubit extends Cubit<SettingsState> {
@@ -70,6 +61,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         themeMode = ThemeMode.dark;
     }
 
+    if (isClosed) return;
     emit(SettingsState(
       themeMode: themeMode,
       locale: Locale(localeStr),

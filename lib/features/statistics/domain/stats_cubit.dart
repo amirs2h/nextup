@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
+import '../../../shared/services/tmdb_service.dart';
 
 // States
 abstract class StatsState extends Equatable {
@@ -44,16 +45,19 @@ class StatsError extends StatsState {
 // Cubit
 class StatsCubit extends Cubit<StatsState> {
   final SupabaseService _supabaseService;
+  final TmdbService _tmdbService;
 
-  StatsCubit(this._supabaseService) : super(StatsInitial());
+  StatsCubit(this._supabaseService, this._tmdbService) : super(StatsInitial());
 
   Future<void> loadStats() async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(StatsLoaded());
       return;
     }
 
+    if (isClosed) return;
     emit(StatsLoading());
     try {
       final history = await _supabaseService.getWatchHistory(userId: user.id);
@@ -96,12 +100,45 @@ class StatsCubit extends Cubit<StatsState> {
         monthlyWatched.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
       );
 
+      // Calculate top genres from recent items (limit to 30 to avoid rate limiting)
+      Map<String, int> genreCounts = {};
+      final recentItems = history.take(30).toList();
+      final genreFutures = recentItems.map((item) async {
+        try {
+          final tmdbId = item['tmdb_id'] as int;
+          final mediaType = item['media_type'] as String;
+          if (mediaType == 'tv') {
+            final data = await _tmdbService.getShowDetails(tmdbId);
+            return (data['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? [];
+          } else {
+            final data = await _tmdbService.getMovieDetails(tmdbId);
+            return (data['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? [];
+          }
+        } catch (e) {
+          return <String>[];
+        }
+      });
+      final genreResults = await Future.wait(genreFutures);
+      for (final genres in genreResults) {
+        for (final genre in genres) {
+          genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+        }
+      }
+      final topGenres = genreCounts.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      final topGenresList = topGenres.take(5).map((e) => {
+        'name': e.key,
+        'count': e.value,
+      }).toList();
+
+      if (isClosed) return;
       emit(StatsLoaded(
         totalShows: totalShows,
         totalMovies: totalMovies,
         totalEpisodes: totalEpisodes,
         totalHours: totalHours,
         monthlyWatched: sortedMonthly,
+        topGenres: topGenresList,
       ));
     } catch (e) {
       if (isClosed) return;

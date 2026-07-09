@@ -42,23 +42,26 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
         const SizedBox(height: 4),
         Text('Vote for your favorite actor', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
         const SizedBox(height: 12),
-        FutureBuilder<Map<String, dynamic>?>(
-          key: ValueKey(_refreshKey),
-          future: userId != null ? supabase.getUserFavoriteActorVote(userId: userId, tmdbId: widget.tmdbId, mediaType: widget.mediaType) : null,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-            }
-            if (snapshot.hasError) {
-              return const SizedBox();
-            }
-            final userVote = snapshot.data;
-            if (userVote != null) {
-              return _buildVotingResults(context, supabase, userVote);
-            }
-            return _buildVotingUI(context, supabase, userId);
-          },
-        ),
+        if (userId == null)
+          _buildVotingUI(context, supabase, null)
+        else
+          FutureBuilder<Map<String, dynamic>?>(
+            key: ValueKey(_refreshKey),
+            future: supabase.getUserFavoriteActorVote(userId: userId, tmdbId: widget.tmdbId, mediaType: widget.mediaType),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+              }
+              if (snapshot.hasError) {
+                return const SizedBox();
+              }
+              final userVote = snapshot.data;
+              if (userVote != null) {
+                return _buildVotingResults(context, supabase, userVote);
+              }
+              return _buildVotingUI(context, supabase, userId);
+            },
+          ),
       ],
     );
   }
@@ -124,7 +127,7 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.electricPurple.withOpacity(0.2),
+                      color: AppColors.electricPurple.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text('Vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10, fontWeight: FontWeight.w600)),
@@ -206,7 +209,7 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: AppColors.electricPurple.withOpacity(0.2),
+                                      color: AppColors.electricPurple.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text('Your vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10)),
@@ -260,9 +263,9 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.electricPurple.withOpacity(0.15),
+                  color: AppColors.electricPurple.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.electricPurple.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.electricPurple.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

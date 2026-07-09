@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/spoiler_widget.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../shared/mixins/toggle_lock_mixin.dart';
 
 class EpisodeDetailPage extends StatefulWidget {
   final int showId;
@@ -27,12 +28,11 @@ class EpisodeDetailPage extends StatefulWidget {
   State<EpisodeDetailPage> createState() => _EpisodeDetailPageState();
 }
 
-class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
+class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMixin {
   Map<String, dynamic>? _episodeData;
   bool _isLoading = true;
   bool _isWatched = false;
   double? _userRating;
-  double _averageRating = 0;
   Map<String, int> _reactions = {};
   List<Map<String, dynamic>> _comments = [];
 
@@ -419,7 +419,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                             gradient: _isWatched
                                 ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)])
                                 : null,
-                            onPressed: _toggleWatched,
+                            onPressed: () => withToggleLock(() => _toggleWatched()),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -455,7 +455,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: count > 0
-                                  ? const Color(0xFF6C63FF).withOpacity(0.2)
+                                  ? const Color(0xFF6C63FF).withValues(alpha: 0.2)
                                   : AppColors.cardBg(context),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
@@ -609,7 +609,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                     value: isActive ? 1.0 : (isHalf ? 0.5 : 0.0),
                     backgroundColor: AppColors.cardBg(context),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      isActive ? const Color(0xFFFFD93D) : (isHalf ? const Color(0xFFFFD93D).withOpacity(0.5) : AppColors.cardBg(context)),
+                      isActive ? const Color(0xFFFFD93D) : (isHalf ? const Color(0xFFFFD93D).withValues(alpha: 0.5) : AppColors.cardBg(context)),
                     ),
                     minHeight: 8,
                   ),
@@ -627,7 +627,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     final content = comment['content'] ?? '';
     final createdAt = comment['created_at'] != null ? DateTime.parse(comment['created_at']) : DateTime.now();
     final isSpoiler = content.startsWith('[SPOILER]');
-    final displayContent = isSpoiler ? content.substring(10) : content;
+    final displayContent = isSpoiler ? (content.length > 10 ? content.substring(10) : '') : content;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

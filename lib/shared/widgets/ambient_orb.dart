@@ -56,8 +56,8 @@ class _AmbientOrbState extends State<AmbientOrb> with SingleTickerProviderStateM
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  widget.color.withOpacity(0.3),
-                  widget.color.withOpacity(0.0),
+                  widget.color.withValues(alpha: 0.3),
+                  widget.color.withValues(alpha: 0.0),
                 ],
               ),
             ),

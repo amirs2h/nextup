@@ -15,12 +15,15 @@ class WatchlistInitial extends WatchlistState {}
 
 class WatchlistLoading extends WatchlistState {}
 
-class WatchlistItem {
+class WatchlistItem extends Equatable {
   final dynamic model; // ShowModel or MovieModel
   final String mediaType;
   final String status;
 
-  WatchlistItem({required this.model, required this.mediaType, required this.status});
+  const WatchlistItem({required this.model, required this.mediaType, required this.status});
+
+  @override
+  List<Object?> get props => [model, mediaType, status];
 }
 
 class WatchlistLoaded extends WatchlistState {
@@ -71,10 +74,12 @@ class WatchlistCubit extends Cubit<WatchlistState> {
   Future<void> loadWatchlist({String filter = 'all'}) async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(WatchlistLoaded(items: [], filter: filter));
       return;
     }
 
+    if (isClosed) return;
     emit(WatchlistLoading());
     try {
       final watchlistItems = await _supabaseService.getWatchlist(userId: user.id);

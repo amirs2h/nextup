@@ -20,6 +20,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -255,7 +256,18 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           controller: _confirmPasswordController,
                           hintText: 'Confirm Password',
                           prefixIcon: Icons.lock_outlined,
-                          obscureText: true,
+                          obscureText: !_isConfirmPasswordVisible,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isConfirmPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: AppColors.textMuted(context),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                              });
+                            },
+                          ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please confirm your password';
@@ -276,7 +288,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               gradient: const LinearGradient(
                                 colors: [AppColors.electricPurple, AppColors.neonPurple],
                               ),
-                              onPressed: state is AuthLoading ? () {} : _handleRegister,
+                              onPressed: state is AuthLoading ? null : _handleRegister,
                             );
                           },
                         ),

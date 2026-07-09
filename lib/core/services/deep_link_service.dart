@@ -20,21 +20,19 @@ class DeepLinkService {
         _handleLink(initialLink, router);
       }
     } catch (e) {
-      print('Error getting initial link: $e');
+      // Silently continue
     }
 
     // Handle subsequent links (app opened from background)
     _appLinks.uriLinkStream.listen(
       (uri) => _handleLink(uri, router),
       onError: (err) {
-        print('Error listening to deep links: $err');
+        // Silently continue
       },
     );
   }
 
   void _handleLink(Uri uri, GoRouter router) {
-    print('Deep link received: $uri');
-
     // Handle custom scheme: nextup://show/123
     if (uri.scheme == 'nextup') {
       _navigateToPath(uri.path, router);

@@ -63,32 +63,32 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [
-                          Colors.white.withOpacity(0.12),
-                          Colors.white.withOpacity(0.06),
+                          Colors.white.withValues(alpha: 0.12),
+                          Colors.white.withValues(alpha: 0.06),
                         ]
                       : [
-                          Colors.white.withOpacity(0.85),
-                          Colors.white.withOpacity(0.7),
+                          Colors.white.withValues(alpha: 0.85),
+                          Colors.white.withValues(alpha: 0.7),
                         ],
                 ),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(0.18)
-                      : Colors.white.withOpacity(0.9),
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : Colors.white.withValues(alpha: 0.9),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
-                        ? Colors.black.withOpacity(0.4)
-                        : Colors.black.withOpacity(0.08),
+                        ? Colors.black.withValues(alpha: 0.4)
+                        : Colors.black.withValues(alpha: 0.08),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                     spreadRadius: -5,
                 ),
               if (isDark)
                 BoxShadow(
-                  color: AppColors.electricPurple.withOpacity(0.08),
+                  color: AppColors.electricPurple.withValues(alpha: 0.08),
                   blurRadius: 40,
                   offset: const Offset(0, 5),
                 ),
@@ -130,15 +130,15 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primary.withOpacity(0.9),
-                    AppColors.primaryLight.withOpacity(0.8),
+                    AppColors.primary.withValues(alpha: 0.9),
+                    AppColors.primaryLight.withValues(alpha: 0.8),
                   ],
                 )
               : null,
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.35),
+                    color: AppColors.primary.withValues(alpha: 0.35),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -155,8 +155,8 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
                 color: isActive
                     ? Colors.white
                     : isDark
-                        ? Colors.white.withOpacity(0.45)
-                        : Colors.black.withOpacity(0.4),
+                        ? Colors.white.withValues(alpha: 0.45)
+                        : Colors.black.withValues(alpha: 0.4),
                 size: isActive ? 22 : 24,
               ),
             ),

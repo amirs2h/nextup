@@ -46,26 +46,29 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> loadHomeData() async {
+    if (isClosed) return;
     emit(HomeLoading());
     try {
+      // Each call handles errors independently
       final results = await Future.wait([
-        _tmdbService.getTrendingShows(),
-        _tmdbService.getTrendingMovies(),
-        _tmdbService.discoverShows(sortBy: 'vote_average.desc'),
+        _tmdbService.getTrendingShows().catchError((e) => <String, dynamic>{}),
+        _tmdbService.getTrendingMovies().catchError((e) => <String, dynamic>{}),
+        _tmdbService.discoverShows(sortBy: 'vote_average.desc').catchError((e) => <String, dynamic>{}),
       ]);
 
-      final trendingShows = (results[0]['results'] as List)
-          .map((json) => ShowModel.fromJson(json))
-          .toList();
+      final trendingShows = (results[0]['results'] as List?)
+          ?.map((json) => ShowModel.fromJson(json))
+          .toList() ?? [];
 
-      final trendingMovies = (results[1]['results'] as List)
-          .map((json) => MovieModel.fromJson(json))
-          .toList();
+      final trendingMovies = (results[1]['results'] as List?)
+          ?.map((json) => MovieModel.fromJson(json))
+          .toList() ?? [];
 
-      final topRatedShows = (results[2]['results'] as List)
-          .map((json) => ShowModel.fromJson(json))
-          .toList();
+      final topRatedShows = (results[2]['results'] as List?)
+          ?.map((json) => ShowModel.fromJson(json))
+          .toList() ?? [];
 
+      if (isClosed) return;
       emit(HomeLoaded(
         trendingShows: trendingShows,
         trendingMovies: trendingMovies,

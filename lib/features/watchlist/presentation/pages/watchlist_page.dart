@@ -10,14 +10,23 @@ import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class WatchlistPage extends StatefulWidget {
+class WatchlistPage extends StatelessWidget {
   const WatchlistPage({super.key});
 
   @override
-  State<WatchlistPage> createState() => _WatchlistPageState();
+  Widget build(BuildContext context) {
+    return const _WatchlistPageView();
+  }
 }
 
-class _WatchlistPageState extends State<WatchlistPage> {
+class _WatchlistPageView extends StatefulWidget {
+  const _WatchlistPageView();
+
+  @override
+  State<_WatchlistPageView> createState() => _WatchlistPageViewState();
+}
+
+class _WatchlistPageViewState extends State<_WatchlistPageView> {
   String _filter = 'all';
 
   @override
@@ -37,22 +46,22 @@ class _WatchlistPageState extends State<WatchlistPage> {
   Widget build(BuildContext context) {
     return AppBackground(
       child: SafeArea(
-        child: BlocBuilder<AuthCubit, AuthState>(
-          builder: (context, authState) {
-            if (authState is AuthUnauthenticated) {
-              return _buildLoginPrompt(context);
-            }
+      child: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, authState) {
+          if (authState is AuthUnauthenticated) {
+            return _buildLoginPrompt(context);
+          }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                _buildFilterTabs(context),
-                Expanded(child: _buildContent(context)),
-              ],
-            );
-          },
-        ),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              _buildFilterTabs(context),
+              Expanded(child: _buildContent(context)),
+            ],
+          );
+        },
+      ),
       ),
     );
   }
@@ -258,7 +267,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                     backgroundColor: AppColors.surface(context),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     title: const Text('Remove from Watchlist'),
-                    content: Text('Remove "${item.model.name ?? item.model.title}" from your watchlist?'),
+                    content: Text('Remove "${item.mediaType == 'tv' ? (item.model as ShowModel).name : (item.model as MovieModel).title}" from your watchlist?'),
                     actions: [
                       ElevatedButton(
                         onPressed: () => Navigator.pop(dialogContext),
@@ -318,9 +327,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
+          color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
       ),

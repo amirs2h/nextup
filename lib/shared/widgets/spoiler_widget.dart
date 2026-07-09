@@ -19,7 +19,6 @@ class SpoilerText extends StatefulWidget {
 class _SpoilerTextState extends State<SpoilerText> with SingleTickerProviderStateMixin {
   bool _isRevealed = false;
   late AnimationController _controller;
-  late Animation<double> _blurAnimation;
   late Animation<double> _opacityAnimation;
 
   @override
@@ -28,9 +27,6 @@ class _SpoilerTextState extends State<SpoilerText> with SingleTickerProviderStat
     _controller = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
-    );
-    _blurAnimation = Tween<double>(begin: 10.0, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
     _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
@@ -60,7 +56,7 @@ class _SpoilerTextState extends State<SpoilerText> with SingleTickerProviderStat
     if (!widget.isSpoiler) {
       return Text(
         widget.text,
-        style: TextStyle(color: AppColors.text(context).withOpacity(0.9), fontSize: 14, height: 1.5),
+        style: TextStyle(color: AppColors.text(context).withValues(alpha: 0.9), fontSize: 14, height: 1.5),
       );
     }
 
@@ -86,14 +82,14 @@ class _SpoilerTextState extends State<SpoilerText> with SingleTickerProviderStat
               border: Border.all(
                 color: _isRevealed
                     ? Colors.transparent
-                    : const Color(0xFFFFD93D).withOpacity(0.3),
+                    : const Color(0xFFFFD93D).withValues(alpha: 0.3),
                 width: 1,
               ),
               boxShadow: _isRevealed
                   ? null
                   : [
                       BoxShadow(
-                        color: const Color(0xFFFFD93D).withOpacity(0.1),
+                        color: const Color(0xFFFFD93D).withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -104,7 +100,7 @@ class _SpoilerTextState extends State<SpoilerText> with SingleTickerProviderStat
                     opacity: _opacityAnimation,
                     child: Text(
                       widget.text,
-                      style: TextStyle(color: AppColors.text(context).withOpacity(0.9), fontSize: 14, height: 1.5),
+                      style: TextStyle(color: AppColors.text(context).withValues(alpha: 0.9), fontSize: 14, height: 1.5),
                     ),
                   )
                 : Row(
@@ -112,7 +108,7 @@ class _SpoilerTextState extends State<SpoilerText> with SingleTickerProviderStat
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFD93D).withOpacity(0.15),
+                          color: const Color(0xFFFFD93D).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.visibility_off_rounded, color: Color(0xFFFFD93D), size: 16),
@@ -173,20 +169,20 @@ class SpoilerToggle extends StatelessWidget {
           gradient: isSpoiler
               ? LinearGradient(
                   colors: [
-                    const Color(0xFFFFD93D).withOpacity(0.2),
-                    const Color(0xFFFFD93D).withOpacity(0.1),
+                    const Color(0xFFFFD93D).withValues(alpha: 0.2),
+                    const Color(0xFFFFD93D).withValues(alpha: 0.1),
                   ],
                 )
               : null,
           color: isSpoiler ? null : AppColors.cardBg(context),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSpoiler ? const Color(0xFFFFD93D).withOpacity(0.5) : AppColors.border(context),
+            color: isSpoiler ? const Color(0xFFFFD93D).withValues(alpha: 0.5) : AppColors.border(context),
           ),
           boxShadow: isSpoiler
               ? [
                   BoxShadow(
-                    color: const Color(0xFFFFD93D).withOpacity(0.15),
+                    color: const Color(0xFFFFD93D).withValues(alpha: 0.15),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),

@@ -46,10 +46,12 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
   Future<void> loadHistory() async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(WatchHistoryLoaded(history: [], shows: {}, movies: {}));
       return;
     }
 
+    if (isClosed) return;
     emit(WatchHistoryLoading());
     try {
       final history = await _supabaseService.getWatchHistory(userId: user.id);
@@ -105,6 +107,7 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
         }
       }
 
+      if (isClosed) return;
       emit(WatchHistoryLoaded(history: history, shows: shows, movies: movies));
     } catch (e) {
       if (isClosed) return;

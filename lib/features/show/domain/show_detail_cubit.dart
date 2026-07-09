@@ -49,6 +49,40 @@ class ShowDetailLoaded extends ShowDetailState {
     this.averageRating = 0,
   });
 
+  ShowDetailLoaded copyWith({
+    ShowModel? show,
+    List<PersonModel>? cast,
+    List<ShowModel>? similarShows,
+    bool? isInWatchlist,
+    bool? isFavorite,
+    Map<int, bool>? watchedEpisodes,
+    List<Map<String, dynamic>>? videos,
+    Map<String, dynamic>? watchProviders,
+    String? imdbId,
+    String? contentRating,
+    int? rottenTomatoesScore,
+    String? imdbRating,
+    double? userRating,
+    double? averageRating,
+  }) {
+    return ShowDetailLoaded(
+      show: show ?? this.show,
+      cast: cast ?? this.cast,
+      similarShows: similarShows ?? this.similarShows,
+      isInWatchlist: isInWatchlist ?? this.isInWatchlist,
+      isFavorite: isFavorite ?? this.isFavorite,
+      watchedEpisodes: watchedEpisodes ?? this.watchedEpisodes,
+      videos: videos ?? this.videos,
+      watchProviders: watchProviders ?? this.watchProviders,
+      imdbId: imdbId ?? this.imdbId,
+      contentRating: contentRating ?? this.contentRating,
+      rottenTomatoesScore: rottenTomatoesScore ?? this.rottenTomatoesScore,
+      imdbRating: imdbRating ?? this.imdbRating,
+      userRating: userRating ?? this.userRating,
+      averageRating: averageRating ?? this.averageRating,
+    );
+  }
+
   @override
   List<Object?> get props => [show, cast, similarShows, isInWatchlist, isFavorite, watchedEpisodes, videos, watchProviders, imdbId, contentRating, rottenTomatoesScore, imdbRating, userRating, averageRating];
 }
@@ -74,6 +108,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   }
 
   Future<void> loadShowDetails() async {
+    if (isClosed) return;
     emit(ShowDetailLoading());
     try {
       // Parallel TMDB calls (7 calls in parallel)
@@ -170,7 +205,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
           final sn = seasonNumbers[seasonIdx];
           final seasonMap = supabaseResults[i] as Map<int, bool>;
           for (final entry in seasonMap.entries) {
-            watchedEpisodes[sn * 1000 + entry.key] = entry.value;
+            watchedEpisodes[sn * 10000 + entry.key] = entry.value;
           }
         }
       } else {
@@ -224,22 +259,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       }
 
       if (isClosed) return;
-      emit(ShowDetailLoaded(
-        show: currentState.show,
-        cast: currentState.cast,
-        similarShows: currentState.similarShows,
-        isInWatchlist: !currentState.isInWatchlist,
-        isFavorite: currentState.isFavorite,
-        watchedEpisodes: currentState.watchedEpisodes,
-        videos: currentState.videos,
-        watchProviders: currentState.watchProviders,
-        imdbId: currentState.imdbId,
-        contentRating: currentState.contentRating,
-        rottenTomatoesScore: currentState.rottenTomatoesScore,
-        imdbRating: currentState.imdbRating,
-        userRating: currentState.userRating,
-        averageRating: currentState.averageRating,
-      ));
+      emit(currentState.copyWith(isInWatchlist: !currentState.isInWatchlist));
     } catch (e) {
       if (isClosed) return;
       emit(currentState);
@@ -269,22 +289,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       }
 
       if (isClosed) return;
-      emit(ShowDetailLoaded(
-        show: currentState.show,
-        cast: currentState.cast,
-        similarShows: currentState.similarShows,
-        isInWatchlist: currentState.isInWatchlist,
-        isFavorite: !currentState.isFavorite,
-        watchedEpisodes: currentState.watchedEpisodes,
-        videos: currentState.videos,
-        watchProviders: currentState.watchProviders,
-        imdbId: currentState.imdbId,
-        contentRating: currentState.contentRating,
-        rottenTomatoesScore: currentState.rottenTomatoesScore,
-        imdbRating: currentState.imdbRating,
-        userRating: currentState.userRating,
-        averageRating: currentState.averageRating,
-      ));
+      emit(currentState.copyWith(isFavorite: !currentState.isFavorite));
     } catch (e) {
       if (isClosed) return;
       emit(currentState);
@@ -298,7 +303,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
     final user = _supabaseService.currentUser;
     if (user == null) return;
 
-    final key = seasonNumber * 1000 + episodeNumber;
+    final key = seasonNumber * 10000 + episodeNumber;
     final isWatched = currentState.watchedEpisodes[key] ?? false;
 
     try {
@@ -323,41 +328,33 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
       newWatched[key] = !isWatched;
 
-      emit(ShowDetailLoaded(
-        show: currentState.show,
-        cast: currentState.cast,
-        similarShows: currentState.similarShows,
-        isInWatchlist: currentState.isInWatchlist,
-        isFavorite: currentState.isFavorite,
-        watchedEpisodes: newWatched,
-        videos: currentState.videos,
-        watchProviders: currentState.watchProviders,
-        imdbId: currentState.imdbId,
-        contentRating: currentState.contentRating,
-        rottenTomatoesScore: currentState.rottenTomatoesScore,
-        imdbRating: currentState.imdbRating,
-        userRating: currentState.userRating,
-        averageRating: currentState.averageRating,
-      ));
+      // Auto-compute status and refresh watchlist status
+      bool newIsInWatchlist = currentState.isInWatchlist;
+      try {
+        final showDetails = await _tmdbService.getShowDetails(showId);
+        await _supabaseService.computeAndSetShowStatus(
+          userId: user.id,
+          tmdbId: showId,
+          showDetails: showDetails,
+        );
+        // Refresh watchlist status after auto-compute
+        newIsInWatchlist = await _supabaseService.isInWatchlist(
+          userId: user.id,
+          tmdbId: showId,
+          mediaType: 'tv',
+        );
+      } catch (statusError) {
+        // Non-critical: auto-compute status failure should not affect user experience
+      }
 
-      // Auto-compute status after toggling episode
-      await _autoComputeStatus(user.id);
+      if (isClosed) return;
+      emit(currentState.copyWith(
+        isInWatchlist: newIsInWatchlist,
+        watchedEpisodes: newWatched,
+      ));
     } catch (e) {
       if (isClosed) return;
       emit(currentState);
-    }
-  }
-
-  Future<void> _autoComputeStatus(String userId) async {
-    try {
-      final showDetails = await _tmdbService.getShowDetails(showId);
-      await _supabaseService.computeAndSetShowStatus(
-        userId: userId,
-        tmdbId: showId,
-        showDetails: showDetails,
-      );
-    } catch (e) {
-      // Non-critical: auto-compute status failure should not affect user experience
     }
   }
 }

@@ -52,6 +52,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   }
 
   Future<void> loadSeasonDetails() async {
+    if (isClosed) return;
     emit(SeasonDetailLoading());
     try {
       final data = await _tmdbService.getShowSeasonDetails(showId, seasonNumber);
@@ -71,6 +72,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
         }
       }
 
+      if (isClosed) return;
       emit(SeasonDetailLoaded(season: season, watchedEpisodes: watchedEpisodes));
     } catch (e) {
       if (isClosed) return;
@@ -109,6 +111,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
       final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
       newWatched[episodeNumber] = !isWatched;
 
+      if (isClosed) return;
       emit(SeasonDetailLoaded(
         season: currentState.season,
         watchedEpisodes: newWatched,
@@ -131,8 +134,8 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
     if (currentState.season.episodes == null) return;
 
     try {
-      final successfullyMarked = <int>{};
-      for (final episode in currentState.season.episodes!) {
+      // Parallel marking for better performance
+      final futures = currentState.season.episodes!.map((episode) async {
         try {
           await _supabaseService.markAsWatched(
             userId: user.id,
@@ -141,15 +144,21 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
             seasonNumber: seasonNumber,
             episodeNumber: episode.episodeNumber,
           );
-          successfullyMarked.add(episode.episodeNumber);
+          return episode.episodeNumber;
         } catch (e) {
-          // Continue with other episodes even if one fails
+          return -1; // Failed
         }
-      }
+      });
+      final results = await Future.wait(futures);
+      final successfullyMarked = results.where((id) => id >= 0).toSet();
 
-      final newWatched = <int, bool>{};
+      // Merge with existing watched state - preserve previously watched episodes
+      final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
       for (final episode in currentState.season.episodes!) {
-        newWatched[episode.episodeNumber] = successfullyMarked.contains(episode.episodeNumber);
+        if (successfullyMarked.contains(episode.episodeNumber)) {
+          newWatched[episode.episodeNumber] = true;
+        }
+        // If not in successfullyMarked, keep existing value (don't set to false)
       }
 
       if (isClosed) return;
@@ -161,7 +170,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
       // Auto-compute status after marking all episodes
       await _autoComputeStatus(user.id);
     } catch (e) {
-await loadSeasonDetails();
+      await loadSeasonDetails();
     }
   }
 

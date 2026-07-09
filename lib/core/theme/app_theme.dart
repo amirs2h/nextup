@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
-  static List<String> get _vazirmatnFallback => [GoogleFonts.vazirmatn().fontFamily!];
+  static const List<String> _vazirmatnFallback = ['Vazirmatn'];
 
   static ThemeData get darkTheme => _buildTheme(
     brightness: Brightness.dark,
@@ -79,7 +79,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: textColor),
-        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamilyFallback: _vazirmatnFallback),
       ),
       cardTheme: CardTheme(
         color: surfaceColor,
@@ -93,7 +93,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamilyFallback: _vazirmatnFallback),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -102,7 +102,7 @@ class AppTheme {
           minimumSize: const Size(double.infinity, 50),
           side: const BorderSide(color: AppColors.primary),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamilyFallback: _vazirmatnFallback),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -125,16 +125,16 @@ class AppTheme {
       dividerTheme: DividerThemeData(color: dividerColor, thickness: 1),
       chipTheme: ChipThemeData(
         backgroundColor: surfaceColor,
-        selectedColor: AppColors.primary.withOpacity(0.2),
-        labelStyle: TextStyle(color: textColor, fontSize: 13),
+        selectedColor: AppColors.primary.withValues(alpha: 0.2),
+        labelStyle: TextStyle(color: textColor, fontSize: 13, fontFamilyFallback: _vazirmatnFallback),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         side: BorderSide(color: dividerColor),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
-        contentTextStyle: TextStyle(fontSize: 14, color: textSecondaryColor),
+        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamilyFallback: _vazirmatnFallback),
+        contentTextStyle: TextStyle(fontSize: 14, color: textSecondaryColor, fontFamilyFallback: _vazirmatnFallback),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,

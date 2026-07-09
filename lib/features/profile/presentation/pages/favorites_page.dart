@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../auth/domain/auth_cubit.dart';
+
 import '../../domain/favorites_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
@@ -179,7 +180,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               onTap: () => _confirmRemove(context, show.name, () => context.read<FavoritesCubit>().removeFromFavorites(show.id, 'tv')),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
               ),
             ),
@@ -223,7 +224,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
               onTap: () => _confirmRemove(context, movie.title, () => context.read<FavoritesCubit>().removeFromFavorites(movie.id, 'movie')),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
               ),
             ),

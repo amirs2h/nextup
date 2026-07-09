@@ -238,7 +238,7 @@ class _FiltersPageState extends State<FiltersPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.electricPurple.withOpacity(0.15) : AppColors.cardBg(context),
+                    color: isSelected ? AppColors.electricPurple.withValues(alpha: 0.15) : AppColors.cardBg(context),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: isSelected ? AppColors.electricPurple : AppColors.border(context)),
                   ),
@@ -286,7 +286,7 @@ class _FiltersPageState extends State<FiltersPage> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.electricPurple.withOpacity(0.15) : AppColors.cardBg(context),
+                      color: isSelected ? AppColors.electricPurple.withValues(alpha: 0.15) : AppColors.cardBg(context),
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(color: isSelected ? AppColors.electricPurple : AppColors.border(context)),
                     ),
@@ -333,7 +333,7 @@ class _FiltersPageState extends State<FiltersPage> {
               activeTrackColor: AppColors.warning,
               inactiveTrackColor: AppColors.border(context),
               thumbColor: AppColors.warning,
-              overlayColor: AppColors.warning.withOpacity(0.1),
+              overlayColor: AppColors.warning.withValues(alpha: 0.1),
               trackHeight: 4,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
             ),
@@ -376,7 +376,7 @@ class _FiltersPageState extends State<FiltersPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.electricPurple.withOpacity(0.15) : AppColors.cardBg(context),
+                        color: isSelected ? AppColors.electricPurple.withValues(alpha: 0.15) : AppColors.cardBg(context),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: isSelected ? AppColors.electricPurple : AppColors.border(context)),
                       ),
@@ -416,7 +416,7 @@ class _FiltersPageState extends State<FiltersPage> {
             showStatus: _selectedShowStatus,
           );
           // Navigate back to discover
-          context.go('/discover');
+          context.pop();
         },
       ),
     );

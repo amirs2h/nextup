@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../shared/services/tmdb_service.dart';
 import '../../../../shared/services/supabase_service.dart';
+import '../../../../shared/services/tmdb_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/season_detail_cubit.dart';
+import '../../../../shared/mixins/toggle_lock_mixin.dart';
 
 class SeasonDetailPage extends StatelessWidget {
   final int showId;
@@ -34,12 +35,17 @@ class SeasonDetailPage extends StatelessWidget {
   }
 }
 
-class _SeasonDetailView extends StatelessWidget {
+class _SeasonDetailView extends StatefulWidget {
   final int showId;
   final int seasonNumber;
 
   const _SeasonDetailView({required this.showId, required this.seasonNumber});
 
+  @override
+  State<_SeasonDetailView> createState() => _SeasonDetailViewState();
+}
+
+class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMixin {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<SeasonDetailCubit, SeasonDetailState>(
@@ -206,11 +212,11 @@ class _SeasonDetailView extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       borderRadius: BorderRadius.circular(16),
-      borderColor: isWatched ? AppColors.success.withOpacity(0.3) : null,
+      borderColor: isWatched ? AppColors.success.withValues(alpha: 0.3) : null,
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => context.push('/show/$showId/season/$seasonNumber/episode/${episode.episodeNumber}'),
+            onTap: () => context.push('/show/${widget.showId}/season/${widget.seasonNumber}/episode/${episode.episodeNumber}'),
             child: Row(
               children: [
                 Container(
@@ -243,14 +249,14 @@ class _SeasonDetailView extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => context.read<SeasonDetailCubit>().toggleEpisodeWatched(episode.episodeNumber),
+                  onTap: () => withToggleLock(() => context.read<SeasonDetailCubit>().toggleEpisodeWatched(episode.episodeNumber)),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isWatched ? AppColors.success.withOpacity(0.2) : AppColors.cardBg(context),
+                      color: isWatched ? AppColors.success.withValues(alpha: 0.2) : AppColors.cardBg(context),
                       border: Border.all(color: isWatched ? AppColors.success : AppColors.border(context)),
                     ),
                     child: Icon(Icons.check, color: isWatched ? AppColors.success : AppColors.iconMuted(context), size: 20),
@@ -269,9 +275,9 @@ class _SeasonDetailView extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
+                      color: AppColors.warning.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -288,9 +294,9 @@ class _SeasonDetailView extends StatelessWidget {
                 // Comments button
                 GestureDetector(
                   onTap: () => context.push('/comments', extra: {
-                    'tmdbId': showId,
-                    'mediaType': 'tv',
-                    'seasonNumber': seasonNumber,
+                  'tmdbId': widget.showId,
+                  'mediaType': 'tv',
+                  'seasonNumber': widget.seasonNumber,
                     'episodeNumber': episode.episodeNumber,
                   }),
                   child: Container(
@@ -321,8 +327,8 @@ class _SeasonDetailView extends StatelessWidget {
                       if (user != null) {
                         await supabase.addReaction(
                           userId: user.id,
-                          tmdbId: showId,
-                          seasonNumber: seasonNumber,
+                          tmdbId: widget.showId,
+                          seasonNumber: widget.seasonNumber,
                           episodeNumber: episode.episodeNumber,
                           emoji: emoji,
                         );

@@ -188,7 +188,7 @@ class _CommentsPageState extends State<CommentsPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFD93D).withOpacity(0.15),
+                                color: const Color(0xFFFFD93D).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text('Spoiler', style: TextStyle(color: Color(0xFFFFD93D), fontSize: 10, fontWeight: FontWeight.w600)),
@@ -247,7 +247,7 @@ class _CommentsPageState extends State<CommentsPage> {
             ),
             const SizedBox(height: 12),
             SpoilerText(
-              text: comment.content.startsWith('[SPOILER] ') ? comment.content.substring(10) : comment.content,
+              text: comment.content.startsWith('[SPOILER] ') ? (comment.content.length > 10 ? comment.content.substring(10) : '') : comment.content,
               isSpoiler: comment.content.startsWith('[SPOILER]'),
             ),
             const SizedBox(height: 12),
@@ -391,7 +391,7 @@ class _CommentsPageState extends State<CommentsPage> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))],
+                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))],
                   ),
                   child: Icon(Icons.send, color: AppColors.text(context), size: 20),
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'glass_container.dart';
+import '../../core/theme/app_colors.dart';
 
 class ReactionPicker extends StatelessWidget {
   final Function(String) onReactionSelected;
@@ -28,7 +29,7 @@ class ReactionPicker extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF6C63FF).withOpacity(0.3) : Colors.transparent,
+                color: isSelected ? const Color(0xFF6C63FF).withValues(alpha: 0.3) : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 border: isSelected ? Border.all(color: const Color(0xFF6C63FF)) : null,
               ),
@@ -67,9 +68,9 @@ class ReactionDisplay extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
+              color: AppColors.cardBg(context),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: AppColors.border(context)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -78,7 +79,7 @@ class ReactionDisplay extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   '${entry.value}',
-                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                  style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
                 ),
               ],
             ),

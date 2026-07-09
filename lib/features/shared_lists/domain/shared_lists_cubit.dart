@@ -47,6 +47,7 @@ class SharedListsCubit extends Cubit<SharedListsState> {
   SharedListsCubit(this._supabaseService, this._tmdbService) : super(SharedListsInitial());
 
   Future<void> loadSharedLists() async {
+    if (isClosed) return;
     emit(SharedListsLoading());
     try {
       final user = _supabaseService.currentUser;
@@ -67,12 +68,9 @@ class SharedListsCubit extends Cubit<SharedListsState> {
     if (isClosed) return;
     emit(SharedListsLoading());
     try {
-      final results = await Future.wait([
-        _supabaseService.getSharedListItems(listId),
-        _supabaseService.getSharedListMembers(listId),
-      ]);
-      final items = results[0] as List<Map<String, dynamic>>;
-      final members = results[1] as List<Map<String, dynamic>>;
+      final items = await _supabaseService.getSharedListItems(listId);
+      final members = await _supabaseService.getSharedListMembers(listId);
+      final listData = await _supabaseService.client.from('shared_lists').select().eq('id', listId).maybeSingle();
       
       // Fetch TMDB titles for items in parallel
       final itemsWithTitles = await Future.wait(items.map((item) async {
@@ -104,7 +102,7 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       
       if (isClosed) return;
       emit(SharedListDetailLoaded(
-        list: {'id': listId},
+        list: listData ?? {'id': listId},
         items: itemsWithTitles,
         members: members,
       ));

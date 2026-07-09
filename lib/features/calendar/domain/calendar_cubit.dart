@@ -4,20 +4,23 @@ import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/models/show_model.dart';
 
-class CalendarEvent {
+class CalendarEvent extends Equatable {
   final ShowModel show;
   final int seasonNumber;
   final int episodeNumber;
   final String episodeName;
   final DateTime airDate;
 
-  CalendarEvent({
+  const CalendarEvent({
     required this.show,
     required this.seasonNumber,
     required this.episodeNumber,
     required this.episodeName,
     required this.airDate,
   });
+
+  @override
+  List<Object?> get props => [show, seasonNumber, episodeNumber, episodeName, airDate];
 }
 
 abstract class CalendarState extends Equatable {
@@ -59,10 +62,12 @@ class CalendarCubit extends Cubit<CalendarState> {
   Future<void> loadCalendar(DateTime month) async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(CalendarLoaded(events: [], selectedMonth: month));
       return;
     }
 
+    if (isClosed) return;
     emit(CalendarLoading());
     try {
       // Get user's watchlist shows
@@ -132,6 +137,7 @@ class CalendarCubit extends Cubit<CalendarState> {
       // Sort by air date
       events.sort((a, b) => a.airDate.compareTo(b.airDate));
 
+      if (isClosed) return;
       emit(CalendarLoaded(events: events, selectedMonth: month));
     } catch (e) {
       if (isClosed) return;

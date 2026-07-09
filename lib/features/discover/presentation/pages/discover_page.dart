@@ -10,15 +10,25 @@ import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class DiscoverPage extends StatefulWidget {
+class DiscoverPage extends StatelessWidget {
   final Map<String, dynamic>? filters;
   const DiscoverPage({super.key, this.filters});
 
   @override
-  State<DiscoverPage> createState() => _DiscoverPageState();
+  Widget build(BuildContext context) {
+    return _DiscoverPageView(filters: filters);
+  }
 }
 
-class _DiscoverPageState extends State<DiscoverPage> {
+class _DiscoverPageView extends StatefulWidget {
+  final Map<String, dynamic>? filters;
+  const _DiscoverPageView({this.filters});
+
+  @override
+  State<_DiscoverPageView> createState() => _DiscoverPageViewState();
+}
+
+class _DiscoverPageViewState extends State<_DiscoverPageView> {
   String _mediaType = 'tv';
 
   @override
@@ -52,25 +62,25 @@ class _DiscoverPageState extends State<DiscoverPage> {
       backgroundColor: Colors.transparent,
       body: AppBackground(
         child: BlocListener<DiscoverCubit, DiscoverState>(
-        listener: (context, state) {
-          if (state is DiscoverLoaded) {
-            if (_mediaType != state.mediaType) {
-              setState(() => _mediaType = state.mediaType);
+          listener: (context, state) {
+            if (state is DiscoverLoaded) {
+              if (_mediaType != state.mediaType) {
+                setState(() => _mediaType = state.mediaType);
+              }
             }
-          }
-        },
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              _buildMediaTypeToggle(context),
-              _buildGenreChips(context),
-              Expanded(child: _buildContent(context)),
-            ],
+          },
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context),
+                _buildMediaTypeToggle(context),
+                _buildGenreChips(context),
+                Expanded(child: _buildContent(context)),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -267,7 +277,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))],
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),

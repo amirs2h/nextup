@@ -38,10 +38,12 @@ class ActivityCubit extends Cubit<ActivityState> {
   Future<void> loadActivity() async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(ActivityLoaded(activities: []));
       return;
     }
 
+    if (isClosed) return;
     emit(ActivityLoading());
     try {
       // Get following list
@@ -150,6 +152,7 @@ class ActivityCubit extends Cubit<ActivityState> {
         return bDate.compareTo(aDate);
       });
 
+      if (isClosed) return;
       emit(ActivityLoaded(activities: allActivities.take(50).toList()));
     } catch (e) {
       if (isClosed) return;

@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../../shared/widgets/glass_container.dart';
 import '../../domain/notifications_cubit.dart';
-import '../../../auth/domain/auth_cubit.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -172,7 +171,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: GlassContainer(
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(16),
-        borderColor: isRead ? null : AppColors.electricPurple.withOpacity(0.3),
+        borderColor: isRead ? null : AppColors.electricPurple.withValues(alpha: 0.3),
         child: InkWell(
           onTap: () {
             if (!isRead) {
@@ -187,7 +186,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.2),
+                  color: iconColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: iconColor, size: 24),

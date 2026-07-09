@@ -299,5 +299,8 @@ class TmdbService {
     if (!_useProxy) {
       _dio.options.queryParameters['language'] = _language;
     }
+    // Invalidate cache when language changes
+    _cache.clear();
+    _cacheTimestamps.clear();
   }
 }

@@ -189,7 +189,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
       child: GlassContainer(
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(12),
-        borderColor: achievement.isUnlocked ? AppColors.success.withOpacity(0.3) : null,
+        borderColor: achievement.isUnlocked ? AppColors.success.withValues(alpha: 0.3) : null,
         child: Row(
           children: [
             Container(
@@ -197,7 +197,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
               height: 48,
               decoration: BoxDecoration(
                 color: achievement.isUnlocked
-                    ? AppColors.success.withOpacity(0.2)
+                    ? AppColors.success.withValues(alpha: 0.2)
                     : AppColors.cardBg(context),
                 borderRadius: BorderRadius.circular(12),
               ),

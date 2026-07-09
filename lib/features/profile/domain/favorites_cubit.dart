@@ -41,10 +41,12 @@ class FavoritesCubit extends Cubit<FavoritesState> {
   Future<void> loadFavorites() async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(FavoritesLoaded(shows: [], movies: []));
       return;
     }
 
+    if (isClosed) return;
     emit(FavoritesLoading());
     try {
       final favorites = await _supabaseService.getFavorites(userId: user.id);
@@ -84,6 +86,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
         }
       }
 
+      if (isClosed) return;
       emit(FavoritesLoaded(shows: shows, movies: movies));
     } catch (e) {
       if (isClosed) return;

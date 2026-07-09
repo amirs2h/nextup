@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
+
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/shared_lists_cubit.dart';
 
@@ -134,7 +135,6 @@ class _SharedListsPageState extends State<SharedListsPage> {
                 final list = listData['shared_lists'] ?? listData;
                 final name = list['name'] ?? 'Untitled';
                 final description = list['description'] ?? '';
-                final createdAt = list['created_at'] ?? '';
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -192,7 +192,6 @@ class _SharedListsPageState extends State<SharedListsPage> {
   void _showCreateDialog(BuildContext context) {
     final nameController = TextEditingController();
     final descController = TextEditingController();
-    final authState = context.read<AuthCubit>().state;
     
     showDialog(
       context: context,

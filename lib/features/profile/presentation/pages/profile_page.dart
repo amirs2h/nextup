@@ -8,20 +8,30 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
+
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/profile_cubit.dart';
 import '../../domain/favorites_cubit.dart';
 import '../../../watchlist/domain/watchlist_cubit.dart';
 import '../../domain/watch_history_cubit.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  Widget build(BuildContext context) {
+    return const _ProfilePageView();
+  }
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageView extends StatefulWidget {
+  const _ProfilePageView();
+
+  @override
+  State<_ProfilePageView> createState() => _ProfilePageViewState();
+}
+
+class _ProfilePageViewState extends State<_ProfilePageView> {
   @override
   void initState() {
     super.initState();
@@ -45,85 +55,85 @@ class _ProfilePageState extends State<ProfilePage> {
       body: AppBackground(
         child: SafeArea(
           child: BlocBuilder<AuthCubit, AuthState>(
-          builder: (context, authState) {
-            if (authState is AuthUnauthenticated) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_outline, size: 60, color: AppColors.textMuted(context)),
-                    const SizedBox(height: 16),
-                    Text('Please login to view your profile', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
-                    const SizedBox(height: 24),
-                    ElevatedButton(onPressed: () => context.go('/login'), child: const Text('Login')),
-                  ],
+            builder: (context, authState) {
+          if (authState is AuthUnauthenticated) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_outline, size: 60, color: AppColors.textMuted(context)),
+                  const SizedBox(height: 16),
+                  Text('Please login to view your profile', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+                  const SizedBox(height: 24),
+                  ElevatedButton(onPressed: () => context.go('/login'), child: const Text('Login')),
+                ],
+              ),
+            );
+          }
+
+          String username = 'User';
+          String email = '';
+          String? avatarUrl;
+          String bio = '';
+          if (authState is AuthAuthenticated) {
+            username = authState.profile?['username'] ?? 'User';
+            email = authState.user.email ?? '';
+            avatarUrl = authState.profile?['avatar_url'];
+            bio = authState.profile?['bio'] ?? '';
+          }
+
+          return BlocBuilder<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              int followersCount = 0;
+              int followingCount = 0;
+              int watchlistCount = 0;
+              List<Map<String, dynamic>> followers = [];
+              List<Map<String, dynamic>> following = [];
+
+              if (state is ProfileLoaded) {
+                followersCount = state.followersCount;
+                followingCount = state.followingCount;
+                watchlistCount = state.watchlistCount;
+                followers = state.followers;
+                following = state.following;
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async => _loadData(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _buildProfileHeader(context, username, email, avatarUrl, bio, followersCount, followingCount, watchlistCount, followers, following),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            _buildQuickStats(context, watchlistCount, followersCount, followingCount, followers, following),
+                            const SizedBox(height: 20),
+                            _buildFavoritesCarousel(context),
+                            const SizedBox(height: 20),
+                            _buildWatchlistCarousel(context),
+                            const SizedBox(height: 20),
+                            _buildHistoryCarousel(context),
+                            const SizedBox(height: 20),
+                            _buildActionButtons(context),
+                            const SizedBox(height: 20),
+                            _buildUserContent(context),
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
-            }
-
-            String username = 'User';
-            String email = '';
-            String? avatarUrl;
-            String bio = '';
-            if (authState is AuthAuthenticated) {
-              username = authState.profile?['username'] ?? 'User';
-              email = authState.user.email ?? '';
-              avatarUrl = authState.profile?['avatar_url'];
-              bio = authState.profile?['bio'] ?? '';
-            }
-
-            return BlocBuilder<ProfileCubit, ProfileState>(
-              builder: (context, state) {
-                int followersCount = 0;
-                int followingCount = 0;
-                int watchlistCount = 0;
-                List<Map<String, dynamic>> followers = [];
-                List<Map<String, dynamic>> following = [];
-
-                if (state is ProfileLoaded) {
-                  followersCount = state.followersCount;
-                  followingCount = state.followingCount;
-                  watchlistCount = state.watchlistCount;
-                  followers = state.followers;
-                  following = state.following;
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async => _loadData(),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      children: [
-                        _buildProfileHeader(context, username, email, avatarUrl, bio, followersCount, followingCount, watchlistCount, followers, following),
-                        const SizedBox(height: 20),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            children: [
-                              _buildQuickStats(context, watchlistCount, followersCount, followingCount, followers, following),
-                              const SizedBox(height: 20),
-                              _buildFavoritesCarousel(context),
-                              const SizedBox(height: 20),
-                              _buildWatchlistCarousel(context),
-                              const SizedBox(height: 20),
-                              _buildHistoryCarousel(context),
-                              const SizedBox(height: 20),
-                              _buildActionButtons(context),
-                              const SizedBox(height: 20),
-                              _buildUserContent(context),
-                              const SizedBox(height: 100),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+            },
+          );
+            },
+          ),
         ),
-      ),
       ),
     );
   }
@@ -150,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF6C63FF).withOpacity(0.3),
+                const Color(0xFF6C63FF).withValues(alpha: 0.3),
                 Colors.transparent,
               ],
             ),
@@ -192,7 +202,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
-                                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
                                 ),
                               ),
                             ),
@@ -207,7 +217,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           child: Center(
-                            child: Icon(Icons.movie_outlined, size: 50, color: Colors.white.withOpacity(0.3)),
+                            child: Icon(Icons.movie_outlined, size: 50, color: Colors.white.withValues(alpha: 0.3)),
                           ),
                         ),
                 ),
@@ -224,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         shape: BoxShape.circle,
                         gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
                         border: Border.all(color: AppColors.background(context), width: 4),
-                        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+                        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8))],
                       ),
                       child: avatarUrl != null
                           ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36)))))
@@ -280,7 +290,7 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       borderRadius: BorderRadius.circular(16),
       opacity: 0.06,
-      borderColor: color.withOpacity(0.2),
+      borderColor: color.withValues(alpha: 0.2),
       child: Column(
         children: [
           Icon(icon, color: color, size: 24),
@@ -381,7 +391,7 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
               child: Icon(icon, color: color, size: 18),
             ),
             const SizedBox(width: 10),
@@ -391,7 +401,7 @@ class _ProfilePageState extends State<ProfilePage> {
               onTap: onSeeAll,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
                 child: Text('See All', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
               ),
             ),
@@ -424,7 +434,7 @@ class _ProfilePageState extends State<ProfilePage> {
               height: 145,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -486,6 +496,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _buildContentCard(context, icon: Icons.bar_chart_rounded, title: 'Statistics', subtitle: 'Your watching stats', color: const Color(0xFF00CC6A), onTap: () => context.push('/stats')),
         _buildContentCard(context, icon: Icons.emoji_events_rounded, title: 'Achievements', subtitle: 'Your badges and milestones', color: const Color(0xFFFFD93D), onTap: () => context.push('/achievements')),
         _buildContentCard(context, icon: Icons.people_rounded, title: 'Activity', subtitle: 'What your friends are watching', color: const Color(0xFF6C63FF), onTap: () => context.push('/activity')),
+        _buildContentCard(context, icon: Icons.settings_rounded, title: 'Settings', subtitle: 'Theme, language, notifications', color: AppColors.textSecondary(context), onTap: () => context.push('/settings')),
       ],
     );
   }
@@ -499,13 +510,13 @@ class _ProfilePageState extends State<ProfilePage> {
           padding: const EdgeInsets.all(14),
           borderRadius: BorderRadius.circular(16),
           opacity: 0.06,
-          borderColor: color.withOpacity(0.1),
+          borderColor: color.withValues(alpha: 0.1),
           child: Row(
             children: [
               Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
                 child: Icon(icon, color: color, size: 22),
               ),
               const SizedBox(width: 14),

@@ -44,15 +44,20 @@ class SearchError extends SearchState {
 class SearchCubit extends Cubit<SearchState> {
   final TmdbService _tmdbService;
   final SupabaseService _supabaseService;
+  int _searchId = 0;
 
   SearchCubit(this._tmdbService, this._supabaseService) : super(SearchInitial());
 
   Future<void> search(String query) async {
     if (query.trim().isEmpty) {
+      _searchId++;
+      if (isClosed) return;
       emit(SearchInitial());
       return;
     }
 
+    final currentSearchId = ++_searchId;
+    if (isClosed) return;
     emit(SearchLoading());
     try {
       final showsData = _tmdbService.searchShows(query);
@@ -60,6 +65,9 @@ class SearchCubit extends Cubit<SearchState> {
       final usersData = _supabaseService.searchUsers(query);
 
       final results = await Future.wait([showsData, moviesData, usersData]);
+
+      // Check if a newer search has started
+      if (currentSearchId != _searchId || isClosed) return;
 
       final shows = ((results[0] as Map)['results'] as List)
           .map((json) => ShowModel.fromJson(json))
@@ -73,12 +81,14 @@ class SearchCubit extends Cubit<SearchState> {
 
       emit(SearchLoaded(shows: shows, movies: movies, users: users, query: query));
     } catch (e) {
-      if (isClosed) return;
+      // Check if a newer search has started
+      if (currentSearchId != _searchId || isClosed) return;
       emit(SearchError('Something went wrong. Please try again.'));
     }
   }
 
   void clear() {
+    _searchId++;
     if (isClosed) return;
     emit(SearchInitial());
   }

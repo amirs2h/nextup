@@ -54,8 +54,8 @@ class RecommendationsCubit extends Cubit<RecommendationsState> {
         _supabaseService.getWatchlist(userId: user.id),
       ]);
 
-      final history = results[0] as List<Map<String, dynamic>>;
-      final watchlist = results[1] as List<Map<String, dynamic>>;
+      final history = results[0];
+      final watchlist = results[1];
       
       Set<int> watchedShowIds = {};
       Set<int> watchedMovieIds = {};
@@ -140,6 +140,7 @@ class RecommendationsCubit extends Cubit<RecommendationsState> {
         return aInWatchlist.compareTo(bInWatchlist);
       });
 
+      if (isClosed) return;
       emit(RecommendationsLoaded(
         shows: recommendedShows.take(20).toList(),
         movies: recommendedMovies.take(20).toList(),
@@ -165,6 +166,7 @@ class RecommendationsCubit extends Cubit<RecommendationsState> {
           .map((json) => MovieModel.fromJson(json))
           .toList();
 
+      if (isClosed) return;
       emit(RecommendationsLoaded(shows: shows, movies: movies));
     } catch (e) {
       if (isClosed) return;

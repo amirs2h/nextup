@@ -32,8 +32,8 @@ class AppBackground extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.electricPurple.withOpacity(isDark ? 0.15 : 0.08),
-                      AppColors.electricPurple.withOpacity(0.0),
+                      AppColors.electricPurple.withValues(alpha: isDark ? 0.15 : 0.08),
+                      AppColors.electricPurple.withValues(alpha: 0.0),
                     ],
                   ),
                 ),
@@ -50,8 +50,8 @@ class AppBackground extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.primary.withOpacity(isDark ? 0.12 : 0.06),
-                      AppColors.primary.withOpacity(0.0),
+                      AppColors.primary.withValues(alpha: isDark ? 0.12 : 0.06),
+                      AppColors.primary.withValues(alpha: 0.0),
                     ],
                   ),
                 ),
@@ -68,8 +68,8 @@ class AppBackground extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.neonBlue.withOpacity(isDark ? 0.08 : 0.04),
-                      AppColors.neonBlue.withOpacity(0.0),
+                      AppColors.neonBlue.withValues(alpha: isDark ? 0.08 : 0.04),
+                      AppColors.neonBlue.withValues(alpha: 0.0),
                     ],
                   ),
                 ),

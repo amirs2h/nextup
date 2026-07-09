@@ -32,8 +32,11 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // TODO: Configure a proper release signing config before publishing to Google Play.
+            // Currently using debug signing for local testing. To publish:
+            //   1. Generate a keystore: keytool -genkey -v -keystore ~/nextup.jks -keyalg RSA -keysize 2048 -validity 10000 -alias nextup
+            //   2. Create android/key.properties with your keystore details
+            //   3. Replace signingConfig below with a release keystore config
             signingConfig = signingConfigs.getByName("debug")
         }
     }

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../shared/widgets/glass_container.dart';
+
 import '../../domain/stats_cubit.dart';
 
 class StatsPage extends StatefulWidget {

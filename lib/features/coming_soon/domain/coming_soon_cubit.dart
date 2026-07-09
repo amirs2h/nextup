@@ -40,6 +40,7 @@ class ComingSoonCubit extends Cubit<ComingSoonState> {
   ComingSoonCubit(this._tmdbService) : super(ComingSoonInitial());
 
   Future<void> loadComingSoon() async {
+    if (isClosed) return;
     emit(ComingSoonLoading());
     try {
       final results = await Future.wait([
@@ -55,6 +56,7 @@ class ComingSoonCubit extends Cubit<ComingSoonState> {
           .map((json) => MovieModel.fromJson(json))
           .toList();
 
+      if (isClosed) return;
       emit(ComingSoonLoaded(
         airingToday: airingToday,
         upcomingMovies: upcomingMovies,

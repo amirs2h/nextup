@@ -6,18 +6,30 @@ import '../../../../shared/widgets/modern_widgets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/coming_soon_cubit.dart';
 
-class ComingSoonPage extends StatefulWidget {
+class ComingSoonPage extends StatelessWidget {
   const ComingSoonPage({super.key});
 
   @override
-  State<ComingSoonPage> createState() => _ComingSoonPageState();
+  Widget build(BuildContext context) {
+    return const _ComingSoonPageView();
+  }
 }
 
-class _ComingSoonPageState extends State<ComingSoonPage> {
+class _ComingSoonPageView extends StatefulWidget {
+  const _ComingSoonPageView();
+
+  @override
+  State<_ComingSoonPageView> createState() => _ComingSoonPageViewState();
+}
+
+class _ComingSoonPageViewState extends State<_ComingSoonPageView> {
   @override
   void initState() {
     super.initState();
-    context.read<ComingSoonCubit>().loadComingSoon();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ComingSoonCubit>().loadComingSoon();
+    });
   }
 
   @override
@@ -157,17 +169,3 @@ class _ComingSoonPageState extends State<ComingSoonPage> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

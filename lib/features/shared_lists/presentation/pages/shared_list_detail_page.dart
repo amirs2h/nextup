@@ -7,7 +7,6 @@ import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/services/tmdb_service.dart';
-import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/shared_lists_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
 

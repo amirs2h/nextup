@@ -90,7 +90,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-              boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))],
+              boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
             ),
             child: const Icon(Icons.movie_outlined, color: Colors.white, size: 40),
           ),
@@ -138,7 +138,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   color: isSelected ? Colors.transparent : AppColors.border(context),
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
+                    ? [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]
                     : null,
               ),
               child: Row(
