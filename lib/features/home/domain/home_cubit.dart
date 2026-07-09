@@ -1,10 +1,14 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 import '../../../shared/services/tmdb_service.dart';
 
 // States
-abstract class HomeState {}
+abstract class HomeState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class HomeInitial extends HomeState {}
 
@@ -28,6 +32,9 @@ class HomeLoaded extends HomeState {
 class HomeError extends HomeState {
   final String message;
   HomeError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -65,7 +72,8 @@ class HomeCubit extends Cubit<HomeState> {
         topRatedShows: topRatedShows,
       ));
     } catch (e) {
-      emit(HomeError(e.toString()));
+      if (isClosed) return;
+      emit(HomeError('Something went wrong. Please try again.'));
     }
   }
 

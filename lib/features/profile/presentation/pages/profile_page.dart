@@ -40,9 +40,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppBackground(
-      child: SafeArea(
-        child: BlocBuilder<AuthCubit, AuthState>(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: BlocBuilder<AuthCubit, AuthState>(
           builder: (context, authState) {
             if (authState is AuthUnauthenticated) {
               return Center(
@@ -121,6 +123,7 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           },
         ),
+      ),
       ),
     );
   }

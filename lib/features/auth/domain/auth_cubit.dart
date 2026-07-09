@@ -1,9 +1,13 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
-abstract class AuthState {}
+abstract class AuthState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class AuthInitial extends AuthState {}
 
@@ -31,11 +35,17 @@ class AuthUnauthenticated extends AuthState {}
 class AuthError extends AuthState {
   final String message;
   AuthError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class AuthEmailConfirmationRequired extends AuthState {
   final String email;
   AuthEmailConfirmationRequired(this.email);
+
+  @override
+  List<Object?> get props => [email];
 }
 
 class AuthPasswordResetSent extends AuthState {}
@@ -66,8 +76,10 @@ class AuthCubit extends Cubit<AuthState> {
         if (profile != null) break;
         await Future.delayed(Duration(milliseconds: 300 * (i + 1)));
       }
+      if (isClosed) return;
       emit(AuthAuthenticated(user: user, profile: profile));
     } catch (e) {
+      if (isClosed) return;
       emit(AuthAuthenticated(user: user));
     }
   }
@@ -76,6 +88,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String email,
     required String password,
   }) async {
+    if (isClosed) return;
     emit(AuthLoading());
     try {
       final response = await _supabaseService.signIn(
@@ -85,26 +98,32 @@ class AuthCubit extends Cubit<AuthState> {
       if (response.user != null) {
         await _loadProfile(response.user!);
       } else {
+        if (isClosed) return;
         emit(AuthError('Login failed. Please try again.'));
       }
     } on AuthException catch (e) {
       if (e.message.contains('Invalid login')) {
+        if (isClosed) return;
         emit(AuthError('Invalid email or password.'));
       } else {
+        if (isClosed) return;
         emit(AuthError('Login failed. Please try again.'));
       }
     } catch (e) {
+      if (isClosed) return;
       emit(AuthError('Something went wrong. Please try again.'));
     }
   }
 
   Future<void> signInWithGoogle() async {
+    if (isClosed) return;
     emit(AuthLoading());
     try {
       await _supabaseService.signInWithGoogle();
       // OAuth redirects, so we don't need to handle the response here
       // The auth state listener will pick up the session
     } catch (e) {
+      if (isClosed) return;
       emit(AuthError('Google sign-in failed. Please try again.'));
     }
   }
@@ -114,6 +133,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String password,
     String? username,
   }) async {
+    if (isClosed) return;
     emit(AuthLoading());
     try {
       final response = await _supabaseService.signUp(
@@ -128,37 +148,46 @@ class AuthCubit extends Cubit<AuthState> {
           await _loadProfile(response.user!);
         } else {
           // Email confirmation required
+          if (isClosed) return;
           emit(AuthEmailConfirmationRequired(email));
         }
       } else {
+        if (isClosed) return;
         emit(AuthError('Registration failed'));
       }
     } on AuthException catch (e) {
+      if (isClosed) return;
       emit(AuthError(e.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      if (isClosed) return;
+      emit(AuthError('Something went wrong. Please try again.'));
     }
   }
 
   Future<void> signOut() async {
+    if (isClosed) return;
     emit(AuthLoading());
     try {
       await _supabaseService.signOut();
-      emit(AuthUnauthenticated());
+      if (!isClosed) emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString()));
+      if (isClosed) return;
+      emit(AuthError('Something went wrong. Please try again.'));
     }
   }
 
   Future<void> resetPassword(String email) async {
+    if (isClosed) return;
     emit(AuthLoading());
     try {
       await _supabaseService.resetPassword(email);
-      emit(AuthPasswordResetSent());
+      if (!isClosed) emit(AuthPasswordResetSent());
     } on AuthException catch (e) {
+      if (isClosed) return;
       emit(AuthError(e.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      if (isClosed) return;
+      emit(AuthError('Something went wrong. Please try again.'));
     }
   }
 

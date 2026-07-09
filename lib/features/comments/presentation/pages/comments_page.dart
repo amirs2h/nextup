@@ -298,7 +298,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     children: [
                       Icon(Icons.reply, color: AppColors.textMuted(context), size: 18),
                       const SizedBox(width: 4),
-                      Text('Reply', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+                      Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                     ],
                   ),
                 ),
@@ -319,8 +319,8 @@ class _CommentsPageState extends State<CommentsPage> {
         child: GlassContainer(
           padding: const EdgeInsets.all(16),
           borderRadius: BorderRadius.circular(16),
-          child: const Center(
-            child: Text('Login to comment', style: TextStyle(color: Colors.white54)),
+          child: Center(
+            child: Text('Login to comment', style: TextStyle(color: AppColors.textMuted(context))),
           ),
         ),
       );
@@ -329,7 +329,7 @@ class _CommentsPageState extends State<CommentsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: AppColors.cardBg(context),
         border: Border(top: BorderSide(color: AppColors.border(context))),
       ),
       child: Column(

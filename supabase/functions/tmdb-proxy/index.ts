@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const TMDB_API_KEY = Deno.env.get('TMDB_API_KEY') || '17dc9b5c7bedf50c8146220be73d8a50';
+const TMDB_API_KEY = Deno.env.get('TMDB_API_KEY');
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 serve(async (req) => {
@@ -18,19 +18,20 @@ serve(async (req) => {
   }
 
   try {
+    if (!TMDB_API_KEY) {
+      return new Response(JSON.stringify({ error: 'TMDB API key not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
     const url = new URL(req.url);
     const path = url.searchParams.get('path') || '';
     
-    console.log(`[TMDB Proxy] Request: ${path}`);
-    
     if (!path) {
-      console.error('[TMDB Proxy] Missing path parameter');
       return new Response(JSON.stringify({ error: 'Missing path parameter' }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
     
@@ -39,7 +40,6 @@ serve(async (req) => {
     params.set('api_key', TMDB_API_KEY);
     
     const tmdbUrl = `${TMDB_BASE_URL}${path}?${params.toString()}`;
-    console.log(`[TMDB Proxy] Fetching: ${tmdbUrl}`);
     
     const response = await fetch(tmdbUrl, {
       headers: { 
@@ -48,22 +48,14 @@ serve(async (req) => {
       },
     });
     
-    console.log(`[TMDB Proxy] Response status: ${response.status}`);
-    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[TMDB Proxy] TMDB error: ${errorText}`);
-      return new Response(JSON.stringify({ error: `TMDB error: ${response.status}`, details: errorText }), {
+      return new Response(JSON.stringify({ error: `TMDB error: ${response.status}` }), {
         status: response.status,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
     
     const data = await response.json();
-    console.log(`[TMDB Proxy] Success: ${JSON.stringify(data).substring(0, 100)}...`);
     
     return new Response(JSON.stringify(data), {
       status: 200,
@@ -74,13 +66,9 @@ serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error(`[TMDB Proxy] Error: ${error.message}`);
-    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
   }
 });

@@ -1,10 +1,14 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
-abstract class SeasonDetailState {}
+abstract class SeasonDetailState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class SeasonDetailInitial extends SeasonDetailState {}
 
@@ -26,6 +30,9 @@ class SeasonDetailLoaded extends SeasonDetailState {
 class SeasonDetailError extends SeasonDetailState {
   final String message;
   SeasonDetailError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -66,7 +73,8 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
 
       emit(SeasonDetailLoaded(season: season, watchedEpisodes: watchedEpisodes));
     } catch (e) {
-      emit(SeasonDetailError(e.toString()));
+      if (isClosed) return;
+      emit(SeasonDetailError('Something went wrong. Please try again.'));
     }
   }
 
@@ -109,8 +117,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
       // Auto-compute status after toggling episode
       await _autoComputeStatus(user.id);
     } catch (e) {
-      print('Error toggling episode: $e');
-      // Reload to get actual state from DB
+// Reload to get actual state from DB
       await loadSeasonDetails();
     }
   }
@@ -124,6 +131,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
     if (currentState.season.episodes == null) return;
 
     try {
+      final successfullyMarked = <int>{};
       for (final episode in currentState.season.episodes!) {
         try {
           await _supabaseService.markAsWatched(
@@ -133,16 +141,18 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
             seasonNumber: seasonNumber,
             episodeNumber: episode.episodeNumber,
           );
+          successfullyMarked.add(episode.episodeNumber);
         } catch (e) {
-          print('Error marking episode ${episode.episodeNumber}: $e');
+          // Continue with other episodes even if one fails
         }
       }
 
       final newWatched = <int, bool>{};
       for (final episode in currentState.season.episodes!) {
-        newWatched[episode.episodeNumber] = true;
+        newWatched[episode.episodeNumber] = successfullyMarked.contains(episode.episodeNumber);
       }
 
+      if (isClosed) return;
       emit(SeasonDetailLoaded(
         season: currentState.season,
         watchedEpisodes: newWatched,
@@ -151,8 +161,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
       // Auto-compute status after marking all episodes
       await _autoComputeStatus(user.id);
     } catch (e) {
-      print('Error marking all episodes: $e');
-      await loadSeasonDetails();
+await loadSeasonDetails();
     }
   }
 
@@ -166,7 +175,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
         showDetails: showDetails,
       );
     } catch (e) {
-      print('Error auto-computing status: $e');
+      // Non-critical: auto-compute status failure should not affect user experience
     }
   }
 }

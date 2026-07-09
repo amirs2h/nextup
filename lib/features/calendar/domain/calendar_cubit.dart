@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
@@ -19,7 +20,10 @@ class CalendarEvent {
   });
 }
 
-abstract class CalendarState {}
+abstract class CalendarState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class CalendarInitial extends CalendarState {}
 
@@ -41,6 +45,9 @@ class CalendarLoaded extends CalendarState {
 class CalendarError extends CalendarState {
   final String message;
   CalendarError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class CalendarCubit extends Cubit<CalendarState> {
@@ -127,7 +134,8 @@ class CalendarCubit extends Cubit<CalendarState> {
 
       emit(CalendarLoaded(events: events, selectedMonth: month));
     } catch (e) {
-      emit(CalendarError(e.toString()));
+      if (isClosed) return;
+      emit(CalendarError('Something went wrong. Please try again.'));
     }
   }
 }

@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/person_model.dart';
@@ -6,7 +7,10 @@ import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/omdb_service.dart';
 
 // States
-abstract class ShowDetailState {}
+abstract class ShowDetailState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class ShowDetailInitial extends ShowDetailState {}
 
@@ -52,6 +56,9 @@ class ShowDetailLoaded extends ShowDetailState {
 class ShowDetailError extends ShowDetailState {
   final String message;
   ShowDetailError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -170,6 +177,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         averageRating = await _supabaseService.getAverageRating(tmdbId: showId, mediaType: 'tv');
       }
 
+      if (isClosed) return;
       emit(ShowDetailLoaded(
         show: show,
         cast: cast,
@@ -187,7 +195,8 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         averageRating: averageRating,
       ));
     } catch (e) {
-      emit(ShowDetailError(e.toString()));
+      if (isClosed) return;
+      emit(ShowDetailError('Something went wrong. Please try again.'));
     }
   }
 
@@ -214,6 +223,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         );
       }
 
+      if (isClosed) return;
       emit(ShowDetailLoaded(
         show: currentState.show,
         cast: currentState.cast,
@@ -231,6 +241,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         averageRating: currentState.averageRating,
       ));
     } catch (e) {
+      if (isClosed) return;
       emit(currentState);
     }
   }
@@ -257,6 +268,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         );
       }
 
+      if (isClosed) return;
       emit(ShowDetailLoaded(
         show: currentState.show,
         cast: currentState.cast,
@@ -274,6 +286,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         averageRating: currentState.averageRating,
       ));
     } catch (e) {
+      if (isClosed) return;
       emit(currentState);
     }
   }
@@ -330,6 +343,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       // Auto-compute status after toggling episode
       await _autoComputeStatus(user.id);
     } catch (e) {
+      if (isClosed) return;
       emit(currentState);
     }
   }
@@ -343,7 +357,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         showDetails: showDetails,
       );
     } catch (e) {
-      print('Error auto-computing status: $e');
+      // Non-critical: auto-compute status failure should not affect user experience
     }
   }
 }

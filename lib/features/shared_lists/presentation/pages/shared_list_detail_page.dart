@@ -185,7 +185,34 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                         ),
                         IconButton(
                           onPressed: () {
-                            context.read<SharedListsCubit>().removeItemFromList(widget.listId, tmdbId, mediaType);
+                            showDialog(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                backgroundColor: AppColors.surface(context),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                title: const Text('Remove Item'),
+                                content: const Text('Remove this item from the list?'),
+                                actions: [
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(dialogContext),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.surface(context),
+                                      foregroundColor: AppColors.text(context),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    ),
+                                    child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(dialogContext);
+                                      context.read<SharedListsCubit>().removeItemFromList(widget.listId, tmdbId, mediaType);
+                                    },
+                                    child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                                  ),
+                                ],
+                              ),
+                            );
                           },
                           icon: const Icon(Icons.close, color: AppColors.error, size: 20),
                         ),
@@ -261,7 +288,34 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                         if (role != 'admin')
                           IconButton(
                             onPressed: () {
-                              context.read<SharedListsCubit>().removeMember(widget.listId, userId);
+                              showDialog(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  backgroundColor: AppColors.surface(context),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  title: const Text('Remove Member'),
+                                  content: const Text('Remove this member from the list?'),
+                                  actions: [
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(dialogContext),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.surface(context),
+                                        foregroundColor: AppColors.text(context),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                      ),
+                                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(dialogContext);
+                                        context.read<SharedListsCubit>().removeMember(widget.listId, userId);
+                                      },
+                                      child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                                    ),
+                                  ],
+                                ),
+                              );
                             },
                             icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20),
                           ),

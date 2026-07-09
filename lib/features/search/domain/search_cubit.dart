@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
@@ -5,7 +6,10 @@ import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
-abstract class SearchState {}
+abstract class SearchState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class SearchInitial extends SearchState {}
 
@@ -23,11 +27,17 @@ class SearchLoaded extends SearchState {
     required this.users,
     required this.query,
   });
+
+  @override
+  List<Object?> get props => [shows, movies, users, query];
 }
 
 class SearchError extends SearchState {
   final String message;
   SearchError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -63,11 +73,13 @@ class SearchCubit extends Cubit<SearchState> {
 
       emit(SearchLoaded(shows: shows, movies: movies, users: users, query: query));
     } catch (e) {
-      emit(SearchError(e.toString()));
+      if (isClosed) return;
+      emit(SearchError('Something went wrong. Please try again.'));
     }
   }
 
   void clear() {
+    if (isClosed) return;
     emit(SearchInitial());
   }
 }

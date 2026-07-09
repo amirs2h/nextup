@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/services/tmdb_service.dart';
 import '../../../../shared/services/supabase_service.dart';
@@ -116,7 +115,36 @@ class _SeasonDetailView extends StatelessWidget {
             ),
           ),
           TextButton.icon(
-            onPressed: () => context.read<SeasonDetailCubit>().markAllEpisodes(),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  backgroundColor: AppColors.surface(context),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  title: const Text('Mark All Episodes'),
+                  content: const Text('Mark all episodes in this season as watched?'),
+                  actions: [
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.surface(context),
+                        foregroundColor: AppColors.text(context),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                        context.read<SeasonDetailCubit>().markAllEpisodes();
+                      },
+                      child: const Text('Mark All', style: TextStyle(color: AppColors.electricPurple)),
+                    ),
+                  ],
+                ),
+              );
+            },
             icon: const Icon(Icons.check_circle_outline, size: 18),
             label: const Text('Mark All'),
           ),

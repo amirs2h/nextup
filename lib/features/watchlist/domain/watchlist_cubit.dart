@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
@@ -5,7 +6,10 @@ import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 
 // States
-abstract class WatchlistState {}
+abstract class WatchlistState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class WatchlistInitial extends WatchlistState {}
 
@@ -52,6 +56,9 @@ class WatchlistLoaded extends WatchlistState {
 class WatchlistError extends WatchlistState {
   final String message;
   WatchlistError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -73,6 +80,7 @@ class WatchlistCubit extends Cubit<WatchlistState> {
       final watchlistItems = await _supabaseService.getWatchlist(userId: user.id);
 
       if (watchlistItems.isEmpty) {
+        if (isClosed) return;
         emit(WatchlistLoaded(items: [], filter: filter));
         return;
       }
@@ -103,9 +111,11 @@ class WatchlistCubit extends Cubit<WatchlistState> {
       final results = await Future.wait(futures);
       final items = results.whereType<WatchlistItem>().toList();
 
+      if (isClosed) return;
       emit(WatchlistLoaded(items: items, filter: filter));
     } catch (e) {
-      emit(WatchlistError(e.toString()));
+      if (isClosed) return;
+      emit(WatchlistError('Something went wrong. Please try again.'));
     }
   }
 
@@ -122,7 +132,8 @@ class WatchlistCubit extends Cubit<WatchlistState> {
       // Reload
       await loadWatchlist(filter: state is WatchlistLoaded ? (state as WatchlistLoaded).filter : 'all');
     } catch (e) {
-      emit(WatchlistError(e.toString()));
+      if (isClosed) return;
+      emit(WatchlistError('Something went wrong. Please try again.'));
     }
   }
 
@@ -140,13 +151,15 @@ class WatchlistCubit extends Cubit<WatchlistState> {
       // Reload
       await loadWatchlist(filter: state is WatchlistLoaded ? (state as WatchlistLoaded).filter : 'all');
     } catch (e) {
-      emit(WatchlistError(e.toString()));
+      if (isClosed) return;
+      emit(WatchlistError('Something went wrong. Please try again.'));
     }
   }
 
   void setFilter(String filter) {
     if (state is WatchlistLoaded) {
       final current = state as WatchlistLoaded;
+      if (isClosed) return;
       emit(WatchlistLoaded(items: current.items, filter: filter));
     }
   }

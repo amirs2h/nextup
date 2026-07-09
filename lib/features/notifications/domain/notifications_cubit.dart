@@ -1,9 +1,13 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
-abstract class NotificationsState {}
+abstract class NotificationsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class NotificationsInitial extends NotificationsState {}
 
@@ -22,6 +26,9 @@ class NotificationsLoaded extends NotificationsState {
 class NotificationsError extends NotificationsState {
   final String message;
   NotificationsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -42,9 +49,11 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     try {
       final data = await _supabaseService.getNotifications(user.id);
       final unreadCount = data.where((n) => n['is_read'] == false).length;
+      if (isClosed) return;
       emit(NotificationsLoaded(notifications: data, unreadCount: unreadCount));
     } catch (e) {
-      emit(NotificationsError(e.toString()));
+      if (isClosed) return;
+      emit(NotificationsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -85,8 +94,8 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       await _supabaseService.markNotificationAsRead(notificationId);
       await loadNotifications();
     } catch (e) {
-      // Handle error
-    }
+        // Error handled silently
+      }
   }
 
   Future<void> markAllAsRead() async {
@@ -97,8 +106,8 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       await _supabaseService.markAllNotificationsAsRead(user.id);
       await loadNotifications();
     } catch (e) {
-      // Handle error
-    }
+        // Error handled silently
+      }
   }
 
   @override

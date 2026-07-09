@@ -1,8 +1,12 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
-abstract class ProfileState {}
+abstract class ProfileState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class ProfileInitial extends ProfileState {}
 
@@ -32,6 +36,9 @@ class ProfileLoaded extends ProfileState {
 class ProfileError extends ProfileState {
   final String message;
   ProfileError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -50,6 +57,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       final followersData = await _supabaseService.getFollowers(userId);
       final followingData = await _supabaseService.getFollowing(userId);
 
+      if (isClosed) return;
       emit(ProfileLoaded(
         profile: profile,
         followersCount: followersData.length,
@@ -59,7 +67,8 @@ class ProfileCubit extends Cubit<ProfileState> {
         following: followingData,
       ));
     } catch (e) {
-      emit(ProfileError(e.toString()));
+      if (isClosed) return;
+      emit(ProfileError('Something went wrong. Please try again.'));
     }
   }
 
@@ -68,9 +77,10 @@ class ProfileCubit extends Cubit<ProfileState> {
       final followersData = await _supabaseService.getFollowers(userId);
       if (state is ProfileLoaded) {
         final current = state as ProfileLoaded;
+        if (isClosed) return;
         emit(ProfileLoaded(
           profile: current.profile,
-          followersCount: current.followersCount,
+          followersCount: followersData.length,
           followingCount: current.followingCount,
           watchlistCount: current.watchlistCount,
           followers: followersData,
@@ -78,8 +88,8 @@ class ProfileCubit extends Cubit<ProfileState> {
         ));
       }
     } catch (e) {
-      // Handle error
-    }
+        // Error handled silently
+      }
   }
 
   Future<void> loadFollowing(String userId) async {
@@ -87,18 +97,19 @@ class ProfileCubit extends Cubit<ProfileState> {
       final followingData = await _supabaseService.getFollowing(userId);
       if (state is ProfileLoaded) {
         final current = state as ProfileLoaded;
+        if (isClosed) return;
         emit(ProfileLoaded(
           profile: current.profile,
           followersCount: current.followersCount,
-          followingCount: current.followingCount,
+          followingCount: followingData.length,
           watchlistCount: current.watchlistCount,
           followers: current.followers,
           following: followingData,
         ));
       }
     } catch (e) {
-      // Handle error
-    }
+        // Error handled silently
+      }
   }
 
   Future<void> followUser(String followerId, String followingId) async {
@@ -106,7 +117,8 @@ class ProfileCubit extends Cubit<ProfileState> {
       await _supabaseService.followUser(followerId, followingId);
       await loadProfile(followerId);
     } catch (e) {
-      emit(ProfileError(e.toString()));
+      if (isClosed) return;
+      emit(ProfileError('Something went wrong. Please try again.'));
     }
   }
 
@@ -115,7 +127,8 @@ class ProfileCubit extends Cubit<ProfileState> {
       await _supabaseService.unfollowUser(followerId, followingId);
       await loadProfile(followerId);
     } catch (e) {
-      emit(ProfileError(e.toString()));
+      if (isClosed) return;
+      emit(ProfileError('Something went wrong. Please try again.'));
     }
   }
 }

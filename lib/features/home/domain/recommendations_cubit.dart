@@ -1,10 +1,14 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 
-abstract class RecommendationsState {}
+abstract class RecommendationsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class RecommendationsInitial extends RecommendationsState {}
 
@@ -23,6 +27,9 @@ class RecommendationsLoaded extends RecommendationsState {
 class RecommendationsError extends RecommendationsState {
   final String message;
   RecommendationsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class RecommendationsCubit extends Cubit<RecommendationsState> {
@@ -38,6 +45,7 @@ class RecommendationsCubit extends Cubit<RecommendationsState> {
       return;
     }
 
+    if (isClosed) return;
     emit(RecommendationsLoading());
     try {
       // Get user's watch history and watchlist
@@ -142,6 +150,7 @@ class RecommendationsCubit extends Cubit<RecommendationsState> {
   }
 
   Future<void> _loadDefaultRecommendations() async {
+    if (isClosed) return;
     emit(RecommendationsLoading());
     try {
       final results = await Future.wait([
@@ -158,7 +167,8 @@ class RecommendationsCubit extends Cubit<RecommendationsState> {
 
       emit(RecommendationsLoaded(shows: shows, movies: movies));
     } catch (e) {
-      emit(RecommendationsError(e.toString()));
+      if (isClosed) return;
+      emit(RecommendationsError('Something went wrong. Please try again.'));
     }
   }
 }

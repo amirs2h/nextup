@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/models/show_model.dart';
@@ -5,7 +6,10 @@ import '../../../shared/models/movie_model.dart';
 import '../../../shared/models/genre_model.dart';
 
 // States
-abstract class DiscoverState {}
+abstract class DiscoverState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class DiscoverInitial extends DiscoverState {}
 
@@ -41,6 +45,9 @@ class DiscoverLoaded extends DiscoverState {
 class DiscoverError extends DiscoverState {
   final String message;
   DiscoverError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -90,7 +97,8 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         movies: movies,
       ));
     } catch (e) {
-      emit(DiscoverError(e.toString()));
+      if (isClosed) return;
+      emit(DiscoverError('Something went wrong. Please try again.'));
     }
   }
 
@@ -102,6 +110,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     int? genreId,
     int? showStatus,
   }) async {
+    if (isClosed) return;
     emit(DiscoverLoading());
     try {
       final genres = state is DiscoverLoaded ? (state as DiscoverLoaded).genres : <GenreModel>[];
@@ -150,7 +159,8 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         ));
       }
     } catch (e) {
-      emit(DiscoverError(e.toString()));
+      if (isClosed) return;
+      emit(DiscoverError('Something went wrong. Please try again.'));
     }
   }
 
@@ -163,6 +173,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     final showStatus = currentState?.showStatus;
     final genres = currentState?.genres ?? <GenreModel>[];
 
+    if (isClosed) return;
     emit(DiscoverLoading());
     try {
       if (mediaType == 'tv') {
@@ -209,7 +220,8 @@ class DiscoverCubit extends Cubit<DiscoverState> {
         ));
       }
     } catch (e) {
-      emit(DiscoverError(e.toString()));
+      if (isClosed) return;
+      emit(DiscoverError('Something went wrong. Please try again.'));
     }
   }
 

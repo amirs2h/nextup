@@ -45,9 +45,11 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppBackground(
-      child: SafeArea(
-        child: Column(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(20),
@@ -122,6 +124,15 @@ class _SearchPageState extends State<SearchPage> {
                           const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_searchController.text.isNotEmpty) {
+                                context.read<SearchCubit>().search(_searchController.text);
+                              }
+                            },
+                            child: const Text('Retry'),
+                          ),
                         ],
                       ),
                     );
@@ -180,6 +191,7 @@ class _SearchPageState extends State<SearchPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

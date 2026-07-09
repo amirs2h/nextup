@@ -7,11 +7,9 @@ import '../../../../shared/services/tmdb_service.dart';
 import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
-import '../../../../shared/widgets/trailer_widget.dart';
 import '../../../../shared/widgets/spoiler_widget.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
-import '../../domain/show_detail_cubit.dart';
 
 class EpisodeDetailPage extends StatefulWidget {
   final int showId;
@@ -135,7 +133,16 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
       }
       setState(() => _isWatched = !_isWatched);
     } catch (e) {
-      // Handle error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to update watch status'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
     }
   }
 

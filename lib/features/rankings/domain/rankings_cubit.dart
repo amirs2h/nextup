@@ -1,8 +1,12 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
-abstract class RankingsState {}
+abstract class RankingsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class RankingsInitial extends RankingsState {}
 
@@ -19,6 +23,9 @@ class RankingsLoaded extends RankingsState {
 class RankingsError extends RankingsState {
   final String message;
   RankingsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -37,9 +44,10 @@ class RankingsCubit extends Cubit<RankingsState> {
       }
 
       final rankings = await _supabaseService.getFollowingWatchHours(user.id);
-      emit(RankingsLoaded(rankings: rankings));
+      if (!isClosed) emit(RankingsLoaded(rankings: rankings));
     } catch (e) {
-      emit(RankingsError(e.toString()));
+      if (isClosed) return;
+      emit(RankingsError('Something went wrong. Please try again.'));
     }
   }
 }

@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
@@ -5,7 +6,10 @@ import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 
 // States
-abstract class CustomListsState {}
+abstract class CustomListsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class CustomListsInitial extends CustomListsState {}
 
@@ -32,6 +36,9 @@ class CustomListDetailLoaded extends CustomListsState {
 class CustomListsError extends CustomListsState {
   final String message;
   CustomListsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -51,13 +58,15 @@ class CustomListsCubit extends Cubit<CustomListsState> {
       }
 
       final lists = await _supabaseService.getCustomLists(user.id);
-      emit(CustomListsLoaded(lists: lists));
+      if (!isClosed) emit(CustomListsLoaded(lists: lists));
     } catch (e) {
-      emit(CustomListsError(e.toString()));
+      if (isClosed) return;
+      emit(CustomListsError('Something went wrong. Please try again.'));
     }
   }
 
   Future<void> loadCustomListDetail(String listId) async {
+    if (isClosed) return;
     emit(CustomListsLoading());
     try {
       final items = await _supabaseService.getCustomListItems(listId);
@@ -97,7 +106,8 @@ class CustomListsCubit extends Cubit<CustomListsState> {
         movies: movies,
       ));
     } catch (e) {
-      emit(CustomListsError(e.toString()));
+      if (isClosed) return;
+      emit(CustomListsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -108,6 +118,7 @@ class CustomListsCubit extends Cubit<CustomListsState> {
   }) async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(CustomListsError('Please login to create a list'));
       return;
     }
@@ -122,7 +133,8 @@ class CustomListsCubit extends Cubit<CustomListsState> {
 
       await loadCustomLists();
     } catch (e) {
-      emit(CustomListsError(e.toString()));
+      if (isClosed) return;
+      emit(CustomListsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -135,7 +147,8 @@ class CustomListsCubit extends Cubit<CustomListsState> {
       );
       await loadCustomListDetail(listId);
     } catch (e) {
-      emit(CustomListsError(e.toString()));
+      if (isClosed) return;
+      emit(CustomListsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -148,7 +161,8 @@ class CustomListsCubit extends Cubit<CustomListsState> {
       );
       await loadCustomListDetail(listId);
     } catch (e) {
-      emit(CustomListsError(e.toString()));
+      if (isClosed) return;
+      emit(CustomListsError('Something went wrong. Please try again.'));
     }
   }
 }

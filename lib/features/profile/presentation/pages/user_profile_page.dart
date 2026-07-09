@@ -202,7 +202,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)))
+            ? Center(child: CircularProgressIndicator(color: AppColors.primary))
             : _profile == null
                 ? _buildError()
                 : _buildContent(),
@@ -215,7 +215,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 60, color: Color(0xFFFF4757)),
+          Icon(Icons.error_outline, size: 60, color: AppColors.error),
           const SizedBox(height: 16),
           Text('User not found', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
           const SizedBox(height: 24),

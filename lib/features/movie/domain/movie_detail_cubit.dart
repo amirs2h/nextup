@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/movie_model.dart';
 import '../../../shared/models/person_model.dart';
@@ -6,7 +7,10 @@ import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/omdb_service.dart';
 
 // States
-abstract class MovieDetailState {}
+abstract class MovieDetailState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class MovieDetailInitial extends MovieDetailState {}
 
@@ -52,6 +56,9 @@ class MovieDetailLoaded extends MovieDetailState {
 class MovieDetailError extends MovieDetailState {
   final String message;
   MovieDetailError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -158,6 +165,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         averageRating = await _supabaseService.getAverageRating(tmdbId: movieId, mediaType: 'movie');
       }
 
+      if (isClosed) return;
       emit(MovieDetailLoaded(
         movie: movie,
         cast: cast,
@@ -175,7 +183,8 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         averageRating: averageRating,
       ));
     } catch (e) {
-      emit(MovieDetailError(e.toString()));
+      if (isClosed) return;
+      emit(MovieDetailError('Something went wrong. Please try again.'));
     }
   }
 
@@ -202,6 +211,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         );
       }
 
+      if (isClosed) return;
       emit(MovieDetailLoaded(
         movie: currentState.movie,
         cast: currentState.cast,
@@ -219,6 +229,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         averageRating: currentState.averageRating,
       ));
     } catch (e) {
+      if (isClosed) return;
       emit(currentState);
     }
   }
@@ -245,6 +256,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         );
       }
 
+      if (isClosed) return;
       emit(MovieDetailLoaded(
         movie: currentState.movie,
         cast: currentState.cast,
@@ -262,6 +274,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         averageRating: currentState.averageRating,
       ));
     } catch (e) {
+      if (isClosed) return;
       emit(currentState);
     }
   }
@@ -290,6 +303,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         );
       }
 
+      if (isClosed) return;
       emit(MovieDetailLoaded(
         movie: currentState.movie,
         cast: currentState.cast,
@@ -316,9 +330,9 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
         );
       } catch (statusError) {
         // Don't revert UI if status computation fails
-        print('Error computing movie status: $statusError');
-      }
+}
     } catch (e) {
+      if (isClosed) return;
       emit(currentState);
     }
   }

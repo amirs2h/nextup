@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 
@@ -21,7 +22,10 @@ class Achievement {
   });
 }
 
-abstract class AchievementsState {}
+abstract class AchievementsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class AchievementsInitial extends AchievementsState {}
 
@@ -41,11 +45,17 @@ class AchievementsLoaded extends AchievementsState {
     this.totalEpisodes = 0,
     this.totalHours = 0,
   });
+
+  @override
+  List<Object?> get props => [achievements, totalShows, totalMovies, totalEpisodes, totalHours];
 }
 
 class AchievementsError extends AchievementsState {
   final String message;
   AchievementsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class AchievementsCubit extends Cubit<AchievementsState> {
@@ -93,7 +103,8 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         totalHours: totalHours,
       ));
     } catch (e) {
-      emit(AchievementsError(e.toString()));
+      if (isClosed) return;
+      emit(AchievementsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -103,7 +114,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'first_show',
         title: 'First Show',
         description: 'Watch your first show',
-        icon: '🎬',
+        icon: 'ًںژ¬',
         requirement: 1,
         type: 'shows',
         isUnlocked: shows >= 1,
@@ -112,7 +123,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'show_5',
         title: 'Show Enthusiast',
         description: 'Watch 5 different shows',
-        icon: '📺',
+        icon: 'ًں“؛',
         requirement: 5,
         type: 'shows',
         isUnlocked: shows >= 5,
@@ -121,7 +132,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'show_10',
         title: 'Show Master',
         description: 'Watch 10 different shows',
-        icon: '🏆',
+        icon: 'ًںڈ†',
         requirement: 10,
         type: 'shows',
         isUnlocked: shows >= 10,
@@ -130,7 +141,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'show_25',
         title: 'Show Legend',
         description: 'Watch 25 different shows',
-        icon: '👑',
+        icon: 'ًں‘‘',
         requirement: 25,
         type: 'shows',
         isUnlocked: shows >= 25,
@@ -139,7 +150,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'first_movie',
         title: 'Movie Night',
         description: 'Watch your first movie',
-        icon: '🎥',
+        icon: 'ًںژ¥',
         requirement: 1,
         type: 'movies',
         isUnlocked: movies >= 1,
@@ -148,7 +159,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'movie_10',
         title: 'Movie Buff',
         description: 'Watch 10 movies',
-        icon: '🍿',
+        icon: 'ًںچ؟',
         requirement: 10,
         type: 'movies',
         isUnlocked: movies >= 10,
@@ -157,7 +168,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'movie_50',
         title: 'Cinema King',
         description: 'Watch 50 movies',
-        icon: '🎭',
+        icon: 'ًںژ­',
         requirement: 50,
         type: 'movies',
         isUnlocked: movies >= 50,
@@ -166,7 +177,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'episode_10',
         title: 'Binge Starter',
         description: 'Watch 10 episodes',
-        icon: '▶️',
+        icon: 'â–¶ï¸ڈ',
         requirement: 10,
         type: 'episodes',
         isUnlocked: episodes >= 10,
@@ -175,7 +186,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'episode_100',
         title: 'Binge Master',
         description: 'Watch 100 episodes',
-        icon: '🔥',
+        icon: 'ًں”¥',
         requirement: 100,
         type: 'episodes',
         isUnlocked: episodes >= 100,
@@ -184,7 +195,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'episode_500',
         title: 'Binge Legend',
         description: 'Watch 500 episodes',
-        icon: '💀',
+        icon: 'ًں’€',
         requirement: 500,
         type: 'episodes',
         isUnlocked: episodes >= 500,
@@ -193,7 +204,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'hours_10',
         title: 'Getting Started',
         description: 'Watch 10 hours',
-        icon: '⏰',
+        icon: 'âڈ°',
         requirement: 10,
         type: 'hours',
         isUnlocked: hours >= 10,
@@ -202,7 +213,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'hours_100',
         title: 'Dedicated Viewer',
         description: 'Watch 100 hours',
-        icon: '⏳',
+        icon: 'âڈ³',
         requirement: 100,
         type: 'hours',
         isUnlocked: hours >= 100,
@@ -211,7 +222,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         id: 'hours_1000',
         title: 'Ultimate Fan',
         description: 'Watch 1000 hours',
-        icon: '🌟',
+        icon: 'ًںŒں',
         requirement: 1000,
         type: 'hours',
         isUnlocked: hours >= 1000,

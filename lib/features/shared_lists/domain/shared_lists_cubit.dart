@@ -1,11 +1,13 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
-import '../../../shared/models/show_model.dart';
-import '../../../shared/models/movie_model.dart';
 
 // States
-abstract class SharedListsState {}
+abstract class SharedListsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class SharedListsInitial extends SharedListsState {}
 
@@ -32,6 +34,9 @@ class SharedListDetailLoaded extends SharedListsState {
 class SharedListsError extends SharedListsState {
   final String message;
   SharedListsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -51,13 +56,15 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       }
 
       final lists = await _supabaseService.getSharedLists(user.id);
-      emit(SharedListsLoaded(lists: lists));
+      if (!isClosed) emit(SharedListsLoaded(lists: lists));
     } catch (e) {
-      emit(SharedListsError(e.toString()));
+      if (isClosed) return;
+      emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
 
   Future<void> loadSharedListDetail(String listId) async {
+    if (isClosed) return;
     emit(SharedListsLoading());
     try {
       final results = await Future.wait([
@@ -95,13 +102,15 @@ class SharedListsCubit extends Cubit<SharedListsState> {
         };
       }));
       
+      if (isClosed) return;
       emit(SharedListDetailLoaded(
         list: {'id': listId},
         items: itemsWithTitles,
         members: members,
       ));
     } catch (e) {
-      emit(SharedListsError(e.toString()));
+      if (isClosed) return;
+      emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -112,6 +121,7 @@ class SharedListsCubit extends Cubit<SharedListsState> {
   }) async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(SharedListsError('Please login to create a list'));
       return;
     }
@@ -138,13 +148,15 @@ class SharedListsCubit extends Cubit<SharedListsState> {
 
       await loadSharedLists();
     } catch (e) {
-      emit(SharedListsError(e.toString()));
+      if (isClosed) return;
+      emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
 
   Future<void> addItemToList(String listId, int tmdbId, String mediaType) async {
     final user = _supabaseService.currentUser;
     if (user == null) {
+      if (isClosed) return;
       emit(SharedListsError('Please login to add items'));
       return;
     }
@@ -158,7 +170,8 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       );
       await loadSharedListDetail(listId);
     } catch (e) {
-      emit(SharedListsError(e.toString()));
+      if (isClosed) return;
+      emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -171,7 +184,8 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       );
       await loadSharedListDetail(listId);
     } catch (e) {
-      emit(SharedListsError(e.toString()));
+      if (isClosed) return;
+      emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -183,7 +197,8 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       );
       await loadSharedListDetail(listId);
     } catch (e) {
-      emit(SharedListsError(e.toString()));
+      if (isClosed) return;
+      emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -195,7 +210,8 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       );
       await loadSharedListDetail(listId);
     } catch (e) {
-      emit(SharedListsError(e.toString()));
+      if (isClosed) return;
+      emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
 }

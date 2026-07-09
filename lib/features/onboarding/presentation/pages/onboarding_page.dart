@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../auth/domain/auth_cubit.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -42,28 +40,40 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> _completeOnboarding() async {
     setState(() => _isLoading = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_complete', true);
-    await prefs.setStringList(
-      'favorite_genres',
-      _selectedGenres.map((id) => id.toString()).toList(),
-    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('onboarding_complete', true);
+      await prefs.setStringList(
+        'favorite_genres',
+        _selectedGenres.map((id) => id.toString()).toList(),
+      );
 
-    if (mounted) {
-      context.go('/');
+      if (mounted) {
+        context.go('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to save preferences'), backgroundColor: AppColors.error),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppBackground(
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(child: _buildContent(context)),
-            _buildBottomButton(context),
-          ],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(context),
+              Expanded(child: _buildContent(context)),
+              _buildBottomButton(context),
+            ],
+          ),
         ),
       ),
     );

@@ -1,9 +1,13 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 
-abstract class ComingSoonState {}
+abstract class ComingSoonState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class ComingSoonInitial extends ComingSoonState {}
 
@@ -25,6 +29,9 @@ class ComingSoonLoaded extends ComingSoonState {
 class ComingSoonError extends ComingSoonState {
   final String message;
   ComingSoonError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class ComingSoonCubit extends Cubit<ComingSoonState> {
@@ -53,7 +60,8 @@ class ComingSoonCubit extends Cubit<ComingSoonState> {
         upcomingMovies: upcomingMovies,
       ));
     } catch (e) {
-      emit(ComingSoonError(e.toString()));
+      if (isClosed) return;
+      emit(ComingSoonError('Something went wrong. Please try again.'));
     }
   }
 }

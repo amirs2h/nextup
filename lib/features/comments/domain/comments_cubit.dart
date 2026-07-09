@@ -1,9 +1,13 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/models/comment_model.dart';
 
 // States
-abstract class CommentsState {}
+abstract class CommentsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class CommentsInitial extends CommentsState {}
 
@@ -21,6 +25,9 @@ class CommentsLoaded extends CommentsState {
 class CommentsError extends CommentsState {
   final String message;
   CommentsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -49,7 +56,8 @@ class CommentsCubit extends Cubit<CommentsState> {
       final comments = data.map((json) => CommentModel.fromJson(json)).toList();
       emit(CommentsLoaded(comments: comments));
     } catch (e) {
-      emit(CommentsError(e.toString()));
+      if (isClosed) return;
+      emit(CommentsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -81,7 +89,8 @@ class CommentsCubit extends Cubit<CommentsState> {
         episodeNumber: episodeNumber,
       );
     } catch (e) {
-      emit(CommentsError(e.toString()));
+      if (isClosed) return;
+      emit(CommentsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -102,7 +111,8 @@ class CommentsCubit extends Cubit<CommentsState> {
         episodeNumber: episodeNumber,
       );
     } catch (e) {
-      emit(CommentsError(e.toString()));
+      if (isClosed) return;
+      emit(CommentsError('Something went wrong. Please try again.'));
     }
   }
 
@@ -124,8 +134,8 @@ class CommentsCubit extends Cubit<CommentsState> {
         episodeNumber: episodeNumber,
       );
     } catch (e) {
-      // Handle error
-    }
+        // Error handled silently
+      }
   }
 
   Future<void> unlikeComment(String commentId, {
@@ -146,7 +156,7 @@ class CommentsCubit extends Cubit<CommentsState> {
         episodeNumber: episodeNumber,
       );
     } catch (e) {
-      // Handle error
-    }
+        // Error handled silently
+      }
   }
 }

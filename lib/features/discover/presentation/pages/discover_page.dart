@@ -48,8 +48,10 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppBackground(
-      child: BlocListener<DiscoverCubit, DiscoverState>(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: BlocListener<DiscoverCubit, DiscoverState>(
         listener: (context, state) {
           if (state is DiscoverLoaded) {
             if (_mediaType != state.mediaType) {
@@ -68,6 +70,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -1,10 +1,14 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 
-abstract class FavoritesState {}
+abstract class FavoritesState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class FavoritesInitial extends FavoritesState {}
 
@@ -23,6 +27,9 @@ class FavoritesLoaded extends FavoritesState {
 class FavoritesError extends FavoritesState {
   final String message;
   FavoritesError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class FavoritesCubit extends Cubit<FavoritesState> {
@@ -43,6 +50,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
       final favorites = await _supabaseService.getFavorites(userId: user.id);
 
       if (favorites.isEmpty) {
+        if (isClosed) return;
         emit(FavoritesLoaded(shows: [], movies: []));
         return;
       }
@@ -78,7 +86,8 @@ class FavoritesCubit extends Cubit<FavoritesState> {
 
       emit(FavoritesLoaded(shows: shows, movies: movies));
     } catch (e) {
-      emit(FavoritesError(e.toString()));
+      if (isClosed) return;
+      emit(FavoritesError('Something went wrong. Please try again.'));
     }
   }
 
@@ -94,7 +103,8 @@ class FavoritesCubit extends Cubit<FavoritesState> {
       );
       await loadFavorites();
     } catch (e) {
-      emit(FavoritesError(e.toString()));
+      if (isClosed) return;
+      emit(FavoritesError('Something went wrong. Please try again.'));
     }
   }
 }

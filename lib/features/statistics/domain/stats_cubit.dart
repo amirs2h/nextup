@@ -1,8 +1,12 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 
 // States
-abstract class StatsState {}
+abstract class StatsState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class StatsInitial extends StatsState {}
 
@@ -32,6 +36,9 @@ class StatsLoaded extends StatsState {
 class StatsError extends StatsState {
   final String message;
   StatsError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 // Cubit
@@ -70,9 +77,11 @@ class StatsCubit extends Cubit<StatsState> {
 
         // Calculate monthly watched
         if (item['watched_at'] != null) {
-          final date = DateTime.parse(item['watched_at']);
-          final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-          monthlyWatched[monthKey] = (monthlyWatched[monthKey] ?? 0) + 1;
+          final date = DateTime.tryParse(item['watched_at']);
+          if (date != null) {
+            final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+            monthlyWatched[monthKey] = (monthlyWatched[monthKey] ?? 0) + 1;
+          }
         }
       }
 
@@ -95,7 +104,8 @@ class StatsCubit extends Cubit<StatsState> {
         monthlyWatched: sortedMonthly,
       ));
     } catch (e) {
-      emit(StatsError(e.toString()));
+      if (isClosed) return;
+      emit(StatsError('Something went wrong. Please try again.'));
     }
   }
 }

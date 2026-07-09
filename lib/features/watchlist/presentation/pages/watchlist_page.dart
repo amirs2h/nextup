@@ -251,7 +251,36 @@ class _WatchlistPageState extends State<WatchlistPage> {
             ),
             IconButton(
               icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
-              onPressed: () => context.read<WatchlistCubit>().removeFromWatchlist(id, item.mediaType),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    backgroundColor: AppColors.surface(context),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    title: const Text('Remove from Watchlist'),
+                    content: Text('Remove "${item.model.name ?? item.model.title}" from your watchlist?'),
+                    actions: [
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.surface(context),
+                          foregroundColor: AppColors.text(context),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          context.read<WatchlistCubit>().removeFromWatchlist(id, item.mediaType);
+                        },
+                        child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),

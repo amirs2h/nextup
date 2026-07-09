@@ -275,21 +275,29 @@ class _PersonDetailView extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: () async {
-                if (currentVote == 'up') {
-                  await supabase.removeCharacterVote(
-                    userId: userId,
-                    personId: personId,
-                    tmdbId: tmdbId,
-                    characterName: characterName,
-                  );
-                } else {
-                  await supabase.voteForCharacter(
-                    userId: userId,
-                    personId: personId,
-                    tmdbId: tmdbId,
-                    characterName: characterName,
-                    voteType: 'up',
-                  );
+                try {
+                  if (currentVote == 'up') {
+                    await supabase.removeCharacterVote(
+                      userId: userId,
+                      personId: personId,
+                      tmdbId: tmdbId,
+                      characterName: characterName,
+                    );
+                  } else {
+                    await supabase.voteForCharacter(
+                      userId: userId,
+                      personId: personId,
+                      tmdbId: tmdbId,
+                      characterName: characterName,
+                      voteType: 'up',
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: const Text('Failed to vote'), backgroundColor: AppColors.error),
+                    );
+                  }
                 }
               },
               child: Icon(
@@ -301,21 +309,29 @@ class _PersonDetailView extends StatelessWidget {
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () async {
-                if (currentVote == 'down') {
-                  await supabase.removeCharacterVote(
-                    userId: userId,
-                    personId: personId,
-                    tmdbId: tmdbId,
-                    characterName: characterName,
-                  );
-                } else {
-                  await supabase.voteForCharacter(
-                    userId: userId,
-                    personId: personId,
-                    tmdbId: tmdbId,
-                    characterName: characterName,
-                    voteType: 'down',
-                  );
+                try {
+                  if (currentVote == 'down') {
+                    await supabase.removeCharacterVote(
+                      userId: userId,
+                      personId: personId,
+                      tmdbId: tmdbId,
+                      characterName: characterName,
+                    );
+                  } else {
+                    await supabase.voteForCharacter(
+                      userId: userId,
+                      personId: personId,
+                      tmdbId: tmdbId,
+                      characterName: characterName,
+                      voteType: 'down',
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: const Text('Failed to vote'), backgroundColor: AppColors.error),
+                    );
+                  }
                 }
               },
               child: Icon(

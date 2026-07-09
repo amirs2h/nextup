@@ -1,8 +1,12 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
 
-abstract class ActivityState {}
+abstract class ActivityState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class ActivityInitial extends ActivityState {}
 
@@ -12,11 +16,17 @@ class ActivityLoaded extends ActivityState {
   final List<Map<String, dynamic>> activities;
 
   ActivityLoaded({required this.activities});
+
+  @override
+  List<Object?> get props => [activities];
 }
 
 class ActivityError extends ActivityState {
   final String message;
   ActivityError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class ActivityCubit extends Cubit<ActivityState> {
@@ -38,6 +48,7 @@ class ActivityCubit extends Cubit<ActivityState> {
       final following = await _supabaseService.getFollowing(user.id);
       
       if (following.isEmpty) {
+        if (isClosed) return;
         emit(ActivityLoaded(activities: []));
         return;
       }
@@ -69,6 +80,7 @@ class ActivityCubit extends Cubit<ActivityState> {
       }
 
       if (allItems.isEmpty) {
+        if (isClosed) return;
         emit(ActivityLoaded(activities: []));
         return;
       }
@@ -140,7 +152,8 @@ class ActivityCubit extends Cubit<ActivityState> {
 
       emit(ActivityLoaded(activities: allActivities.take(50).toList()));
     } catch (e) {
-      emit(ActivityError(e.toString()));
+      if (isClosed) return;
+      emit(ActivityError('Something went wrong. Please try again.'));
     }
   }
 }

@@ -1,10 +1,14 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 
-abstract class WatchHistoryState {}
+abstract class WatchHistoryState extends Equatable {
+  @override
+  List<Object?> get props => [];
+}
 
 class WatchHistoryInitial extends WatchHistoryState {}
 
@@ -28,6 +32,9 @@ class WatchHistoryLoaded extends WatchHistoryState {
 class WatchHistoryError extends WatchHistoryState {
   final String message;
   WatchHistoryError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class WatchHistoryCubit extends Cubit<WatchHistoryState> {
@@ -48,6 +55,7 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
       final history = await _supabaseService.getWatchHistory(userId: user.id);
 
       if (history.isEmpty) {
+        if (isClosed) return;
         emit(WatchHistoryLoaded(history: [], shows: {}, movies: {}));
         return;
       }
@@ -99,7 +107,8 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
 
       emit(WatchHistoryLoaded(history: history, shows: shows, movies: movies));
     } catch (e) {
-      emit(WatchHistoryError(e.toString()));
+      if (isClosed) return;
+      emit(WatchHistoryError('Something went wrong. Please try again.'));
     }
   }
 }

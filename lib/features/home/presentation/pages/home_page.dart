@@ -29,9 +29,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppBackground(
-      child: SafeArea(
-        child: BlocBuilder<HomeCubit, HomeState>(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
               return CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -141,6 +143,7 @@ class _HomePageState extends State<HomePage> {
             );
           },
         ),
+      ),
       ),
     );
   }

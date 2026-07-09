@@ -81,27 +81,27 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> setThemeMode(ThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('themeMode', mode.name);
-    emit(state.copyWith(themeMode: mode));
+    if (!isClosed) emit(state.copyWith(themeMode: mode));
   }
 
   Future<void> setLocale(Locale locale) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('locale', locale.languageCode);
     _tmdbService.setLanguage(locale.languageCode);
-    emit(state.copyWith(locale: locale));
+    if (!isClosed) emit(state.copyWith(locale: locale));
   }
 
   Future<void> toggleNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final newValue = !state.notificationsEnabled;
     await prefs.setBool('notifications', newValue);
-    emit(state.copyWith(notificationsEnabled: newValue));
+    if (!isClosed) emit(state.copyWith(notificationsEnabled: newValue));
   }
 
   Future<void> toggleEmailNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final newValue = !state.emailNotifications;
     await prefs.setBool('emailNotifications', newValue);
-    emit(state.copyWith(emailNotifications: newValue));
+    if (!isClosed) emit(state.copyWith(emailNotifications: newValue));
   }
 }

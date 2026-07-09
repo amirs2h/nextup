@@ -196,7 +196,7 @@ class SupabaseService {
       'media_type': mediaType,
       'list_name': listName,
       'status': status,
-    });
+    }, onConflict: 'user_id,tmdb_id,media_type,list_name');
   }
 
   Future<void> removeFromWatchlist({
@@ -664,7 +664,7 @@ class SupabaseService {
     required int tmdbId,
     required double rating,
   }) async {
-    // Use query-first approach to avoid expression index issues
+    // Query-first pattern to avoid race conditions with expression index
     final existing = await _client.from('ratings')
         .select('id')
         .eq('user_id', userId)
@@ -673,7 +673,6 @@ class SupabaseService {
         .isFilter('season_number', null)
         .isFilter('episode_number', null)
         .maybeSingle();
-    
     if (existing != null) {
       await _client.from('ratings').update({'rating': rating}).eq('id', existing['id']);
     } else {
@@ -699,7 +698,6 @@ class SupabaseService {
         .isFilter('season_number', null)
         .isFilter('episode_number', null)
         .maybeSingle();
-    
     if (existing != null) {
       await _client.from('ratings').update({'rating': rating}).eq('id', existing['id']);
     } else {
@@ -727,7 +725,6 @@ class SupabaseService {
         .eq('season_number', seasonNumber)
         .eq('episode_number', episodeNumber)
         .maybeSingle();
-    
     if (existing != null) {
       await _client.from('ratings').update({'rating': rating}).eq('id', existing['id']);
     } else {

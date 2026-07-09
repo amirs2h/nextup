@@ -34,13 +34,16 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppBackground(
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(child: _buildContent(context)),
-          ],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(context),
+              Expanded(child: _buildContent(context)),
+            ],
+          ),
         ),
       ),
     );
@@ -52,7 +55,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
             child: Container(
               width: 44,
               height: 44,
@@ -86,6 +89,11 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                 const Icon(Icons.error_outline, size: 60, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.read<WatchHistoryCubit>().loadHistory(),
+                  child: const Text('Retry'),
+                ),
               ],
             ),
           );

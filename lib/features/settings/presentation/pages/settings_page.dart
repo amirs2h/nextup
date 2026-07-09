@@ -265,8 +265,16 @@ class SettingsPage extends StatelessWidget {
               TextButton(
                 onPressed: () async {
                   Navigator.pop(dialogContext);
-                  await context.read<AuthCubit>().signOut();
-                  if (context.mounted) context.go('/login');
+                  try {
+                    await context.read<AuthCubit>().signOut();
+                    if (context.mounted) context.go('/login');
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(isPersian ? 'خطا در خروج' : 'Failed to sign out'), backgroundColor: AppColors.error),
+                      );
+                    }
+                  }
                 },
                 child: Text(isPersian ? 'خروج' : 'Sign Out', style: const TextStyle(color: AppColors.error)),
               ),
