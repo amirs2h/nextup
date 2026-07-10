@@ -100,9 +100,10 @@ class StatsCubit extends Cubit<StatsState> {
         monthlyWatched.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
       );
 
-      // Calculate top genres from recent items (limit to 30 to avoid rate limiting)
+      // Genres aren't stored in Supabase, so TMDB calls are required.
+      // Limit to 10 items to minimize API calls while still getting a representative sample.
       Map<String, int> genreCounts = {};
-      final recentItems = history.take(30).toList();
+      final recentItems = history.take(10).toList();
       final genreFutures = recentItems.map((item) async {
         try {
           final tmdbId = item['tmdb_id'] as int;

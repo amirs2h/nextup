@@ -76,17 +76,23 @@ class CalendarCubit extends Cubit<CalendarState> {
         mediaType: 'tv',
       );
 
-      // Parallel: Fetch show details for all watchlist items
-      final showFutures = watchlist.map((item) async {
+      // Build ShowModel from Supabase data (title/poster_path already available),
+      // then fetch full show details only for season data
+      final showDetailFutures = watchlist.map((item) async {
         try {
           final showData = await _tmdbService.getShowDetails(item['tmdb_id']);
           return ShowModel.fromJson(showData);
         } catch (e) {
-          return null;
+          // Fall back to constructing a minimal ShowModel from Supabase data
+          return ShowModel(
+            id: item['tmdb_id'] as int,
+            name: item['title'] ?? 'Unknown Show',
+            posterPath: item['poster_path'],
+          );
         }
       }).toList();
 
-      final shows = (await Future.wait(showFutures)).whereType<ShowModel>().toList();
+      final shows = (await Future.wait(showDetailFutures)).whereType<ShowModel>().toList();
 
       // Parallel: Fetch season details for all shows
       List<CalendarEvent> events = [];

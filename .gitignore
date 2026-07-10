@@ -55,6 +55,10 @@ app.*.map.json
 # Android local properties (contains local paths)
 android/local.properties
 
+# Android signing (security)
+android/keystore/
+android/key.properties
+
 # iOS generated files
 ios/Flutter/flutter_export_environment.sh
 ios/Flutter/Generated.xcconfig

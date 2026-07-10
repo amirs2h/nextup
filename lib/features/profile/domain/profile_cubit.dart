@@ -116,20 +116,20 @@ class ProfileCubit extends Cubit<ProfileState> {
   Future<void> followUser(String followerId, String followingId) async {
     try {
       await _supabaseService.followUser(followerId, followingId);
-      await loadProfile(followerId);
+      // Reload only followers data instead of full profile
+      await loadFollowers(followerId);
     } catch (e) {
-      if (isClosed) return;
-      emit(ProfileError('Something went wrong. Please try again.'));
+      rethrow; // Let the UI handle the error with SnackBar
     }
   }
 
   Future<void> unfollowUser(String followerId, String followingId) async {
     try {
       await _supabaseService.unfollowUser(followerId, followingId);
-      await loadProfile(followerId);
+      // Reload only followers data instead of full profile
+      await loadFollowers(followerId);
     } catch (e) {
-      if (isClosed) return;
-      emit(ProfileError('Something went wrong. Please try again.'));
+      rethrow; // Let the UI handle the error with SnackBar
     }
   }
 }

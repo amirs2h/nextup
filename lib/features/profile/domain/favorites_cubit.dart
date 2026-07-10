@@ -57,15 +57,37 @@ class FavoritesCubit extends Cubit<FavoritesState> {
         return;
       }
 
-      // Parallel TMDB calls for all favorites
       final futures = favorites.map((item) async {
         try {
+          final hasTitle = item['title'] != null && (item['title'] as String).isNotEmpty;
+          final hasPoster = item['poster_path'] != null && (item['poster_path'] as String).isNotEmpty;
+
           if (item['media_type'] == 'tv') {
+            if (hasTitle && hasPoster) {
+              return {
+                'type': 'tv',
+                'model': ShowModel(
+                  id: item['tmdb_id'],
+                  name: item['title'],
+                  posterPath: item['poster_path'],
+                ),
+              };
+            }
             final data = await _tmdbService.getShowDetails(item['tmdb_id']);
-            return {'type': 'tv', 'data': data};
+            return {'type': 'tv', 'model': ShowModel.fromJson(data)};
           } else {
+            if (hasTitle && hasPoster) {
+              return {
+                'type': 'movie',
+                'model': MovieModel(
+                  id: item['tmdb_id'],
+                  title: item['title'],
+                  posterPath: item['poster_path'],
+                ),
+              };
+            }
             final data = await _tmdbService.getMovieDetails(item['tmdb_id']);
-            return {'type': 'movie', 'data': data};
+            return {'type': 'movie', 'model': MovieModel.fromJson(data)};
           }
         } catch (e) {
           return null;
@@ -80,9 +102,9 @@ class FavoritesCubit extends Cubit<FavoritesState> {
       for (final result in results) {
         if (result == null) continue;
         if (result['type'] == 'tv') {
-          shows.add(ShowModel.fromJson(result['data'] as Map<String, dynamic>));
+          shows.add(result['model'] as ShowModel);
         } else {
-          movies.add(MovieModel.fromJson(result['data'] as Map<String, dynamic>));
+          movies.add(result['model'] as MovieModel);
         }
       }
 

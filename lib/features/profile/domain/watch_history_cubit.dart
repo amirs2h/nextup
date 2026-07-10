@@ -74,9 +74,30 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
         }
       }
 
-      // Parallel TMDB calls for all unique items
+      // Build lookup from history for title/poster_path
+      final Map<int, Map<String, dynamic>> showLookup = {};
+      final Map<int, Map<String, dynamic>> movieLookup = {};
+      for (final item in history) {
+        final tmdbId = item['tmdb_id'] as int;
+        if (item['media_type'] == 'tv') {
+          showLookup[tmdbId] = item;
+        } else {
+          movieLookup[tmdbId] = item;
+        }
+      }
+
       final showFutures = uniqueShowIds.map((id) async {
         try {
+          final item = showLookup[id]!;
+          final hasTitle = item['title'] != null && (item['title'] as String).isNotEmpty;
+          final hasPoster = item['poster_path'] != null && (item['poster_path'] as String).isNotEmpty;
+          if (hasTitle && hasPoster) {
+            return MapEntry(id, ShowModel(
+              id: id,
+              name: item['title'],
+              posterPath: item['poster_path'],
+            ));
+          }
           final data = await _tmdbService.getShowDetails(id);
           return MapEntry(id, ShowModel.fromJson(data));
         } catch (e) {
@@ -86,6 +107,16 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
 
       final movieFutures = uniqueMovieIds.map((id) async {
         try {
+          final item = movieLookup[id]!;
+          final hasTitle = item['title'] != null && (item['title'] as String).isNotEmpty;
+          final hasPoster = item['poster_path'] != null && (item['poster_path'] as String).isNotEmpty;
+          if (hasTitle && hasPoster) {
+            return MapEntry(id, MovieModel(
+              id: id,
+              title: item['title'],
+              posterPath: item['poster_path'],
+            ));
+          }
           final data = await _tmdbService.getMovieDetails(id);
           return MapEntry(id, MovieModel.fromJson(data));
         } catch (e) {

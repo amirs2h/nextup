@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
-import '../../../shared/services/tmdb_service.dart';
 
 abstract class ActivityState extends Equatable {
   @override
@@ -31,9 +30,8 @@ class ActivityError extends ActivityState {
 
 class ActivityCubit extends Cubit<ActivityState> {
   final SupabaseService _supabaseService;
-  final TmdbService _tmdbService;
 
-  ActivityCubit(this._supabaseService, this._tmdbService) : super(ActivityInitial());
+  ActivityCubit(this._supabaseService) : super(ActivityInitial());
 
   Future<void> loadActivity() async {
     final user = _supabaseService.currentUser;
@@ -87,61 +85,17 @@ class ActivityCubit extends Cubit<ActivityState> {
         return;
       }
 
-      // Collect unique tmdbIds for batch title fetching
-      final uniqueShowIds = allItems
-          .where((i) => i['media_type'] == 'tv')
-          .map((i) => i['tmdb_id'] as int)
-          .toSet()
-          .toList();
-      final uniqueMovieIds = allItems
-          .where((i) => i['media_type'] == 'movie')
-          .map((i) => i['tmdb_id'] as int)
-          .toSet()
-          .toList();
-
-      // Parallel: Fetch all show/movie titles at once
-      Map<int, String> titles = {};
-      
-      final showFutures = uniqueShowIds.map((id) async {
-        try {
-          final details = await _tmdbService.getShowDetails(id);
-          return MapEntry(id, details['name'] ?? 'Unknown Show');
-        } catch (e) {
-          return MapEntry(id, 'Unknown Show');
-        }
-      }).toList();
-      
-      final movieFutures = uniqueMovieIds.map((id) async {
-        try {
-          final details = await _tmdbService.getMovieDetails(id);
-          return MapEntry(id, details['title'] ?? 'Unknown Movie');
-        } catch (e) {
-          return MapEntry(id, 'Unknown Movie');
-        }
-      }).toList();
-
-      final showResults = await Future.wait(showFutures);
-      final movieResults = await Future.wait(movieFutures);
-      
-      for (final entry in showResults) {
-        titles[entry.key] = entry.value;
-      }
-      for (final entry in movieResults) {
-        titles[entry.key] = entry.value;
-      }
-
-      // Build activity list with titles
+      // Build activity list using title/poster_path already stored in Supabase
       List<Map<String, dynamic>> allActivities = allItems.map((item) {
-        final tmdbId = item['tmdb_id'] as int;
         return {
           'username': item['username'],
           'avatar_url': item['avatar_url'],
-          'tmdb_id': tmdbId,
+          'tmdb_id': item['tmdb_id'],
           'media_type': item['media_type'],
           'season_number': item['season_number'],
           'episode_number': item['episode_number'],
           'watched_at': item['watched_at'],
-          'title': titles[tmdbId] ?? 'Unknown',
+          'title': item['title'] ?? (item['media_type'] == 'tv' ? 'Unknown Show' : 'Unknown Movie'),
         };
       }).toList();
 

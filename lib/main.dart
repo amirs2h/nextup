@@ -118,7 +118,7 @@ class _NextUpAppState extends State<NextUpApp> {
           BlocProvider(create: (context) => CommentsCubit(widget.supabaseService)),
           BlocProvider(create: (context) => StatsCubit(widget.supabaseService, widget.tmdbService)),
           BlocProvider(create: (context) => AchievementsCubit(widget.supabaseService)),
-          BlocProvider(create: (context) => ActivityCubit(widget.supabaseService, widget.tmdbService)),
+          BlocProvider(create: (context) => ActivityCubit(widget.supabaseService)),
           BlocProvider(create: (context) => CalendarCubit(widget.supabaseService, widget.tmdbService)),
           BlocProvider(create: (context) => ComingSoonCubit(widget.tmdbService)),
           BlocProvider(create: (context) => RecommendationsCubit(widget.supabaseService, widget.tmdbService)),
@@ -135,26 +135,26 @@ class _NextUpAppState extends State<NextUpApp> {
                 child: DefaultTextStyle(
                   style: const TextStyle(fontFamilyFallback: ['Vazirmatn']),
                   child: MaterialApp.router(
-                    title: 'NextUp',
-                    debugShowCheckedModeBanner: false,
-                    theme: AppTheme.lightTheme,
-                    darkTheme: AppTheme.darkTheme,
-                    themeMode: settingsState.themeMode,
-                    routerConfig: AppRouter.router,
-                    locale: settingsState.locale,
-                    localizationsDelegates: const [
-                      GlobalMaterialLocalizations.delegate,
-                      GlobalWidgetsLocalizations.delegate,
-                      GlobalCupertinoLocalizations.delegate,
-                    ],
-                    supportedLocales: const [
-                      Locale('en', 'US'),
-                      Locale('fa', 'IR'),
-                    ],
-                  ),
+                  title: 'NextUp',
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.lightTheme,
+                  darkTheme: AppTheme.darkTheme,
+                  themeMode: settingsState.themeMode,
+                  routerConfig: AppRouter.router,
+                  locale: settingsState.locale,
+                  localizationsDelegates: const [
+                    GlobalMaterialLocalizations.delegate,
+                    GlobalWidgetsLocalizations.delegate,
+                    GlobalCupertinoLocalizations.delegate,
+                  ],
+                  supportedLocales: const [
+                    Locale('en', 'US'),
+                    Locale('fa', 'IR'),
+                  ],
                 ),
               ),
-            );
+            ),
+          );
           },
         ),
       ),

@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
+import '../../../../shared/services/tmdb_service.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
@@ -32,6 +33,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool _isLoading = true;
   bool _isOwnProfile = false;
   bool _isPublic = true;
+  bool _isTogglingFollow = false;
 
   @override
   void initState() {
@@ -70,6 +72,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
         isFollowing = await supabase.isFollowing(currentUserId, widget.userId);
       }
 
+      // Fetch missing titles for items that don't have them
+      await _fetchMissingTitles(watchlist);
+      await _fetchMissingTitles(favorites);
+      await _fetchMissingTitles(watchHistory);
+
       if (mounted) {
         setState(() {
           _profile = profile;
@@ -91,7 +98,31 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
 
+  Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
+    final tmdb = context.read<TmdbService>();
+    for (final item in items) {
+      if (item['title'] == null || (item['title'] as String).isEmpty) {
+        try {
+          final tmdbId = item['tmdb_id'] as int;
+          final mediaType = item['media_type'] as String? ?? 'tv';
+          if (mediaType == 'tv') {
+            final data = await tmdb.getShowDetails(tmdbId);
+            item['title'] = data['name'] ?? 'Unknown';
+            item['poster_path'] = item['poster_path'] ?? data['poster_path'];
+          } else {
+            final data = await tmdb.getMovieDetails(tmdbId);
+            item['title'] = data['title'] ?? 'Unknown';
+            item['poster_path'] = item['poster_path'] ?? data['poster_path'];
+          }
+        } catch (e) {
+          item['title'] = 'Unknown';
+        }
+      }
+    }
+  }
+
   Future<void> _toggleFollow() async {
+    if (_isTogglingFollow) return;
     final authState = context.read<AuthCubit>().state;
     if (authState is! AuthAuthenticated) return;
 
@@ -100,6 +131,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     final wasFollowing = _isFollowing;
     setState(() {
+      _isTogglingFollow = true;
       _isFollowing = !_isFollowing;
       _followersCount += _isFollowing ? 1 : -1;
     });
@@ -115,6 +147,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _isFollowing = wasFollowing;
         _followersCount += wasFollowing ? 1 : -1;
       });
+    } finally {
+      if (mounted) setState(() => _isTogglingFollow = false);
     }
   }
 
@@ -205,22 +239,35 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ? Center(child: CircularProgressIndicator(color: AppColors.primary))
             : _profile == null
                 ? _buildError()
-                : _buildContent(),
+                : RefreshIndicator(
+                    onRefresh: _loadProfile,
+                    child: _buildContent(),
+                  ),
       ),
     );
   }
 
   Widget _buildError() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 60, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text('User not found', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
-          const SizedBox(height: 24),
-          ElevatedButton(onPressed: () => context.pop(), child: const Text('Go Back')),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 60, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text('Could not load profile', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
+            const SizedBox(height: 8),
+            Text('Check your internet connection and try again.', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14), textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: () {
+              setState(() => _isLoading = true);
+              _loadProfile();
+            }, child: const Text('Retry')),
+            const SizedBox(height: 12),
+            TextButton(onPressed: () => context.pop(), child: const Text('Go Back')),
+          ],
+        ),
       ),
     );
   }
@@ -229,14 +276,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final username = _profile!['username'] ?? 'User';
     final bio = _profile!['bio'] ?? '';
     final avatarUrl = _profile!['avatar_url'];
+    final headerUrl = _profile!['header_image_url'];
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
+            // Header with back button and optional settings
             Padding(
-              padding: const EdgeInsets.only(top: 16),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
                   GestureDetector(
@@ -261,73 +310,122 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ],
               ),
             ),
+            const SizedBox(height: 8),
+            // Header image (like profile_page)
+            _buildHeaderImage(headerUrl, avatarUrl, username),
+            // Avatar + Name + Bio (always visible)
+            Transform.translate(
+              offset: const Offset(0, -40),
+              child: Column(
+                children: [
+                  _buildAvatar(username, avatarUrl),
+                  const SizedBox(height: 12),
+                  Text(username, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  if (bio.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(bio, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Stats (always visible)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildStats(),
+            ),
             const SizedBox(height: 24),
-            _buildAvatar(username, avatarUrl),
-            const SizedBox(height: 16),
-            Text(username, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-            if (bio.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(bio, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14), textAlign: TextAlign.center),
-            ],
-            const SizedBox(height: 24),
-            _buildStats(),
-            const SizedBox(height: 24),
+            // Follow button (only for other users)
             if (!_isOwnProfile)
-              SizedBox(
-                width: double.infinity,
-                child: GlassButton(
-                  text: _isFollowing ? 'Following' : 'Follow',
-                  icon: _isFollowing ? Icons.check : Icons.person_add,
-                  onPressed: _toggleFollow,
-                  gradient: _isFollowing
-                      ? LinearGradient(colors: [AppColors.cardBg(context), AppColors.cardBg(context)])
-                      : null,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: GlassButton(
+                    text: _isTogglingFollow
+                        ? 'Loading...'
+                        : _isFollowing
+                            ? 'Following'
+                            : 'Follow',
+                    icon: _isTogglingFollow
+                        ? null
+                        : _isFollowing
+                            ? Icons.check
+                            : Icons.person_add,
+                    onPressed: _isTogglingFollow ? null : _toggleFollow,
+                    gradient: _isFollowing
+                        ? LinearGradient(colors: [AppColors.cardBg(context), AppColors.cardBg(context)])
+                        : null,
+                  ),
                 ),
               ),
+            // Own profile action buttons
             if (_isOwnProfile) ...[
-              _buildActionButtons(),
-              const SizedBox(height: 24),
-              _buildContentLinks(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildActionButtons(),
+              ),
             ],
-            if (!_isOwnProfile && !_isPublic) ...[
-              const SizedBox(height: 24),
-              GlassContainer(
-                padding: const EdgeInsets.all(20),
-                borderRadius: BorderRadius.circular(16),
+            const SizedBox(height: 24),
+            // Content sections
+            if (_isPublic || _isOwnProfile) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    Icon(Icons.lock_outline, size: 40, color: AppColors.textMuted(context)),
-                    const SizedBox(height: 12),
-                    Text('This profile is private', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
-                    const SizedBox(height: 8),
-                    Text('Follow this user to see their content', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                    if (_watchlist.isNotEmpty) ...[
+                      _buildSectionHeader('Watchlist', Icons.bookmark_rounded, const Color(0xFF6C63FF)),
+                      const SizedBox(height: 12),
+                      _buildMediaCarousel(_watchlist),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_favorites.isNotEmpty) ...[
+                      _buildSectionHeader('Favorites', Icons.favorite_rounded, const Color(0xFFE50914)),
+                      const SizedBox(height: 12),
+                      _buildMediaCarousel(_favorites),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_watchHistory.isNotEmpty) ...[
+                      _buildSectionHeader('Watch History', Icons.history_rounded, const Color(0xFF00CC6A)),
+                      const SizedBox(height: 12),
+                      _buildMediaCarousel(_watchHistory),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_watchlist.isEmpty && _favorites.isEmpty && _watchHistory.isEmpty)
+                      GlassContainer(
+                        padding: const EdgeInsets.all(24),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Column(
+                          children: [
+                            Icon(Icons.movie_outlined, size: 40, color: AppColors.textMuted(context)),
+                            const SizedBox(height: 12),
+                            Text('No activity yet', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
             ],
-            if (!_isOwnProfile && _isPublic) ...[
-              if (_watchlist.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildWatchlistSection(),
-              ],
-              if (_favorites.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildFavoritesSection(),
-              ],
-              if (_watchHistory.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildWatchHistorySection(),
-              ],
-            ],
-            if (_isOwnProfile) ...[
-              if (_watchlist.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildWatchlistSection(),
-              ],
-              if (_favorites.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildFavoritesSection(),
-              ],
+            if (!_isPublic && !_isOwnProfile) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(24),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    children: [
+                      Icon(Icons.lock_outline, size: 40, color: AppColors.textMuted(context)),
+                      const SizedBox(height: 12),
+                      Text('This profile is private', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text('Follow this user to see their content', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                    ],
+                  ),
+                ),
+              ),
             ],
             const SizedBox(height: 100),
           ],
@@ -336,18 +434,70 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
+  Widget _buildHeaderImage(String? headerUrl, String? avatarUrl, String username) {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: headerUrl != null
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: headerUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (c, u, e) => Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)]),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)]),
+                ),
+                child: Center(
+                  child: Icon(Icons.movie_outlined, size: 50, color: Colors.white.withValues(alpha: 0.3)),
+                ),
+              ),
+      ),
+    );
+  }
+
   Widget _buildAvatar(String username, String? avatarUrl) {
     return Container(
-      width: 100,
-      height: 100,
+      width: 90,
+      height: 90,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
+        border: Border.all(color: AppColors.background(context), width: 4),
+        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: avatarUrl != null
-          ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 40)))))
-          : Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 40))),
+          ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36)))))
+          : Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36))),
     );
   }
 
@@ -394,216 +544,81 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ),
         ),
         const SizedBox(width: 12),
-        GlassContainer(
-          padding: const EdgeInsets.all(14),
-          borderRadius: BorderRadius.circular(16),
-          child: GestureDetector(
-            onTap: () {
-              final username = _profile!['username'] ?? 'User';
-              Share.share('Check out $username\'s profile on NextUp!');
-            },
-            child: Icon(Icons.share, color: AppColors.text(context)),
+        GestureDetector(
+          onTap: () {
+            final username = _profile!['username'] ?? 'User';
+            Share.share('Check out $username\'s profile on NextUp!');
+          },
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg(context),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border(context)),
+            ),
+            child: Icon(Icons.share_rounded, color: AppColors.text(context)),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildContentLinks() {
-    return Column(
+  Widget _buildSectionHeader(String title, IconData icon, Color color) {
+    return Row(
       children: [
-        _buildContentCard(icon: Icons.bookmark_outline, title: 'My Watchlist', subtitle: 'Shows and movies to watch', onTap: () => context.go('/watchlist')),
-        _buildContentCard(icon: Icons.favorite_outline, title: 'Favorites', subtitle: 'Your favorite shows and movies', onTap: () => context.push('/favorites')),
-        _buildContentCard(icon: Icons.history, title: 'Watch History', subtitle: 'Shows and movies you\'ve watched', onTap: () => context.push('/watch-history')),
-        _buildContentCard(icon: Icons.bar_chart_outlined, title: 'Statistics', subtitle: 'Your watching stats', onTap: () => context.push('/stats')),
-        _buildContentCard(icon: Icons.emoji_events_outlined, title: 'Achievements', subtitle: 'Your badges and milestones', onTap: () => context.push('/achievements')),
-        _buildContentCard(icon: Icons.people_outline, title: 'Activity', subtitle: 'What your friends are watching', onTap: () => context.push('/activity')),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.text(context))),
       ],
     );
   }
 
-  Widget _buildContentCard({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassContainer(
-        padding: const EdgeInsets.all(16),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: AppColors.cardBg(context), borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: AppColors.icon(context), size: 24),
+  Widget _buildMediaCarousel(List<Map<String, dynamic>> items) {
+    return SizedBox(
+      height: 180,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final tmdbId = item['tmdb_id'];
+          final mediaType = item['media_type'] ?? 'tv';
+          final posterPath = item['poster_path'];
+          final title = item['title'] ?? 'Unknown';
+
+          return GestureDetector(
+            onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
+            child: Container(
+              width: 110,
+              margin: const EdgeInsets.only(right: 12),
+              child: Column(
+                children: [
+                  Container(
+                    width: 110,
+                    height: 145,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: posterPath != null && posterPath.toString().isNotEmpty
+                          ? CachedNetworkImage(imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'), fit: BoxFit.cover, errorWidget: (c, u, e) => Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))))
+                          : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.w600)),
-                    Text(subtitle, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: AppColors.textMuted(context)),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
-    );
-  }
-
-  Widget _buildWatchlistSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Watchlist', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _watchlist.length,
-            itemBuilder: (context, index) {
-              final item = _watchlist[index];
-              final tmdbId = item['tmdb_id'];
-              final mediaType = item['media_type'] ?? 'tv';
-              final posterPath = item['poster_path'];
-              final title = item['title'] ?? 'Unknown';
-
-              return GestureDetector(
-                onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
-                child: Container(
-                  width: 120,
-                  margin: const EdgeInsets.only(right: 12),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 160,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: AppColors.cardBg(context)),
-                        child: posterPath != null
-                            ? ClipRRect(borderRadius: BorderRadius.circular(12), child: CachedNetworkImage(imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'), fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context)))))
-                            : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFavoritesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.favorite, color: AppColors.text(context), size: 20),
-            const SizedBox(width: 8),
-            Text('Favorites', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _favorites.length,
-            itemBuilder: (context, index) {
-              final item = _favorites[index];
-              final tmdbId = item['tmdb_id'];
-              final mediaType = item['media_type'] ?? 'tv';
-              final posterPath = item['poster_path'];
-              final title = item['title'] ?? 'Unknown';
-
-              return GestureDetector(
-                onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
-                child: Container(
-                  width: 120,
-                  margin: const EdgeInsets.only(right: 12),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 160,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: AppColors.cardBg(context)),
-                        child: posterPath != null
-                            ? ClipRRect(borderRadius: BorderRadius.circular(12), child: CachedNetworkImage(imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'), fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context)))))
-                            : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWatchHistorySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.history, color: AppColors.text(context), size: 20),
-            const SizedBox(width: 8),
-            Text('Watch History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _watchHistory.length,
-            itemBuilder: (context, index) {
-              final item = _watchHistory[index];
-              final tmdbId = item['tmdb_id'];
-              final mediaType = item['media_type'] ?? 'tv';
-              final posterPath = item['poster_path'];
-              final title = item['title'] ?? 'Unknown';
-
-              return GestureDetector(
-                onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
-                child: Container(
-                  width: 120,
-                  margin: const EdgeInsets.only(right: 12),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 160,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: AppColors.cardBg(context)),
-                        child: posterPath != null
-                            ? ClipRRect(borderRadius: BorderRadius.circular(12), child: CachedNetworkImage(imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'), fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context)))))
-                            : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 }

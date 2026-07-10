@@ -90,10 +90,23 @@ class WatchlistCubit extends Cubit<WatchlistState> {
         return;
       }
 
-      // Parallel TMDB calls for all watchlist items
       final futures = watchlistItems.map((item) async {
         try {
+          final hasTitle = item['title'] != null && (item['title'] as String).isNotEmpty;
+          final hasPoster = item['poster_path'] != null && (item['poster_path'] as String).isNotEmpty;
+
           if (item['media_type'] == 'tv') {
+            if (hasTitle && hasPoster) {
+              return WatchlistItem(
+                model: ShowModel(
+                  id: item['tmdb_id'],
+                  name: item['title'],
+                  posterPath: item['poster_path'],
+                ),
+                mediaType: 'tv',
+                status: item['status'] ?? 'watchlist',
+              );
+            }
             final data = await _tmdbService.getShowDetails(item['tmdb_id']);
             return WatchlistItem(
               model: ShowModel.fromJson(data),
@@ -101,6 +114,17 @@ class WatchlistCubit extends Cubit<WatchlistState> {
               status: item['status'] ?? 'watchlist',
             );
           } else {
+            if (hasTitle && hasPoster) {
+              return WatchlistItem(
+                model: MovieModel(
+                  id: item['tmdb_id'],
+                  title: item['title'],
+                  posterPath: item['poster_path'],
+                ),
+                mediaType: 'movie',
+                status: item['status'] ?? 'watchlist',
+              );
+            }
             final data = await _tmdbService.getMovieDetails(item['tmdb_id']);
             return WatchlistItem(
               model: MovieModel.fromJson(data),

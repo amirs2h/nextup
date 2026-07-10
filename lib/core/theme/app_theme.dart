@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -39,11 +38,29 @@ class AppTheme {
   }) {
     final isDark = brightness == Brightness.dark;
 
+    // Build text theme manually with Poppins primary + Vazirmatn fallback
+    final baseTextTheme = (isDark ? ThemeData.dark() : ThemeData.light()).textTheme;
+    final textTheme = baseTextTheme.copyWith(
+      headlineLarge: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
+      headlineMedium: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
+      headlineSmall: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 20, fontWeight: FontWeight.w600, color: textColor),
+      titleLarge: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
+      titleMedium: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 16, fontWeight: FontWeight.w500, color: textColor),
+      titleSmall: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 14, fontWeight: FontWeight.w500, color: textColor),
+      bodyLarge: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 16, color: textColor),
+      bodyMedium: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 14, color: textSecondaryColor),
+      bodySmall: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 12, color: textSecondaryColor),
+      labelLarge: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
+      labelMedium: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 12, fontWeight: FontWeight.w500, color: textSecondaryColor),
+      labelSmall: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 10, fontWeight: FontWeight.w500, color: textSecondaryColor),
+    );
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: scaffoldBackgroundColor,
+      fontFamily: 'Poppins',
       colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
         primary: AppColors.primary,
         secondary: AppColors.accent,
@@ -58,28 +75,13 @@ class AppTheme {
         selectionColor: AppColors.primary,
         selectionHandleColor: AppColors.primary,
       ),
-      textTheme: GoogleFonts.poppinsTextTheme(
-        (isDark ? ThemeData.dark() : ThemeData.light()).textTheme.copyWith(
-          headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          bodyLarge: TextStyle(fontSize: 16, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          bodyMedium: TextStyle(fontSize: 14, color: textSecondaryColor, fontFamilyFallback: _vazirmatnFallback),
-          bodySmall: TextStyle(fontSize: 12, color: textSecondaryColor, fontFamilyFallback: _vazirmatnFallback),
-          labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-          labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textSecondaryColor, fontFamilyFallback: _vazirmatnFallback),
-          labelSmall: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: textSecondaryColor, fontFamilyFallback: _vazirmatnFallback),
-        ),
-      ),
+      textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: textColor),
-        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamilyFallback: _vazirmatnFallback),
+        titleTextStyle: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
       ),
       cardTheme: CardTheme(
         color: surfaceColor,
@@ -93,7 +95,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamilyFallback: _vazirmatnFallback),
+          textStyle: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -102,7 +104,7 @@ class AppTheme {
           minimumSize: const Size(double.infinity, 50),
           side: const BorderSide(color: AppColors.primary),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamilyFallback: _vazirmatnFallback),
+          textStyle: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -126,15 +128,15 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: surfaceColor,
         selectedColor: AppColors.primary.withValues(alpha: 0.2),
-        labelStyle: TextStyle(color: textColor, fontSize: 13, fontFamilyFallback: _vazirmatnFallback),
+        labelStyle: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, color: textColor, fontSize: 13),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         side: BorderSide(color: dividerColor),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamilyFallback: _vazirmatnFallback),
-        contentTextStyle: TextStyle(fontSize: 14, color: textSecondaryColor, fontFamilyFallback: _vazirmatnFallback),
+        titleTextStyle: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+        contentTextStyle: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 14, color: textSecondaryColor),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,

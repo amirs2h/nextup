@@ -197,6 +197,8 @@ class SupabaseService {
     required String mediaType,
     String listName = 'default',
     String status = 'watchlist',
+    String? title,
+    String? posterPath,
   }) async {
     await _client.from('watchlist').upsert({
       'user_id': userId,
@@ -204,6 +206,8 @@ class SupabaseService {
       'media_type': mediaType,
       'list_name': listName,
       'status': status,
+      'title': title,
+      'poster_path': posterPath,
     }, onConflict: 'user_id,tmdb_id,media_type,list_name');
   }
 
@@ -271,6 +275,8 @@ class SupabaseService {
     required String mediaType,
     int? seasonNumber,
     int? episodeNumber,
+    String? title,
+    String? posterPath,
   }) async {
     try {
       await _client.from('watch_history').upsert({
@@ -279,6 +285,8 @@ class SupabaseService {
         'media_type': mediaType,
         'season_number': seasonNumber,
         'episode_number': episodeNumber,
+        'title': title,
+        'poster_path': posterPath,
       }, onConflict: 'user_id,tmdb_id,media_type,season_number,episode_number');
     } catch (e) {
       rethrow;
@@ -397,11 +405,15 @@ class SupabaseService {
     required String userId,
     required int tmdbId,
     required String mediaType,
+    String? title,
+    String? posterPath,
   }) async {
     await _client.from('favorites').upsert({
       'user_id': userId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
+      'title': title,
+      'poster_path': posterPath,
     });
   }
 
