@@ -141,8 +141,16 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   Widget _buildProfileHeader(BuildContext context, String username, String email, String? avatarUrl, String bio, int followersCount, int followingCount, int watchlistCount, List<Map<String, dynamic>> followers, List<Map<String, dynamic>> following) {
     return BlocBuilder<WatchlistCubit, WatchlistState>(
       builder: (context, watchlistState) {
-        String? backdropUrl;
-        if (watchlistState is WatchlistLoaded && watchlistState.items.isNotEmpty) {
+        // Get header image: first try header_image_url, then watchlist backdrop
+        final authState = context.read<AuthCubit>().state;
+        String? headerUrl;
+        if (authState is AuthAuthenticated) {
+          headerUrl = authState.profile?['header_image_url'] as String?;
+        }
+        
+        // Fallback to watchlist backdrop if no header image
+        String? backdropUrl = headerUrl;
+        if (backdropUrl == null && watchlistState is WatchlistLoaded && watchlistState.items.isNotEmpty) {
           final firstItem = watchlistState.items.first;
           if (firstItem.mediaType == 'tv') {
             final show = firstItem.model as ShowModel;
@@ -540,100 +548,201 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   void _showFollowing(List<Map<String, dynamic>> following) {
     showDialog(
       context: context,
-      builder: (context) => SimpleDialog(
-        backgroundColor: AppColors.surface(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Following', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-        children: [
-          if (following.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('Not following anyone yet', style: TextStyle(color: AppColors.textMuted(context))),
-            )
-          else
-            ...following.map((user) {
-              final uname = user['profiles']?['username'] ?? 'User';
-              final uid = user['following_id'];
-              return SimpleDialogOption(
-                onPressed: () {
-                  Navigator.pop(context);
-                  context.push('/user/$uid');
-                },
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 16,
-                      child: Text(uname.isNotEmpty ? uname[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 14)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(uname, style: TextStyle(color: AppColors.text(context), fontSize: 16))),
-                    TextButton(
-                      onPressed: () async {
-                        final authState = context.read<AuthCubit>().state;
-                        if (authState is AuthAuthenticated) {
-                          await context.read<ProfileCubit>().unfollowUser(authState.user.id, uid);
-                          Navigator.pop(context);
-                          _loadData();
-                        }
-                      },
-                      child: const Text('Unfollow', style: TextStyle(color: Color(0xFFFF4757))),
-                    ),
-                  ],
-                ),
-              );
-            }),
-        ],
+      builder: (dialogContext) => _FollowingDialog(
+        following: following,
+        onUnfollow: (uid) async {
+          final authState = context.read<AuthCubit>().state;
+          if (authState is AuthAuthenticated) {
+            try {
+              await context.read<ProfileCubit>().unfollowUser(authState.user.id, uid);
+              if (mounted) _loadData();
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: const Text('Failed to unfollow. Please try again.'), backgroundColor: AppColors.error),
+                );
+              }
+            }
+          }
+        },
       ),
     );
   }
 
   void _showFollowers(List<Map<String, dynamic>> followers) {
+    // Get list of following IDs to check who we already follow
+    final profileState = context.read<ProfileCubit>().state;
+    final followingIds = <String>{};
+    if (profileState is ProfileLoaded) {
+      for (final f in profileState.following) {
+        followingIds.add(f['following_id'] as String);
+      }
+    }
+
     showDialog(
       context: context,
-      builder: (context) => SimpleDialog(
-        backgroundColor: AppColors.surface(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Followers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-        children: [
-          if (followers.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('No followers yet', style: TextStyle(color: AppColors.textMuted(context))),
-            )
-          else
-            ...followers.map((user) {
-              final uname = user['profiles']?['username'] ?? 'User';
-              final uid = user['follower_id'];
-              return SimpleDialogOption(
-                onPressed: () {
-                  Navigator.pop(context);
-                  context.push('/user/$uid');
-                },
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 16,
-                      child: Text(uname.isNotEmpty ? uname[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 14)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(uname, style: TextStyle(color: AppColors.text(context), fontSize: 16))),
+      builder: (dialogContext) => _FollowersDialog(
+        followers: followers,
+        followingIds: followingIds,
+        onFollowBack: (uid) async {
+          final authState = context.read<AuthCubit>().state;
+          if (authState is AuthAuthenticated) {
+            try {
+              await context.read<ProfileCubit>().followUser(authState.user.id, uid);
+              if (mounted) _loadData();
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: const Text('Failed to follow. Please try again.'), backgroundColor: AppColors.error),
+                );
+              }
+            }
+          }
+        },
+      ),
+    );
+  }
+}
+
+// Following Dialog with Unfollow functionality
+class _FollowingDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> following;
+  final Future<void> Function(String uid) onUnfollow;
+
+  const _FollowingDialog({required this.following, required this.onUnfollow});
+
+  @override
+  State<_FollowingDialog> createState() => _FollowingDialogState();
+}
+
+class _FollowingDialogState extends State<_FollowingDialog> {
+  String? _unfollowingUid;
+
+  @override
+  Widget build(BuildContext context) {
+    return SimpleDialog(
+      backgroundColor: AppColors.surface(context),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text('Following', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+      children: [
+        if (widget.following.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Not following anyone yet', style: TextStyle(color: AppColors.textMuted(context))),
+          )
+        else
+          ...widget.following.map((user) {
+            final uname = user['profiles']?['username'] ?? 'User';
+            final uid = user['following_id'];
+            final isUnfollowing = _unfollowingUid == uid;
+            return SimpleDialogOption(
+              onPressed: () {
+                Navigator.pop(context);
+                context.push('/user/$uid');
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    child: Text(uname.isNotEmpty ? uname[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 14)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(uname, style: TextStyle(color: AppColors.text(context), fontSize: 16))),
+                  TextButton(
+                    onPressed: isUnfollowing ? null : () async {
+                      setState(() => _unfollowingUid = uid);
+                      await widget.onUnfollow(uid);
+                      if (mounted) setState(() => _unfollowingUid = null);
+                    },
+                    child: isUnfollowing
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF4757)))
+                        : const Text('Unfollow', style: TextStyle(color: Color(0xFFFF4757))),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
+    );
+  }
+}
+
+// Followers Dialog with Follow Back functionality
+class _FollowersDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> followers;
+  final Set<String> followingIds;
+  final Future<void> Function(String uid) onFollowBack;
+
+  const _FollowersDialog({required this.followers, required this.followingIds, required this.onFollowBack});
+
+  @override
+  State<_FollowersDialog> createState() => _FollowersDialogState();
+}
+
+class _FollowersDialogState extends State<_FollowersDialog> {
+  String? _followingUid;
+
+  @override
+  Widget build(BuildContext context) {
+    return SimpleDialog(
+      backgroundColor: AppColors.surface(context),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text('Followers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+      children: [
+        if (widget.followers.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('No followers yet', style: TextStyle(color: AppColors.textMuted(context))),
+          )
+        else
+          ...widget.followers.map((user) {
+            final uname = user['profiles']?['username'] ?? 'User';
+            final uid = user['follower_id'] as String;
+            final alreadyFollowing = widget.followingIds.contains(uid);
+            final isFollowing = _followingUid == uid;
+            return SimpleDialogOption(
+              onPressed: () {
+                Navigator.pop(context);
+                context.push('/user/$uid');
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    child: Text(uname.isNotEmpty ? uname[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 14)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(uname, style: TextStyle(color: AppColors.text(context), fontSize: 16))),
+                  if (alreadyFollowing)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text('Following', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                    )
+                  else
                     TextButton(
-                      onPressed: () async {
-                        final authState = context.read<AuthCubit>().state;
-                        if (authState is AuthAuthenticated) {
-                          await context.read<ProfileCubit>().followUser(authState.user.id, uid);
-                          Navigator.pop(context);
-                          _loadData();
+                      onPressed: isFollowing ? null : () async {
+                        setState(() => _followingUid = uid);
+                        await widget.onFollowBack(uid);
+                        if (mounted) {
+                          setState(() {
+                            _followingUid = null;
+                            widget.followingIds.add(uid);
+                          });
                         }
                       },
-                      child: const Text('Follow Back', style: TextStyle(color: Color(0xFF4CAF50))),
+                      child: isFollowing
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4CAF50)))
+                          : const Text('Follow Back', style: TextStyle(color: Color(0xFF4CAF50))),
                     ),
-                  ],
-                ),
-              );
-            }),
-        ],
-      ),
+                ],
+              ),
+            );
+          }),
+      ],
     );
   }
 }

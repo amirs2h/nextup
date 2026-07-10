@@ -162,11 +162,17 @@ class SupabaseService {
 
   Future<String?> uploadAvatar(String userId, Uint8List fileBytes, String fileExt) async {
     try {
-      final path = '$userId/avatar$fileExt';
+      // Normalize extension
+      String ext = fileExt.toLowerCase().replaceAll('.', '');
+      if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) {
+        ext = 'jpg'; // Default to jpg if unknown
+      }
+      
+      final path = '$userId/avatar.$ext';
       await _client.storage.from('avatars').uploadBinary(
         path,
         fileBytes,
-        fileOptions: FileOptions(contentType: 'image/${fileExt.replaceAll('.', '')}'),
+        fileOptions: FileOptions(contentType: 'image/$ext'),
       );
       final url = _client.storage.from('avatars').getPublicUrl(path);
       await updateProfile(userId, {'avatar_url': url});
@@ -1156,6 +1162,29 @@ class SupabaseService {
     await _client.from('profiles')
         .update({'header_image_url': headerImageUrl})
         .eq('id', userId);
+  }
+
+  // Upload header image
+  Future<String?> uploadHeader(String userId, Uint8List fileBytes, String fileExt) async {
+    try {
+      // Normalize extension
+      String ext = fileExt.toLowerCase().replaceAll('.', '');
+      if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) {
+        ext = 'jpg'; // Default to jpg if unknown
+      }
+      
+      final path = '$userId/header.$ext';
+      await _client.storage.from('avatars').uploadBinary(
+        path,
+        fileBytes,
+        fileOptions: FileOptions(contentType: 'image/$ext'),
+      );
+      final url = _client.storage.from('avatars').getPublicUrl(path);
+      await updateProfileHeader(userId: userId, headerImageUrl: url);
+      return url;
+    } catch (e) {
+      return null;
+    }
   }
 
   // Character Votes

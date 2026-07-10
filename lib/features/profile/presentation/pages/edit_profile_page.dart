@@ -131,46 +131,113 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildAvatarSection(BuildContext context) {
     final authState = context.read<AuthCubit>().state;
     String? avatarUrl;
+    String? headerUrl;
     if (authState is AuthAuthenticated) {
       avatarUrl = authState.profile?['avatar_url'] as String?;
+      headerUrl = authState.profile?['header_image_url'] as String?;
     }
 
     return Column(
       children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(colors: [AppColors.electricPurple, AppColors.neonPurple]),
-            boxShadow: [BoxShadow(color: AppColors.electricPurple.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
-          ),
-          child: ClipOval(
-            child: avatarUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: avatarUrl,
-                    fit: BoxFit.cover,
-                    width: 100,
-                    height: 100,
-                    errorWidget: (c, u, e) => Center(
-                      child: Text(
-                        _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
-                        style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+        // Header image
+        GestureDetector(
+          onTap: _pickAndUploadHeader,
+          child: Container(
+            width: double.infinity,
+            height: 160,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: headerUrl != null
+                  ? Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: headerUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (c, u, e) => Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)]),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.5)],
+                            ),
+                          ),
+                        ),
+                        const Center(
+                          child: Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                        ),
+                      ],
+                    )
+                  : const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                          SizedBox(height: 8),
+                          Text('Tap to add header image', style: TextStyle(color: Colors.white, fontSize: 14)),
+                        ],
                       ),
                     ),
-                  )
-                : Center(
-                    child: Text(
-                      _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
-                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: _pickAndUploadAvatar,
-          child: const Text('Change Photo', style: TextStyle(color: AppColors.electricPurple)),
+        const SizedBox(height: 16),
+        // Avatar
+        Transform.translate(
+          offset: const Offset(0, -40),
+          child: Column(
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(colors: [AppColors.electricPurple, AppColors.neonPurple]),
+                  border: Border.all(color: AppColors.background(context), width: 4),
+                  boxShadow: [BoxShadow(color: AppColors.electricPurple.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
+                ),
+                child: ClipOval(
+                  child: avatarUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: avatarUrl,
+                          fit: BoxFit.cover,
+                          width: 100,
+                          height: 100,
+                          errorWidget: (c, u, e) => Center(
+                            child: Text(
+                              _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
+                              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
+                            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _pickAndUploadAvatar,
+                child: const Text('Change Photo', style: TextStyle(color: AppColors.electricPurple)),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -184,11 +251,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() => _isLoading = true);
     try {
       final bytes = await image.readAsBytes();
-      final ext = '.${image.name.split('.').last}';
+      // Get file extension from mimeType or fallback to jpg
+      String ext = 'jpg';
+      if (image.name.contains('.')) {
+        ext = image.name.split('.').last.toLowerCase();
+      }
+      if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) {
+        ext = 'jpg';
+      }
+      
       final user = context.read<SupabaseService>().currentUser;
       if (user == null) return;
 
-      final url = await context.read<SupabaseService>().uploadAvatar(user.id, bytes, ext);
+      final url = await context.read<SupabaseService>().uploadAvatar(user.id, bytes, '.$ext');
       if (url != null && mounted) {
         await context.read<AuthCubit>().refreshProfile();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -199,6 +274,44 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: const Text('Failed to upload avatar'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickAndUploadHeader() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final bytes = await image.readAsBytes();
+      // Get file extension from mimeType or fallback to jpg
+      String ext = 'jpg';
+      if (image.name.contains('.')) {
+        ext = image.name.split('.').last.toLowerCase();
+      }
+      if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) {
+        ext = 'jpg';
+      }
+      
+      final user = context.read<SupabaseService>().currentUser;
+      if (user == null) return;
+
+      final url = await context.read<SupabaseService>().uploadHeader(user.id, bytes, '.$ext');
+      if (url != null && mounted) {
+        await context.read<AuthCubit>().refreshProfile();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Header image updated!'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to upload header image'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         );
       }
     } finally {

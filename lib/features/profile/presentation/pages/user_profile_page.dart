@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -34,6 +35,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool _isOwnProfile = false;
   bool _isPublic = true;
   bool _isTogglingFollow = false;
+  bool _isFollowingMe = false;
 
   @override
   void initState() {
@@ -68,8 +70,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
       final watchHistory = results[5] as List<Map<String, dynamic>>;
 
       bool isFollowing = false;
+      bool isFollowingMe = false;
       if (!_isOwnProfile) {
-        isFollowing = await supabase.isFollowing(currentUserId, widget.userId);
+        final results2 = await Future.wait([
+          supabase.isFollowing(currentUserId, widget.userId),
+          supabase.isFollowing(widget.userId, currentUserId),
+        ]);
+        isFollowing = results2[0] as bool;
+        isFollowingMe = results2[1] as bool;
       }
 
       // Fetch missing titles for items that don't have them
@@ -90,6 +98,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _followersCount = followers.length;
           _followingCount = following.length;
           _isFollowing = isFollowing;
+          _isFollowingMe = isFollowingMe;
           _isLoading = false;
         });
       }
@@ -130,6 +139,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final currentUserId = authState.user.id;
 
     final wasFollowing = _isFollowing;
+    HapticFeedback.lightImpact();
     setState(() {
       _isTogglingFollow = true;
       _isFollowing = !_isFollowing;
@@ -147,6 +157,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _isFollowing = wasFollowing;
         _followersCount += wasFollowing ? 1 : -1;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to update. Please try again.'), backgroundColor: AppColors.error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isTogglingFollow = false);
     }
@@ -348,7 +363,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         ? 'Loading...'
                         : _isFollowing
                             ? 'Following'
-                            : 'Follow',
+                            : _isFollowingMe
+                                ? 'Follow Back'
+                                : 'Follow',
                     icon: _isTogglingFollow
                         ? null
                         : _isFollowing
@@ -435,6 +452,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildHeaderImage(String? headerUrl, String? avatarUrl, String username) {
+    // Use header_image_url if available, otherwise show gradient
+    // (watchlist backdrop would require fetching TMDB data which is expensive)
+    
     return Container(
       width: double.infinity,
       height: 180,
