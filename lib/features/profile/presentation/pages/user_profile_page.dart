@@ -393,19 +393,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 child: Column(
                   children: [
                     if (_watchlist.isNotEmpty) ...[
-                      _buildSectionHeader('Watchlist', Icons.bookmark_rounded, const Color(0xFF6C63FF)),
+                      _buildSectionHeader('Watchlist', Icons.bookmark_rounded, const Color(0xFF6C63FF),
+                        onSeeAll: () => context.push('/user/${widget.userId}/list/watchlist')),
                       const SizedBox(height: 12),
                       _buildMediaCarousel(_watchlist),
                       const SizedBox(height: 24),
                     ],
                     if (_favorites.isNotEmpty) ...[
-                      _buildSectionHeader('Favorites', Icons.favorite_rounded, const Color(0xFFE50914)),
+                      _buildSectionHeader('Favorites', Icons.favorite_rounded, const Color(0xFFE50914),
+                        onSeeAll: () => context.push('/user/${widget.userId}/list/favorites')),
                       const SizedBox(height: 12),
                       _buildMediaCarousel(_favorites),
                       const SizedBox(height: 24),
                     ],
                     if (_watchHistory.isNotEmpty) ...[
-                      _buildSectionHeader('Watch History', Icons.history_rounded, const Color(0xFF00CC6A)),
+                      _buildSectionHeader('Watch History', Icons.history_rounded, const Color(0xFF00CC6A),
+                        onSeeAll: () => context.push('/user/${widget.userId}/list/history')),
                       const SizedBox(height: 12),
                       _buildMediaCarousel(_watchHistory),
                       const SizedBox(height: 24),
@@ -583,7 +586,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon, Color color) {
+  Widget _buildSectionHeader(String title, IconData icon, Color color, {VoidCallback? onSeeAll}) {
     return Row(
       children: [
         Container(
@@ -593,6 +596,23 @@ class _UserProfilePageState extends State<UserProfilePage> {
         ),
         const SizedBox(width: 10),
         Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        const Spacer(),
+        if (onSeeAll != null)
+          GestureDetector(
+            onTap: onSeeAll,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('See All', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_ios, color: color, size: 12),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }

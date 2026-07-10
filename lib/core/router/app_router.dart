@@ -37,6 +37,7 @@ import '../../features/person/presentation/pages/person_detail_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/favorites_page.dart';
 import '../../features/profile/presentation/pages/user_profile_page.dart';
+import '../../features/profile/presentation/pages/user_list_page.dart';
 import '../../features/profile/presentation/pages/watch_history_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../shared/widgets/main_scaffold.dart';
@@ -163,6 +164,14 @@ class AppRouter {
         builder: (context, state) {
           final userId = state.pathParameters['userId']!;
           return UserProfilePage(userId: userId);
+        },
+      ),
+      GoRoute(
+        path: '/user/:userId/list/:listType',
+        builder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          final listType = state.pathParameters['listType']!;
+          return UserListPage(userId: userId, listType: listType);
         },
       ),
       GoRoute(

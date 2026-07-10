@@ -141,7 +141,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       children: [
         // Header image
         GestureDetector(
-          onTap: _pickAndUploadHeader,
+          onTap: () => _showImageOptions(context, isHeader: true, hasImage: headerUrl != null),
           child: Container(
             width: double.infinity,
             height: 160,
@@ -176,8 +176,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             ),
                           ),
                         ),
-                        const Center(
-                          child: Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.edit, color: Colors.white, size: 18),
+                          ),
                         ),
                       ],
                     )
@@ -200,47 +209,186 @@ class _EditProfilePageState extends State<EditProfilePage> {
           offset: const Offset(0, -40),
           child: Column(
             children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(colors: [AppColors.electricPurple, AppColors.neonPurple]),
-                  border: Border.all(color: AppColors.background(context), width: 4),
-                  boxShadow: [BoxShadow(color: AppColors.electricPurple.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
-                ),
-                child: ClipOval(
-                  child: avatarUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: avatarUrl,
-                          fit: BoxFit.cover,
-                          width: 100,
-                          height: 100,
-                          errorWidget: (c, u, e) => Center(
-                            child: Text(
-                              _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
-                              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ),
-                        )
-                      : Center(
-                          child: Text(
-                            _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
-                            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
+              GestureDetector(
+                onTap: () => _showImageOptions(context, isHeader: false, hasImage: avatarUrl != null),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(colors: [AppColors.electricPurple, AppColors.neonPurple]),
+                        border: Border.all(color: AppColors.background(context), width: 4),
+                        boxShadow: [BoxShadow(color: AppColors.electricPurple.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))],
+                      ),
+                      child: ClipOval(
+                        child: avatarUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: avatarUrl,
+                                fit: BoxFit.cover,
+                                width: 100,
+                                height: 100,
+                                errorWidget: (c, u, e) => Center(
+                                  child: Text(
+                                    _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
+                                    style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  _usernameController.text.isNotEmpty ? _usernameController.text[0].toUpperCase() : 'U',
+                                  style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.electricPurple,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.background(context), width: 2),
                         ),
+                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: _pickAndUploadAvatar,
-                child: const Text('Change Photo', style: TextStyle(color: AppColors.electricPurple)),
               ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  void _showImageOptions(BuildContext context, {required bool isHeader, required bool hasImage}) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                isHeader ? 'Header Image' : 'Profile Photo',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context)),
+              ),
+              const SizedBox(height: 20),
+              _buildOptionTile(
+                context,
+                icon: Icons.photo_library,
+                title: 'Choose from Gallery',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  if (isHeader) {
+                    _pickAndUploadHeader();
+                  } else {
+                    _pickAndUploadAvatar();
+                  }
+                },
+              ),
+              if (hasImage) ...[
+                _buildOptionTile(
+                  context,
+                  icon: Icons.delete_outline,
+                  title: 'Remove',
+                  color: AppColors.error,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    if (isHeader) {
+                      _removeHeader();
+                    } else {
+                      _removeAvatar();
+                    }
+                  },
+                ),
+              ],
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(sheetContext),
+                child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap, Color? color}) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? AppColors.text(context)),
+      title: Text(title, style: TextStyle(color: color ?? AppColors.text(context))),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Future<void> _removeAvatar() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = context.read<SupabaseService>().currentUser;
+      if (user == null) return;
+      await context.read<SupabaseService>().deleteAvatar(user.id);
+      await context.read<AuthCubit>().refreshProfile();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Avatar removed!'), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to remove avatar'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _removeHeader() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = context.read<SupabaseService>().currentUser;
+      if (user == null) return;
+      await context.read<SupabaseService>().deleteHeader(user.id);
+      await context.read<AuthCubit>().refreshProfile();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Header removed!'), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to remove header'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _pickAndUploadAvatar() async {
