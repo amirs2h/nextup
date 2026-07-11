@@ -35,8 +35,14 @@ class NotificationsError extends NotificationsState {
 class NotificationsCubit extends Cubit<NotificationsState> {
   final SupabaseService _supabaseService;
   RealtimeChannel? _channel;
+  bool _isSubscribing = false;
 
-  NotificationsCubit(this._supabaseService) : super(NotificationsInitial());
+  NotificationsCubit(this._supabaseService) : super(NotificationsInitial()) {
+    // Load notifications on startup if user is logged in
+    if (_supabaseService.isLoggedIn) {
+      loadNotifications();
+    }
+  }
 
   Future<void> loadNotifications() async {
     final user = _supabaseService.currentUser;
@@ -62,11 +68,12 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   void subscribeToRealtime() {
     final user = _supabaseService.currentUser;
     if (user == null) return;
+    if (_isSubscribing) return;
 
-    // Unsubscribe from previous channel if exists
+    _isSubscribing = true;
     _channel?.unsubscribe();
+    _channel = null;
 
-    // Subscribe to notifications table changes
     _channel = _supabaseService.client
         .channel('notifications:${user.id}')
         .onPostgresChanges(
@@ -79,13 +86,14 @@ class NotificationsCubit extends Cubit<NotificationsState> {
             value: user.id,
           ),
           callback: (payload) {
-            // Reload notifications when new one arrives (check if cubit is still open)
             if (!isClosed) {
               loadNotifications();
             }
           },
         )
         .subscribe();
+
+    _isSubscribing = false;
   }
 
   void unsubscribeFromRealtime() {

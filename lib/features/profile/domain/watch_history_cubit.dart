@@ -14,19 +14,43 @@ class WatchHistoryInitial extends WatchHistoryState {}
 
 class WatchHistoryLoading extends WatchHistoryState {}
 
+class WatchHistoryGroupedItem {
+  final int tmdbId;
+  final String mediaType;
+  final String title;
+  final String? posterPath;
+  final int episodeCount;
+  final int? latestSeason;
+  final int? latestEpisode;
+  final DateTime latestWatchedAt;
+
+  WatchHistoryGroupedItem({
+    required this.tmdbId,
+    required this.mediaType,
+    required this.title,
+    this.posterPath,
+    required this.episodeCount,
+    this.latestSeason,
+    this.latestEpisode,
+    required this.latestWatchedAt,
+  });
+}
+
 class WatchHistoryLoaded extends WatchHistoryState {
   final List<Map<String, dynamic>> history;
   final Map<int, ShowModel> shows;
   final Map<int, MovieModel> movies;
+  final List<WatchHistoryGroupedItem> groupedHistory;
 
   WatchHistoryLoaded({
     required this.history,
     required this.shows,
     required this.movies,
+    required this.groupedHistory,
   });
 
   @override
-  List<Object?> get props => [history, shows, movies];
+  List<Object?> get props => [history, shows, movies, groupedHistory];
 }
 
 class WatchHistoryError extends WatchHistoryState {
@@ -47,7 +71,7 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
     final user = _supabaseService.currentUser;
     if (user == null) {
       if (isClosed) return;
-      emit(WatchHistoryLoaded(history: [], shows: {}, movies: {}));
+      emit(WatchHistoryLoaded(history: [], shows: {}, movies: {}, groupedHistory: []));
       return;
     }
 
@@ -58,11 +82,55 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
 
       if (history.isEmpty) {
         if (isClosed) return;
-        emit(WatchHistoryLoaded(history: [], shows: {}, movies: {}));
+        emit(WatchHistoryLoaded(history: [], shows: {}, movies: {}, groupedHistory: []));
         return;
       }
 
-      // Deduplicate by tmdb_id
+      // Group by tmdb_id
+      final Map<int, List<Map<String, dynamic>>> groupedItems = {};
+      for (final item in history) {
+        final tmdbId = item['tmdb_id'] as int;
+        groupedItems.putIfAbsent(tmdbId, () => []).add(item);
+      }
+
+      // Build grouped history
+      final List<WatchHistoryGroupedItem> groupedHistory = [];
+      for (final entry in groupedItems.entries) {
+        final items = entry.value;
+        final firstItem = items.first;
+        final mediaType = firstItem['media_type'] as String? ?? 'tv';
+        final title = firstItem['title'] as String? ?? 'Unknown';
+        final posterPath = firstItem['poster_path'] as String?;
+
+        // Find latest watched_at
+        DateTime latestWatched = DateTime.fromMillisecondsSinceEpoch(0);
+        int? latestSeason;
+        int? latestEpisode;
+        for (final item in items) {
+          final watchedAt = DateTime.tryParse(item['watched_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+          if (watchedAt.isAfter(latestWatched)) {
+            latestWatched = watchedAt;
+            latestSeason = item['season_number'] as int?;
+            latestEpisode = item['episode_number'] as int?;
+          }
+        }
+
+        groupedHistory.add(WatchHistoryGroupedItem(
+          tmdbId: entry.key,
+          mediaType: mediaType,
+          title: title,
+          posterPath: posterPath,
+          episodeCount: items.length,
+          latestSeason: latestSeason,
+          latestEpisode: latestEpisode,
+          latestWatchedAt: latestWatched,
+        ));
+      }
+
+      // Sort by latest watched_at descending
+      groupedHistory.sort((a, b) => b.latestWatchedAt.compareTo(a.latestWatchedAt));
+
+      // Deduplicate by tmdb_id for show/movie metadata
       final uniqueShowIds = <int>{};
       final uniqueMovieIds = <int>{};
       for (final item in history) {
@@ -138,8 +206,43 @@ class WatchHistoryCubit extends Cubit<WatchHistoryState> {
         }
       }
 
+      // Update groupedHistory with correct titles from TMDB
+      for (int i = 0; i < groupedHistory.length; i++) {
+        final item = groupedHistory[i];
+        if (item.title == 'Unknown' || item.posterPath == null || item.posterPath!.isEmpty) {
+          String? correctTitle;
+          String? correctPoster;
+          
+          if (item.mediaType == 'tv' && shows.containsKey(item.tmdbId)) {
+            correctTitle = shows[item.tmdbId]!.name;
+            correctPoster = shows[item.tmdbId]!.posterPath;
+          } else if (item.mediaType == 'movie' && movies.containsKey(item.tmdbId)) {
+            correctTitle = movies[item.tmdbId]!.title;
+            correctPoster = movies[item.tmdbId]!.posterPath;
+          }
+          
+          if (correctTitle != null) {
+            groupedHistory[i] = WatchHistoryGroupedItem(
+              tmdbId: item.tmdbId,
+              mediaType: item.mediaType,
+              title: correctTitle,
+              posterPath: correctPoster ?? item.posterPath,
+              episodeCount: item.episodeCount,
+              latestSeason: item.latestSeason,
+              latestEpisode: item.latestEpisode,
+              latestWatchedAt: item.latestWatchedAt,
+            );
+          }
+        }
+      }
+
       if (isClosed) return;
-      emit(WatchHistoryLoaded(history: history, shows: shows, movies: movies));
+      emit(WatchHistoryLoaded(
+        history: history,
+        shows: shows,
+        movies: movies,
+        groupedHistory: groupedHistory,
+      ));
     } catch (e) {
       if (isClosed) return;
       emit(WatchHistoryError('Something went wrong. Please try again.'));

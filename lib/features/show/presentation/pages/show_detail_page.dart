@@ -16,6 +16,7 @@ import '../../../../shared/widgets/favorite_actor_voting_widget.dart';
 import '../../../../shared/widgets/rating_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/show_detail_cubit.dart';
+import '../../../../shared/models/show_model.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
 
 class ShowDetailPage extends StatelessWidget {
@@ -46,6 +47,59 @@ class _ShowDetailView extends StatefulWidget {
 }
 
 class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
+  bool _isMarkingAll = false;
+
+  // Find the next unwatched episode
+  Map<String, int>? _findNextEpisode(ShowDetailLoaded state) {
+    final seasons = state.show.seasons;
+    if (seasons == null) return null;
+
+    for (final season in seasons) {
+      if (season.seasonNumber <= 0) continue; // Skip specials
+      final episodeCount = season.episodeCount;
+      if (episodeCount <= 0) continue;
+
+      for (int ep = 1; ep <= episodeCount; ep++) {
+        final key = season.seasonNumber * 10000 + ep;
+        if (state.watchedEpisodes[key] != true) {
+          return {'season': season.seasonNumber, 'episode': ep};
+        }
+      }
+    }
+    return null; // All caught up
+  }
+
+  Future<void> _markAllAsWatched() async {
+    if (_isMarkingAll) return;
+    setState(() => _isMarkingAll = true);
+    try {
+      await context.read<ShowDetailCubit>().markAllAsWatched();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('All episodes marked as watched!'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to mark all episodes'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isMarkingAll = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ShowDetailCubit, ShowDetailState>(
@@ -237,6 +291,29 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                           ],
                         ),
                         const SizedBox(height: 12),
+                        // Mark All as Watched Button
+                        GlassContainer(
+                          padding: const EdgeInsets.all(16),
+                          borderRadius: BorderRadius.circular(16),
+                          child: InkWell(
+                            onTap: _isMarkingAll ? null : _markAllAsWatched,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _isMarkingAll
+                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00FF88)))
+                                    : const Icon(Icons.done_all_rounded, color: Color(0xFF00FF88), size: 24),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isMarkingAll ? 'Marking...' : 'Mark All as Watched',
+                                  style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         // Rating Button
                         GlassContainer(
                           padding: const EdgeInsets.all(16),
@@ -272,8 +349,10 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Up Next Card
+                        _buildUpNextCard(context, state),
+                        const SizedBox(height: 12),
                         // Tagline
                         if (state.show.tagline != null && state.show.tagline!.isNotEmpty) ...[
                           Text(state.show.tagline!, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14, fontStyle: FontStyle.italic)),
@@ -476,6 +555,98 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildUpNextCard(BuildContext context, ShowDetailLoaded state) {
+    final nextEpisode = _findNextEpisode(state);
+
+    if (nextEpisode == null) {
+      // All caught up
+      return GlassContainer(
+        padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(16),
+        borderColor: const Color(0xFF00FF88).withValues(alpha: 0.3),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00FF88).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.check_circle_rounded, color: Color(0xFF00FF88), size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('All Caught Up!', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text('You\'ve watched all episodes', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final seasonNum = nextEpisode['season']!;
+    final episodeNum = nextEpisode['episode']!;
+
+    return GestureDetector(
+      onTap: () => context.push('/show/${widget.showId}/season/$seasonNum/episode/$episodeNum'),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(16),
+        borderColor: AppColors.primary.withValues(alpha: 0.3),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+              ),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Up Next', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 11, letterSpacing: 0.5)),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Season $seasonNum · Episode $episodeNum',
+                    style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.play_arrow_rounded, color: AppColors.primary, size: 14),
+                  const SizedBox(width: 4),
+                  Text('Watch', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

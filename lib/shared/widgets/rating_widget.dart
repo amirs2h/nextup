@@ -10,33 +10,40 @@ class StarRating extends StatelessWidget {
   const StarRating({
     super.key,
     this.rating = 0,
-    this.size = 24,
+    this.size = 20,
     this.allowRating = false,
     this.onRatingChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(10, (index) {
-        final starValue = index + 1.0;
-        final isHalfStar = rating >= starValue - 0.5 && rating < starValue;
-        final isFullStar = rating >= starValue;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(10, (index) {
+          final starValue = index + 1.0;
+          final isHalfStar = rating >= starValue - 0.5 && rating < starValue;
+          final isFullStar = rating >= starValue;
 
-        return GestureDetector(
-          onTap: allowRating ? () => onRatingChanged?.call(starValue) : null,
-          child: Icon(
-            isFullStar
-                ? Icons.star_rounded
-                : isHalfStar
-                    ? Icons.star_half_rounded
-                    : Icons.star_outline_rounded,
-            color: isFullStar || isHalfStar ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
-            size: size,
-          ),
-        );
-      }),
+          return GestureDetector(
+            onTap: allowRating ? () => onRatingChanged?.call(starValue) : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              child: Icon(
+                isFullStar
+                    ? Icons.star_rounded
+                    : isHalfStar
+                        ? Icons.star_half_rounded
+                        : Icons.star_outline_rounded,
+                color: isFullStar || isHalfStar ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
+                size: size,
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
@@ -130,7 +137,7 @@ class _RatingDialogState extends State<RatingDialog> {
           const SizedBox(height: 16),
           StarRating(
             rating: _rating,
-            size: 36,
+            size: 28,
             allowRating: true,
             onRatingChanged: (value) => setState(() => _rating = value),
           ),

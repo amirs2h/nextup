@@ -188,11 +188,13 @@ class _NotificationListenerState extends State<_NotificationListener> {
 
     if (authCubit.state is AuthAuthenticated) {
       notificationsCubit.subscribeToRealtime();
+      notificationsCubit.loadNotifications();
     }
 
     _authSubscription = authCubit.stream.listen((state) {
       if (state is AuthAuthenticated) {
         notificationsCubit.subscribeToRealtime();
+        notificationsCubit.loadNotifications();
       } else {
         notificationsCubit.unsubscribeFromRealtime();
       }

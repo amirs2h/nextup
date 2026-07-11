@@ -89,6 +89,13 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
 
     final isWatched = currentState.watchedEpisodes[episodeNumber] ?? false;
 
+    final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+    newWatched[episodeNumber] = !isWatched;
+    emit(SeasonDetailLoaded(
+      season: currentState.season,
+      watchedEpisodes: newWatched,
+    ));
+
     try {
       if (isWatched) {
         await _supabaseService.unmarkAsWatched(
@@ -105,23 +112,14 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
           mediaType: 'tv',
           seasonNumber: seasonNumber,
           episodeNumber: episodeNumber,
+          title: currentState.season.name,
+          posterPath: currentState.season.posterPath,
         );
       }
 
-      final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
-      newWatched[episodeNumber] = !isWatched;
-
-      if (isClosed) return;
-      emit(SeasonDetailLoaded(
-        season: currentState.season,
-        watchedEpisodes: newWatched,
-      ));
-
-      // Auto-compute status after toggling episode
       await _autoComputeStatus(user.id);
     } catch (e) {
-// Reload to get actual state from DB
-      await loadSeasonDetails();
+      if (!isClosed) emit(currentState);
     }
   }
 
@@ -131,46 +129,69 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
 
     final currentState = state;
     if (currentState is! SeasonDetailLoaded) return;
-    if (currentState.season.episodes == null) return;
+
+    List<EpisodeModel> episodes;
+    if (currentState.season.episodes != null) {
+      episodes = currentState.season.episodes!;
+    } else {
+      try {
+        final seasonData = await _tmdbService.getShowSeasonDetails(showId, seasonNumber);
+        final fetchedSeason = SeasonModel.fromJson(seasonData);
+        episodes = fetchedSeason.episodes ?? [];
+        if (episodes.isEmpty) return;
+        if (!isClosed) {
+          emit(SeasonDetailLoaded(
+            season: fetchedSeason,
+            watchedEpisodes: currentState.watchedEpisodes,
+          ));
+        }
+      } catch (_) {
+        return;
+      }
+    }
+
+    final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+    for (final episode in episodes) {
+      optimisticWatched[episode.episodeNumber] = true;
+    }
+    emit(SeasonDetailLoaded(
+      season: currentState.season,
+      watchedEpisodes: optimisticWatched,
+    ));
 
     try {
-      // Parallel marking for better performance
-      final futures = currentState.season.episodes!.map((episode) async {
-        try {
-          await _supabaseService.markAsWatched(
-            userId: user.id,
-            tmdbId: showId,
-            mediaType: 'tv',
-            seasonNumber: seasonNumber,
-            episodeNumber: episode.episodeNumber,
-          );
-          return episode.episodeNumber;
-        } catch (e) {
-          return -1; // Failed
-        }
-      });
-      final results = await Future.wait(futures);
-      final successfullyMarked = results.where((id) => id >= 0).toSet();
+      final List<List<dynamic>> batches = [];
+      List<dynamic> currentBatch = [];
 
-      // Merge with existing watched state - preserve previously watched episodes
-      final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
-      for (final episode in currentState.season.episodes!) {
-        if (successfullyMarked.contains(episode.episodeNumber)) {
-          newWatched[episode.episodeNumber] = true;
+      for (final episode in episodes) {
+        currentBatch.add(episode.episodeNumber);
+        if (currentBatch.length >= 10) {
+          batches.add(currentBatch);
+          currentBatch = [];
         }
-        // If not in successfullyMarked, keep existing value (don't set to false)
+      }
+      if (currentBatch.isNotEmpty) batches.add(currentBatch);
+
+      for (int i = 0; i < batches.length; i++) {
+        if (i > 0) await Future.delayed(const Duration(milliseconds: 100));
+        await Future.wait(batches[i].map((epNum) async {
+          try {
+            await _supabaseService.markAsWatched(
+              userId: user.id,
+              tmdbId: showId,
+              mediaType: 'tv',
+              seasonNumber: seasonNumber,
+              episodeNumber: epNum as int,
+              title: currentState.season.name,
+              posterPath: currentState.season.posterPath,
+            );
+          } catch (_) {}
+        }));
       }
 
-      if (isClosed) return;
-      emit(SeasonDetailLoaded(
-        season: currentState.season,
-        watchedEpisodes: newWatched,
-      ));
-
-      // Auto-compute status after marking all episodes
       await _autoComputeStatus(user.id);
     } catch (e) {
-      await loadSeasonDetails();
+      if (!isClosed) emit(currentState);
     }
   }
 

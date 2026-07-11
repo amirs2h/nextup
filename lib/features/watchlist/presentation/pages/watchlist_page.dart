@@ -360,7 +360,12 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
       onPressed: () {
         Navigator.pop(ctx);
         if (tmdbId > 0 && mediaType.isNotEmpty) {
-          context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, value);
+          // If changing to "completed" for a TV show, ask about marking all episodes
+          if (value == 'completed' && mediaType == 'tv' && current != 'completed') {
+            _showMarkAllDialog(context, tmdbId, mediaType, value);
+          } else {
+            context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, value);
+          }
         }
       },
       child: Row(
@@ -369,6 +374,45 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
             child: Text(label, style: TextStyle(color: isSelected ? AppColors.primary : AppColors.text(context), fontSize: 16)),
           ),
           if (isSelected) const Icon(Icons.check, color: AppColors.primary),
+        ],
+      ),
+    );
+  }
+
+  void _showMarkAllDialog(BuildContext ctx, int tmdbId, String mediaType, String newStatus) {
+    showDialog(
+      context: this.context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Mark as Completed?', style: TextStyle(color: AppColors.text(context))),
+        content: Text(
+          'Do you also want to mark all episodes as watched?',
+          style: TextStyle(color: AppColors.textSecondary(context)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              // Just change status without marking episodes
+              context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, newStatus);
+            },
+            child: Text('No, just change status', style: TextStyle(color: AppColors.textMuted(context))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              // Change status
+              context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, newStatus);
+              // Navigate to show detail to mark all episodes
+              context.push('/show/$tmdbId');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Yes, mark all'),
+          ),
         ],
       ),
     );

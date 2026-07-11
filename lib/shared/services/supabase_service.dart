@@ -168,23 +168,12 @@ class SupabaseService {
         ext = 'jpg'; // Default to jpg if unknown
       }
       
-      // Delete old avatar if exists
-      final profile = await getProfile(userId);
-      if (profile != null && profile['avatar_url'] != null) {
-        try {
-          final oldUrl = profile['avatar_url'] as String;
-          final oldPath = oldUrl.split('/').last;
-          await _client.storage.from('avatars').remove(['$userId/$oldPath']);
-        } catch (e) {
-          // Continue even if delete fails
-        }
-      }
-      
+      String mimeType = (ext == 'jpg' || ext == 'jpeg') ? 'image/jpeg' : 'image/$ext';
       final path = '$userId/avatar.$ext';
       await _client.storage.from('avatars').uploadBinary(
         path,
         fileBytes,
-        fileOptions: FileOptions(contentType: 'image/$ext'),
+        fileOptions: FileOptions(contentType: mimeType, upsert: true),
       );
       final url = _client.storage.from('avatars').getPublicUrl(path);
       await updateProfile(userId, {'avatar_url': url});
@@ -197,12 +186,12 @@ class SupabaseService {
   Future<void> deleteAvatar(String userId) async {
     try {
       final profile = await getProfile(userId);
-      if (profile != null && profile['avatar_url'] != null) {
+      if (profile != null && profile['avatar_url'] != null && (profile['avatar_url'] as String).isNotEmpty) {
         final url = profile['avatar_url'] as String;
         final path = url.split('/').last;
         await _client.storage.from('avatars').remove(['$userId/$path']);
-        await updateProfile(userId, {'avatar_url': null});
       }
+      await updateProfile(userId, {'avatar_url': null});
     } catch (e) {
       // Silently continue
     }
@@ -816,6 +805,8 @@ class SupabaseService {
           .eq('user_id', userId)
           .eq('tmdb_id', tmdbId)
           .eq('media_type', mediaType)
+          .isFilter('season_number', null)
+          .isFilter('episode_number', null)
           .maybeSingle();
       return response?['rating']?.toDouble();
     } catch (e) {
@@ -1169,7 +1160,7 @@ class SupabaseService {
   // Update profile header image
   Future<void> updateProfileHeader({
     required String userId,
-    required String headerImageUrl,
+    String? headerImageUrl,
   }) async {
     await _client.from('profiles')
         .update({'header_image_url': headerImageUrl})
@@ -1185,23 +1176,12 @@ class SupabaseService {
         ext = 'jpg'; // Default to jpg if unknown
       }
       
-      // Delete old header if exists
-      final profile = await getProfile(userId);
-      if (profile != null && profile['header_image_url'] != null) {
-        try {
-          final oldUrl = profile['header_image_url'] as String;
-          final oldPath = oldUrl.split('/').last;
-          await _client.storage.from('avatars').remove(['$userId/$oldPath']);
-        } catch (e) {
-          // Continue even if delete fails
-        }
-      }
-      
+      String mimeType = (ext == 'jpg' || ext == 'jpeg') ? 'image/jpeg' : 'image/$ext';
       final path = '$userId/header.$ext';
       await _client.storage.from('avatars').uploadBinary(
         path,
         fileBytes,
-        fileOptions: FileOptions(contentType: 'image/$ext'),
+        fileOptions: FileOptions(contentType: mimeType, upsert: true),
       );
       final url = _client.storage.from('avatars').getPublicUrl(path);
       await updateProfileHeader(userId: userId, headerImageUrl: url);
@@ -1215,12 +1195,12 @@ class SupabaseService {
   Future<void> deleteHeader(String userId) async {
     try {
       final profile = await getProfile(userId);
-      if (profile != null && profile['header_image_url'] != null) {
+      if (profile != null && profile['header_image_url'] != null && (profile['header_image_url'] as String).isNotEmpty) {
         final url = profile['header_image_url'] as String;
         final path = url.split('/').last;
         await _client.storage.from('avatars').remove(['$userId/$path']);
-        await updateProfileHeader(userId: userId, headerImageUrl: '');
       }
+      await updateProfileHeader(userId: userId, headerImageUrl: null);
     } catch (e) {
       // Silently continue
     }

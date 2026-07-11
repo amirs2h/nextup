@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../auth/domain/auth_cubit.dart';
+import '../../../profile/domain/profile_cubit.dart';
 import '../../domain/notifications_cubit.dart';
+import '../../../../shared/services/supabase_service.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -140,6 +144,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final title = notification['title'] ?? '';
     final body = notification['body'] ?? '';
     final createdAt = notification['created_at'] != null ? DateTime.parse(notification['created_at']) : DateTime.now();
+    final data = notification['data'] as Map<String, dynamic>? ?? {};
 
     IconData icon;
     Color iconColor;
@@ -153,6 +158,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
         icon = Icons.movie;
         iconColor = AppColors.electricPurple;
         break;
+      case 'follow':
+        icon = Icons.person_add;
+        iconColor = const Color(0xFF00D4FF);
+        break;
       case 'new_follower':
         icon = Icons.person_add;
         iconColor = const Color(0xFF00D4FF);
@@ -165,6 +174,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
         icon = Icons.notifications;
         iconColor = AppColors.warning;
     }
+
+    final followerId = data['follower_id'] as String?;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -202,7 +213,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ],
                     const SizedBox(height: 4),
-                    Text(timeago.format(createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                    Row(
+                      children: [
+                        Text(timeago.format(createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                        if (type == 'follow' && followerId != null) ...[
+                          const Spacer(),
+                          _buildFollowButton(context, followerId),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -219,10 +238,72 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
+  Widget _buildFollowButton(BuildContext context, String followerId) {
+    return FutureBuilder<bool>(
+      future: _checkIfFollowing(followerId),
+      builder: (context, snapshot) {
+        final isFollowing = snapshot.data ?? false;
+        if (isFollowing) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg(context),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text('Following', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+          );
+        }
+        return GestureDetector(
+          onTap: () => _followBack(context, followerId),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.electricPurple.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text('Follow Back', style: TextStyle(color: AppColors.electricPurple, fontSize: 11, fontWeight: FontWeight.w600)),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _checkIfFollowing(String followerId) async {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) return false;
+    final supabase = context.read<SupabaseService>();
+    return await supabase.isFollowing(authState.user.id, followerId);
+  }
+
+  Future<void> _followBack(BuildContext context, String followerId) async {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) return;
+
+    HapticFeedback.lightImpact();
+    try {
+      final supabase = context.read<SupabaseService>();
+      await supabase.followUser(authState.user.id, followerId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Followed back!'), backgroundColor: AppColors.success),
+        );
+        // Refresh the notification to update the button
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to follow'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
   void _navigateToContent(BuildContext context, Map<String, dynamic> notification) {
     final type = notification['type'] ?? '';
     final data = notification['data'] as Map<String, dynamic>? ?? {};
     final tmdbId = data['tmdb_id'];
+    final followerId = data['follower_id'];
     final userId = data['user_id'];
 
     switch (type) {
@@ -234,28 +315,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
           context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
         }
         break;
+      case 'follow':
       case 'new_follower':
-        if (userId != null) {
-          context.push('/user/$userId');
+        final uid = followerId ?? userId;
+        if (uid != null) {
+          context.push('/user/$uid');
         }
         break;
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

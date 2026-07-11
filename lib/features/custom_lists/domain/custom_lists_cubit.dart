@@ -54,6 +54,7 @@ class CustomListsCubit extends Cubit<CustomListsState> {
     try {
       final user = _supabaseService.currentUser;
       if (user == null) {
+        if (isClosed) return;
         emit(CustomListsError('Please login to view your lists'));
         return;
       }

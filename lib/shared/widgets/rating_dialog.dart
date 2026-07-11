@@ -26,19 +26,26 @@ void showRatingDialog({
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(10, (index) {
-                final starValue = index + 1.0;
-                return GestureDetector(
-                  onTap: () => setState(() => rating = starValue),
-                  child: Icon(
-                    rating >= starValue ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: rating >= starValue ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
-                    size: 32,
-                  ),
-                );
-              }),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(10, (index) {
+                  final starValue = index + 1.0;
+                  return GestureDetector(
+                    onTap: () => setState(() => rating = starValue),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 1),
+                      child: Icon(
+                        rating >= starValue ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: rating >= starValue ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
+                        size: 24,
+                      ),
+                    ),
+                  );
+                }),
+              ),
             ),
           ],
         ),

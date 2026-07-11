@@ -28,6 +28,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   List<Map<String, dynamic>> _watchlist = [];
   List<Map<String, dynamic>> _favorites = [];
   List<Map<String, dynamic>> _watchHistory = [];
+  List<Map<String, dynamic>> _groupedWatchHistory = [];
   List<Map<String, dynamic>> _followers = [];
   List<Map<String, dynamic>> _following = [];
   bool _isFollowing = false;
@@ -85,6 +86,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
       await _fetchMissingTitles(favorites);
       await _fetchMissingTitles(watchHistory);
 
+      // Group watch history by tmdb_id
+      final groupedHistory = _groupWatchHistory(watchHistory);
+
       if (mounted) {
         setState(() {
           _profile = profile;
@@ -92,6 +96,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _watchlist = watchlist;
           _favorites = favorites;
           _watchHistory = watchHistory;
+          _groupedWatchHistory = groupedHistory;
           _followers = followers;
           _following = following;
           _watchlistCount = watchlist.length;
@@ -128,6 +133,48 @@ class _UserProfilePageState extends State<UserProfilePage> {
         }
       }
     }
+  }
+
+  List<Map<String, dynamic>> _groupWatchHistory(List<Map<String, dynamic>> history) {
+    final Map<int, Map<String, dynamic>> grouped = {};
+    
+    for (final item in history) {
+      final tmdbId = item['tmdb_id'] as int;
+      final mediaType = item['media_type'] as String? ?? 'tv';
+      final title = item['title'] as String? ?? 'Unknown';
+      final posterPath = item['poster_path'] as String?;
+      final watchedAt = item['watched_at'] != null ? DateTime.tryParse(item['watched_at']) ?? DateTime.now() : DateTime.now();
+      final seasonNumber = item['season_number'] as int?;
+      final episodeNumber = item['episode_number'] as int?;
+
+      if (!grouped.containsKey(tmdbId)) {
+        grouped[tmdbId] = {
+          'tmdb_id': tmdbId,
+          'media_type': mediaType,
+          'title': title,
+          'poster_path': posterPath,
+          'episode_count': 0,
+          'latest_season': seasonNumber,
+          'latest_episode': episodeNumber,
+          'latest_watched_at': watchedAt,
+        };
+      }
+
+      final group = grouped[tmdbId]!;
+      group['episode_count'] = (group['episode_count'] as int) + 1;
+      
+      // Update latest watched
+      final latestWatched = group['latest_watched_at'] as DateTime;
+      if (watchedAt.isAfter(latestWatched)) {
+        group['latest_watched_at'] = watchedAt;
+        group['latest_season'] = seasonNumber;
+        group['latest_episode'] = episodeNumber;
+      }
+    }
+
+    final result = grouped.values.toList();
+    result.sort((a, b) => (b['latest_watched_at'] as DateTime).compareTo(a['latest_watched_at'] as DateTime));
+    return result;
   }
 
   Future<void> _toggleFollow() async {
@@ -406,14 +453,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       _buildMediaCarousel(_favorites),
                       const SizedBox(height: 24),
                     ],
-                    if (_watchHistory.isNotEmpty) ...[
+                    if (_groupedWatchHistory.isNotEmpty) ...[
                       _buildSectionHeader('Watch History', Icons.history_rounded, const Color(0xFF00CC6A),
                         onSeeAll: () => context.push('/user/${widget.userId}/list/history')),
                       const SizedBox(height: 12),
-                      _buildMediaCarousel(_watchHistory),
+                      _buildGroupedHistoryCarousel(_groupedWatchHistory),
                       const SizedBox(height: 24),
                     ],
-                    if (_watchlist.isEmpty && _favorites.isEmpty && _watchHistory.isEmpty)
+                    if (_watchlist.isEmpty && _favorites.isEmpty && _groupedWatchHistory.isEmpty)
                       GlassContainer(
                         padding: const EdgeInsets.all(24),
                         borderRadius: BorderRadius.circular(16),
@@ -653,6 +700,74 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ),
                   const SizedBox(height: 4),
                   Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGroupedHistoryCarousel(List<Map<String, dynamic>> items) {
+    return SizedBox(
+      height: 180,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final tmdbId = item['tmdb_id'];
+          final mediaType = item['media_type'] ?? 'tv';
+          final posterPath = item['poster_path'];
+          final title = item['title'] ?? 'Unknown';
+          final episodeCount = item['episode_count'] ?? 0;
+          final latestSeason = item['latest_season'];
+          final latestEpisode = item['latest_episode'];
+
+          return GestureDetector(
+            onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
+            child: Container(
+              width: 110,
+              margin: const EdgeInsets.only(right: 12),
+              child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        width: 110,
+                        height: 145,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: posterPath != null && posterPath.toString().isNotEmpty
+                              ? CachedNetworkImage(imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'), fit: BoxFit.cover, errorWidget: (c, u, e) => Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))))
+                              : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                        ),
+                      ),
+                      // Episode count badge
+                      if (mediaType == 'tv' && episodeCount > 1)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text('$episodeCount eps', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+                  if (mediaType == 'tv' && latestSeason != null && latestEpisode != null)
+                    Text('S$latestSeason E$latestEpisode', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10), textAlign: TextAlign.center),
                 ],
               ),
             ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../auth/domain/auth_cubit.dart';
+import '../../../../core/config/app_config.dart';
 
 import '../../domain/watch_history_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
@@ -21,9 +22,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadHistory();
-    });
+    _loadHistory();
   }
 
   void _loadHistory() {
@@ -35,14 +34,145 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: AppBackground(
-        child: SafeArea(
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               _buildHeader(context),
-              Expanded(child: _buildContent(context)),
+              Expanded(
+                child: BlocBuilder<WatchHistoryCubit, WatchHistoryState>(
+                  builder: (context, state) {
+                    if (state is WatchHistoryLoading) {
+                      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                    }
+
+                    if (state is WatchHistoryError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 60, color: AppColors.error),
+                            const SizedBox(height: 16),
+                            Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                            const SizedBox(height: 16),
+                            ElevatedButton(onPressed: _loadHistory, child: const Text('Retry')),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (state is WatchHistoryLoaded) {
+                      if (state.groupedHistory.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.history, size: 60, color: AppColors.textMuted(context)),
+                              const SizedBox(height: 16),
+                              Text('No watch history yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                              const SizedBox(height: 8),
+                              Text('Start watching to build your history', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          _loadHistory();
+                        },
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          itemCount: state.groupedHistory.length,
+                          itemBuilder: (context, index) {
+                            final item = state.groupedHistory[index];
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: GestureDetector(
+                                onTap: () => context.push(item.mediaType == 'movie' ? '/movie/${item.tmdbId}' : '/show/${item.tmdbId}'),
+                                child: GlassContainer(
+                                  padding: const EdgeInsets.all(12),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Row(
+                                    children: [
+                                      // Poster
+                                      Container(
+                                        width: 60,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(10),
+                                          color: AppColors.cardBg(context),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: item.posterPath != null && item.posterPath!.isNotEmpty
+                                              ? CachedNetworkImage(
+                                                  imageUrl: AppConfig.getImageUrl(item.posterPath, size: 'w154'),
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (c, u, e) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                                                )
+                                              : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // Info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.title,
+                                              style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            if (item.mediaType == 'tv' && item.latestSeason != null && item.latestEpisode != null)
+                                              Text(
+                                                'S${item.latestSeason} E${item.latestEpisode}',
+                                                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13),
+                                              ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                if (item.mediaType == 'tv') ...[
+                                                  Icon(Icons.play_circle_outline, color: AppColors.textMuted(context), size: 14),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${item.episodeCount} episodes',
+                                                    style: TextStyle(color: AppColors.textMuted(context), fontSize: 12),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                ],
+                                                Icon(Icons.access_time, color: AppColors.textMuted(context), size: 14),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _formatTimeAgo(item.latestWatchedAt),
+                                                  style: TextStyle(color: AppColors.textMuted(context), fontSize: 12),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(Icons.chevron_right, color: AppColors.textMuted(context)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }
+
+                    return const SizedBox();
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -75,143 +205,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    return BlocBuilder<WatchHistoryCubit, WatchHistoryState>(
-      builder: (context, state) {
-        if (state is WatchHistoryLoading) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-        }
-
-        if (state is WatchHistoryError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
-                const SizedBox(height: 16),
-                Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => context.read<WatchHistoryCubit>().loadHistory(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (state is WatchHistoryLoaded) {
-          if (state.history.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history, size: 60, color: AppColors.textMuted(context)),
-                  const SizedBox(height: 16),
-                  Text('No watch history yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Text('Start watching to build your history', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
-                ],
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              _loadHistory();
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: state.history.length,
-              itemBuilder: (context, index) {
-                final item = state.history[index];
-                final tmdbId = item['tmdb_id'] as int;
-                final mediaType = item['media_type'] as String;
-                final watchedAt = item['watched_at'] != null ? DateTime.parse(item['watched_at']) : DateTime.now();
-                final seasonNumber = item['season_number'];
-                final episodeNumber = item['episode_number'];
-
-                String title = '';
-                String? posterUrl;
-
-                if (mediaType == 'tv' && state.shows.containsKey(tmdbId)) {
-                  title = state.shows[tmdbId]!.name;
-                  posterUrl = state.shows[tmdbId]!.posterUrl;
-                } else if (mediaType == 'movie' && state.movies.containsKey(tmdbId)) {
-                  title = state.movies[tmdbId]!.title;
-                  posterUrl = state.movies[tmdbId]!.posterUrl;
-                }
-
-                String subtitle = '';
-                if (seasonNumber != null && episodeNumber != null) {
-                  subtitle = 'S${seasonNumber}E${episodeNumber}';
-                } else if (mediaType == 'movie') {
-                  subtitle = 'Movie';
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: GlassCard(
-                    padding: const EdgeInsets.all(12),
-                    onTap: () {
-                      if (mediaType == 'tv' && seasonNumber != null && episodeNumber != null) {
-                        context.push('/show/$tmdbId/season/$seasonNumber/episode/$episodeNumber');
-                      } else {
-                        context.push(mediaType == 'tv' ? '/show/$tmdbId' : '/movie/$tmdbId');
-                      }
-                    },
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 85,
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: posterUrl != null
-                                ? CachedNetworkImage(imageUrl: posterUrl, fit: BoxFit.cover, errorWidget: (_, __, ___) => Icon(Icons.movie, color: AppColors.textMuted(context)))
-                                : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie, color: AppColors.textMuted(context))),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              const SizedBox(height: 4),
-                              if (subtitle.isNotEmpty)
-                                Text(subtitle, style: TextStyle(color: AppColors.electricPurple, fontSize: 13, fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 4),
-                              Text(timeago.format(watchedAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        }
-
-        return const SizedBox();
-      },
-    );
+  String _formatTimeAgo(DateTime dateTime) {
+    return timeago.format(dateTime, locale: 'en');
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

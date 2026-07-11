@@ -30,6 +30,8 @@ class EpisodeDetailPage extends StatefulWidget {
 
 class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMixin {
   Map<String, dynamic>? _episodeData;
+  String? _showName;
+  String? _showPosterPath;
   bool _isLoading = true;
   bool _isWatched = false;
   double? _userRating;
@@ -48,6 +50,10 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
       final tmdb = context.read<TmdbService>();
       final supabase = context.read<SupabaseService>();
       final user = supabase.currentUser;
+
+      final showDetails = await tmdb.getShowDetails(widget.showId);
+      _showName = showDetails['name'] as String?;
+      _showPosterPath = showDetails['poster_path'] as String?;
 
       final seasonData = await tmdb.getShowSeasonDetails(widget.showId, widget.seasonNumber);
       final episodes = seasonData['episodes'] as List? ?? [];
@@ -129,6 +135,8 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
           mediaType: 'tv',
           seasonNumber: widget.seasonNumber,
           episodeNumber: widget.episodeNumber,
+          title: _episodeData?['name'] as String? ?? _showName,
+          posterPath: _showPosterPath,
         );
       }
       setState(() => _isWatched = !_isWatched);
@@ -218,19 +226,26 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(10, (index) {
-                  final starValue = index + 1.0;
-                  return GestureDetector(
-                    onTap: () => setState(() => rating = starValue),
-                    child: Icon(
-                      rating >= starValue ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: rating >= starValue ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
-                      size: 28,
-                    ),
-                  );
-                }),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(10, (index) {
+                    final starValue = index + 1.0;
+                    return GestureDetector(
+                      onTap: () => setState(() => rating = starValue),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
+                        child: Icon(
+                          rating >= starValue ? Icons.star_rounded : Icons.star_outline_rounded,
+                          color: rating >= starValue ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
+                          size: 22,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
               ),
             ],
           ),

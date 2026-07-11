@@ -101,6 +101,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   final SupabaseService _supabaseService;
   final OmdbService _omdbService;
   final int showId;
+  bool _isTogglingEpisode = false;
 
   ShowDetailCubit(this._tmdbService, this._supabaseService, this._omdbService, this.showId)
       : super(ShowDetailInitial()) {
@@ -242,6 +243,9 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
     final user = _supabaseService.currentUser;
     if (user == null) return;
 
+    final newValue = !currentState.isInWatchlist;
+    emit(currentState.copyWith(isInWatchlist: newValue));
+
     try {
       if (currentState.isInWatchlist) {
         await _supabaseService.removeFromWatchlist(
@@ -257,12 +261,8 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
           status: status,
         );
       }
-
-      if (isClosed) return;
-      emit(currentState.copyWith(isInWatchlist: !currentState.isInWatchlist));
     } catch (e) {
-      if (isClosed) return;
-      emit(currentState);
+      if (!isClosed) emit(currentState);
     }
   }
 
@@ -272,6 +272,9 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
 
     final user = _supabaseService.currentUser;
     if (user == null) return;
+
+    final newValue = !currentState.isFavorite;
+    emit(currentState.copyWith(isFavorite: newValue));
 
     try {
       if (currentState.isFavorite) {
@@ -287,49 +290,134 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
           mediaType: 'tv',
         );
       }
-
-      if (isClosed) return;
-      emit(currentState.copyWith(isFavorite: !currentState.isFavorite));
     } catch (e) {
-      if (isClosed) return;
-      emit(currentState);
+      if (!isClosed) emit(currentState);
     }
   }
 
   Future<void> toggleEpisodeWatched(int seasonNumber, int episodeNumber) async {
+    if (_isTogglingEpisode) return;
+    _isTogglingEpisode = true;
+    try {
+      final currentState = state;
+      if (currentState is! ShowDetailLoaded) return;
+
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      final key = seasonNumber * 10000 + episodeNumber;
+      final isWatched = currentState.watchedEpisodes[key] ?? false;
+
+      final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+      newWatched[key] = !isWatched;
+      emit(currentState.copyWith(watchedEpisodes: newWatched));
+
+      try {
+        if (isWatched) {
+          await _supabaseService.unmarkAsWatched(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+            seasonNumber: seasonNumber,
+            episodeNumber: episodeNumber,
+          );
+        } else {
+          await _supabaseService.markAsWatched(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+            seasonNumber: seasonNumber,
+            episodeNumber: episodeNumber,
+            title: currentState.show.name,
+            posterPath: currentState.show.posterPath,
+          );
+        }
+      } catch (e) {
+        if (!isClosed) emit(currentState);
+      }
+    } finally {
+      _isTogglingEpisode = false;
+    }
+  }
+
+  Future<void> markAllAsWatched() async {
     final currentState = state;
     if (currentState is! ShowDetailLoaded) return;
 
     final user = _supabaseService.currentUser;
     if (user == null) return;
 
-    final key = seasonNumber * 10000 + episodeNumber;
-    final isWatched = currentState.watchedEpisodes[key] ?? false;
+    final seasons = currentState.show.seasons;
+    if (seasons == null || seasons.isEmpty) return;
+
+    final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+    for (final season in seasons) {
+      if (season.seasonNumber <= 0) continue;
+      if (season.episodes != null) {
+        for (final episode in season.episodes!) {
+          optimisticWatched[season.seasonNumber * 10000 + episode.episodeNumber] = true;
+        }
+      } else {
+        try {
+          final seasonData = await _tmdbService.getShowSeasonDetails(showId, season.seasonNumber);
+          final episodes = seasonData['episodes'] as List? ?? [];
+          for (final ep in episodes) {
+            final epNum = ep['episode_number'] as int;
+            optimisticWatched[season.seasonNumber * 10000 + epNum] = true;
+          }
+        } catch (_) {}
+      }
+    }
+    emit(currentState.copyWith(watchedEpisodes: optimisticWatched));
 
     try {
-      if (isWatched) {
-        await _supabaseService.unmarkAsWatched(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-          seasonNumber: seasonNumber,
-          episodeNumber: episodeNumber,
-        );
-      } else {
-        await _supabaseService.markAsWatched(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-          seasonNumber: seasonNumber,
-          episodeNumber: episodeNumber,
-        );
+      final List<List<dynamic>> batches = [];
+      List<dynamic> currentBatch = [];
+
+      for (final season in seasons) {
+        if (season.seasonNumber <= 0) continue;
+        if (season.episodes != null) {
+          for (final episode in season.episodes!) {
+            currentBatch.add([season.seasonNumber, episode.episodeNumber]);
+            if (currentBatch.length >= 10) {
+              batches.add(currentBatch);
+              currentBatch = [];
+            }
+          }
+        } else {
+          try {
+            final seasonData = await _tmdbService.getShowSeasonDetails(showId, season.seasonNumber);
+            final episodes = seasonData['episodes'] as List? ?? [];
+            for (final ep in episodes) {
+              final epNum = ep['episode_number'] as int;
+              currentBatch.add([season.seasonNumber, epNum]);
+              if (currentBatch.length >= 10) {
+                batches.add(currentBatch);
+                currentBatch = [];
+              }
+            }
+          } catch (_) {}
+        }
+      }
+      if (currentBatch.isNotEmpty) batches.add(currentBatch);
+
+      for (int i = 0; i < batches.length; i++) {
+        if (i > 0) await Future.delayed(const Duration(milliseconds: 100));
+        await Future.wait(batches[i].map((task) async {
+          try {
+            await _supabaseService.markAsWatched(
+              userId: user.id,
+              tmdbId: showId,
+              mediaType: 'tv',
+              seasonNumber: task[0] as int,
+              episodeNumber: task[1] as int,
+              title: currentState.show.name,
+              posterPath: currentState.show.posterPath,
+            );
+          } catch (_) {}
+        }));
       }
 
-      final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
-      newWatched[key] = !isWatched;
-
-      // Auto-compute status and refresh watchlist status
-      bool newIsInWatchlist = currentState.isInWatchlist;
       try {
         final showDetails = await _tmdbService.getShowDetails(showId);
         await _supabaseService.computeAndSetShowStatus(
@@ -337,24 +425,15 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
           tmdbId: showId,
           showDetails: showDetails,
         );
-        // Refresh watchlist status after auto-compute
-        newIsInWatchlist = await _supabaseService.isInWatchlist(
+        final newIsInWatchlist = await _supabaseService.isInWatchlist(
           userId: user.id,
           tmdbId: showId,
           mediaType: 'tv',
         );
-      } catch (statusError) {
-        // Non-critical: auto-compute status failure should not affect user experience
-      }
-
-      if (isClosed) return;
-      emit(currentState.copyWith(
-        isInWatchlist: newIsInWatchlist,
-        watchedEpisodes: newWatched,
-      ));
+        if (!isClosed) emit((state as ShowDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
+      } catch (_) {}
     } catch (e) {
-      if (isClosed) return;
-      emit(currentState);
+      if (!isClosed) emit(currentState);
     }
   }
 }

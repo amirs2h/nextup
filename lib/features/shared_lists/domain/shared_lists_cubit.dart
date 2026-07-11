@@ -52,6 +52,7 @@ class SharedListsCubit extends Cubit<SharedListsState> {
     try {
       final user = _supabaseService.currentUser;
       if (user == null) {
+        if (isClosed) return;
         emit(SharedListsError('Please login to view shared lists'));
         return;
       }
