@@ -1,9 +1,0 @@
-name = "nextup"
-compatibility_date = "2024-01-01"
-
-[build]
-command = "bash build.sh"
-output_dir = "build/web"
-
-[build.environment]
-NODE_VERSION = "18"
