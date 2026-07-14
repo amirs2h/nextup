@@ -46,6 +46,8 @@ class _SeasonDetailView extends StatefulWidget {
 }
 
 class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMixin {
+  bool _isMarkingAll = false;
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<SeasonDetailCubit, SeasonDetailState>(
@@ -141,11 +143,18 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                       child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
                     ),
                     TextButton(
-                      onPressed: () {
+                      onPressed: _isMarkingAll ? null : () async {
                         Navigator.pop(dialogContext);
-                        context.read<SeasonDetailCubit>().markAllEpisodes();
+                        setState(() => _isMarkingAll = true);
+                        try {
+                          await context.read<SeasonDetailCubit>().markAllEpisodes();
+                        } finally {
+                          if (mounted) setState(() => _isMarkingAll = false);
+                        }
                       },
-                      child: const Text('Mark All', style: TextStyle(color: AppColors.electricPurple)),
+                      child: _isMarkingAll
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Mark All', style: TextStyle(color: AppColors.electricPurple)),
                     ),
                   ],
                 ),

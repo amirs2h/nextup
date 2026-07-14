@@ -70,6 +70,8 @@ class WatchlistError extends WatchlistState {
 class WatchlistCubit extends Cubit<WatchlistState> {
   final SupabaseService _supabaseService;
   final TmdbService _tmdbService;
+  bool _isRemoving = false;
+  bool _isUpdatingStatus = false;
 
   WatchlistCubit(this._supabaseService, this._tmdbService) : super(WatchlistInitial());
 
@@ -151,39 +153,51 @@ class WatchlistCubit extends Cubit<WatchlistState> {
   }
 
   Future<void> removeFromWatchlist(int tmdbId, String mediaType) async {
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
+    if (_isRemoving) return;
+    _isRemoving = true;
     try {
-      await _supabaseService.removeFromWatchlist(
-        userId: user.id,
-        tmdbId: tmdbId,
-        mediaType: mediaType,
-      );
-      // Reload
-      await loadWatchlist(filter: state is WatchlistLoaded ? (state as WatchlistLoaded).filter : 'all');
-    } catch (e) {
-      if (isClosed) return;
-      emit(WatchlistError('Something went wrong. Please try again.'));
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      try {
+        await _supabaseService.removeFromWatchlist(
+          userId: user.id,
+          tmdbId: tmdbId,
+          mediaType: mediaType,
+        );
+        // Reload
+        await loadWatchlist(filter: state is WatchlistLoaded ? (state as WatchlistLoaded).filter : 'all');
+      } catch (e) {
+        if (isClosed) return;
+        emit(WatchlistError('Something went wrong. Please try again.'));
+      }
+    } finally {
+      _isRemoving = false;
     }
   }
 
   Future<void> updateStatus(int tmdbId, String mediaType, String newStatus) async {
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
+    if (_isUpdatingStatus) return;
+    _isUpdatingStatus = true;
     try {
-      await _supabaseService.updateWatchlistStatus(
-        userId: user.id,
-        tmdbId: tmdbId,
-        mediaType: mediaType,
-        status: newStatus,
-      );
-      // Reload
-      await loadWatchlist(filter: state is WatchlistLoaded ? (state as WatchlistLoaded).filter : 'all');
-    } catch (e) {
-      if (isClosed) return;
-      emit(WatchlistError('Something went wrong. Please try again.'));
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      try {
+        await _supabaseService.updateWatchlistStatus(
+          userId: user.id,
+          tmdbId: tmdbId,
+          mediaType: mediaType,
+          status: newStatus,
+        );
+        // Reload
+        await loadWatchlist(filter: state is WatchlistLoaded ? (state as WatchlistLoaded).filter : 'all');
+      } catch (e) {
+        if (isClosed) return;
+        emit(WatchlistError('Something went wrong. Please try again.'));
+      }
+    } finally {
+      _isUpdatingStatus = false;
     }
   }
 

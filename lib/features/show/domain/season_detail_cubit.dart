@@ -41,6 +41,8 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   final SupabaseService _supabaseService;
   final int showId;
   final int seasonNumber;
+  bool _isTogglingEpisode = false;
+  bool _isMarkingAll = false;
 
   SeasonDetailCubit(
     this._tmdbService,
@@ -81,54 +83,63 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   }
 
   Future<void> toggleEpisodeWatched(int episodeNumber) async {
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
-    final currentState = state;
-    if (currentState is! SeasonDetailLoaded) return;
-
-    final isWatched = currentState.watchedEpisodes[episodeNumber] ?? false;
-
-    final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
-    newWatched[episodeNumber] = !isWatched;
-    emit(SeasonDetailLoaded(
-      season: currentState.season,
-      watchedEpisodes: newWatched,
-    ));
-
+    if (_isTogglingEpisode) return;
+    _isTogglingEpisode = true;
     try {
-      if (isWatched) {
-        await _supabaseService.unmarkAsWatched(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-          seasonNumber: seasonNumber,
-          episodeNumber: episodeNumber,
-        );
-      } else {
-        await _supabaseService.markAsWatched(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-          seasonNumber: seasonNumber,
-          episodeNumber: episodeNumber,
-          title: currentState.season.name,
-          posterPath: currentState.season.posterPath,
-        );
-      }
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
 
-      await _autoComputeStatus(user.id);
-    } catch (e) {
-      if (!isClosed) emit(currentState);
+      final currentState = state;
+      if (currentState is! SeasonDetailLoaded) return;
+
+      final isWatched = currentState.watchedEpisodes[episodeNumber] ?? false;
+
+      final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+      newWatched[episodeNumber] = !isWatched;
+      emit(SeasonDetailLoaded(
+        season: currentState.season,
+        watchedEpisodes: newWatched,
+      ));
+
+      try {
+        if (isWatched) {
+          await _supabaseService.unmarkAsWatched(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+            seasonNumber: seasonNumber,
+            episodeNumber: episodeNumber,
+          );
+        } else {
+          await _supabaseService.markAsWatched(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+            seasonNumber: seasonNumber,
+            episodeNumber: episodeNumber,
+            title: currentState.season.name,
+            posterPath: currentState.season.posterPath,
+          );
+        }
+
+        await _autoComputeStatus(user.id);
+      } catch (e) {
+        if (!isClosed) emit(currentState);
+      }
+    } finally {
+      _isTogglingEpisode = false;
     }
   }
 
   Future<void> markAllEpisodes() async {
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
+    if (_isMarkingAll) return;
+    _isMarkingAll = true;
+    try {
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
 
-    final currentState = state;
-    if (currentState is! SeasonDetailLoaded) return;
+      final currentState = state;
+      if (currentState is! SeasonDetailLoaded) return;
 
     List<EpisodeModel> episodes;
     if (currentState.season.episodes != null) {
@@ -192,6 +203,8 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
       await _autoComputeStatus(user.id);
     } catch (e) {
       if (!isClosed) emit(currentState);
+    } finally {
+      _isMarkingAll = false;
     }
   }
 

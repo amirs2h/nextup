@@ -101,6 +101,9 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
   final SupabaseService _supabaseService;
   final OmdbService _omdbService;
   final int movieId;
+  bool _isTogglingWatchlist = false;
+  bool _isTogglingFavorite = false;
+  bool _isTogglingWatched = false;
 
   MovieDetailCubit(this._tmdbService, this._supabaseService, this._omdbService, this.movieId)
       : super(MovieDetailInitial()) {
@@ -224,106 +227,124 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
   }
 
   Future<void> toggleWatchlist({String status = 'watchlist'}) async {
-    final currentState = state;
-    if (currentState is! MovieDetailLoaded) return;
-
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
-    final newValue = !currentState.isInWatchlist;
-    emit(currentState.copyWith(isInWatchlist: newValue));
-
+    if (_isTogglingWatchlist) return;
+    _isTogglingWatchlist = true;
     try {
-      if (currentState.isInWatchlist) {
-        await _supabaseService.removeFromWatchlist(
-          userId: user.id,
-          tmdbId: movieId,
-          mediaType: 'movie',
-        );
-      } else {
-        await _supabaseService.addToWatchlist(
-          userId: user.id,
-          tmdbId: movieId,
-          mediaType: 'movie',
-          status: status,
-        );
+      final currentState = state;
+      if (currentState is! MovieDetailLoaded) return;
+
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      final newValue = !currentState.isInWatchlist;
+      emit(currentState.copyWith(isInWatchlist: newValue));
+
+      try {
+        if (currentState.isInWatchlist) {
+          await _supabaseService.removeFromWatchlist(
+            userId: user.id,
+            tmdbId: movieId,
+            mediaType: 'movie',
+          );
+        } else {
+          await _supabaseService.addToWatchlist(
+            userId: user.id,
+            tmdbId: movieId,
+            mediaType: 'movie',
+            status: status,
+          );
+        }
+      } catch (e) {
+        if (!isClosed) emit(currentState);
       }
-    } catch (e) {
-      if (!isClosed) emit(currentState);
+    } finally {
+      _isTogglingWatchlist = false;
     }
   }
 
   Future<void> toggleFavorite() async {
-    final currentState = state;
-    if (currentState is! MovieDetailLoaded) return;
-
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
-    final newValue = !currentState.isFavorite;
-    emit(currentState.copyWith(isFavorite: newValue));
-
+    if (_isTogglingFavorite) return;
+    _isTogglingFavorite = true;
     try {
-      if (currentState.isFavorite) {
-        await _supabaseService.removeFromFavorites(
-          userId: user.id,
-          tmdbId: movieId,
-          mediaType: 'movie',
-        );
-      } else {
-        await _supabaseService.addToFavorites(
-          userId: user.id,
-          tmdbId: movieId,
-          mediaType: 'movie',
-        );
+      final currentState = state;
+      if (currentState is! MovieDetailLoaded) return;
+
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      final newValue = !currentState.isFavorite;
+      emit(currentState.copyWith(isFavorite: newValue));
+
+      try {
+        if (currentState.isFavorite) {
+          await _supabaseService.removeFromFavorites(
+            userId: user.id,
+            tmdbId: movieId,
+            mediaType: 'movie',
+          );
+        } else {
+          await _supabaseService.addToFavorites(
+            userId: user.id,
+            tmdbId: movieId,
+            mediaType: 'movie',
+          );
+        }
+      } catch (e) {
+        if (!isClosed) emit(currentState);
       }
-    } catch (e) {
-      if (!isClosed) emit(currentState);
+    } finally {
+      _isTogglingFavorite = false;
     }
   }
 
   Future<void> toggleWatched() async {
-    final currentState = state;
-    if (currentState is! MovieDetailLoaded) return;
-
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
-    final newIsWatched = !currentState.isWatched;
-    emit(currentState.copyWith(isWatched: newIsWatched));
-
+    if (_isTogglingWatched) return;
+    _isTogglingWatched = true;
     try {
-      if (currentState.isWatched) {
-        await _supabaseService.unmarkAsWatched(
-          userId: user.id,
-          tmdbId: movieId,
-          mediaType: 'movie',
-        );
-      } else {
-        await _supabaseService.markAsWatched(
-          userId: user.id,
-          tmdbId: movieId,
-          mediaType: 'movie',
-          title: currentState.movie.title,
-          posterPath: currentState.movie.posterPath,
-        );
-      }
+      final currentState = state;
+      if (currentState is! MovieDetailLoaded) return;
+
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      final newIsWatched = !currentState.isWatched;
+      emit(currentState.copyWith(isWatched: newIsWatched));
 
       try {
-        await _supabaseService.computeAndSetMovieStatus(
-          userId: user.id,
-          tmdbId: movieId,
-          isWatched: newIsWatched,
-        );
-        final newIsInWatchlist = await _supabaseService.isInWatchlist(
-          userId: user.id,
-          tmdbId: movieId,
-          mediaType: 'movie',
-        );
-        if (!isClosed) emit((state as MovieDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
-      } catch (_) {}
-    } catch (e) {
-      if (!isClosed) emit(currentState);
+        if (currentState.isWatched) {
+          await _supabaseService.unmarkAsWatched(
+            userId: user.id,
+            tmdbId: movieId,
+            mediaType: 'movie',
+          );
+        } else {
+          await _supabaseService.markAsWatched(
+            userId: user.id,
+            tmdbId: movieId,
+            mediaType: 'movie',
+            title: currentState.movie.title,
+            posterPath: currentState.movie.posterPath,
+          );
+        }
+
+        try {
+          await _supabaseService.computeAndSetMovieStatus(
+            userId: user.id,
+            tmdbId: movieId,
+            isWatched: newIsWatched,
+          );
+          final newIsInWatchlist = await _supabaseService.isInWatchlist(
+            userId: user.id,
+            tmdbId: movieId,
+            mediaType: 'movie',
+          );
+          if (!isClosed) emit((state as MovieDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
+        } catch (_) {}
+      } catch (e) {
+        if (!isClosed) emit(currentState);
+      }
+    } finally {
+      _isTogglingWatched = false;
     }
   }
 }

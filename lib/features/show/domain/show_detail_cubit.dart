@@ -102,6 +102,9 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   final OmdbService _omdbService;
   final int showId;
   bool _isTogglingEpisode = false;
+  bool _isTogglingWatchlist = false;
+  bool _isTogglingFavorite = false;
+  bool _isMarkingAll = false;
 
   ShowDetailCubit(this._tmdbService, this._supabaseService, this._omdbService, this.showId)
       : super(ShowDetailInitial()) {
@@ -237,61 +240,73 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   }
 
   Future<void> toggleWatchlist({String status = 'watchlist'}) async {
-    final currentState = state;
-    if (currentState is! ShowDetailLoaded) return;
-
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
-    final newValue = !currentState.isInWatchlist;
-    emit(currentState.copyWith(isInWatchlist: newValue));
-
+    if (_isTogglingWatchlist) return;
+    _isTogglingWatchlist = true;
     try {
-      if (currentState.isInWatchlist) {
-        await _supabaseService.removeFromWatchlist(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-        );
-      } else {
-        await _supabaseService.addToWatchlist(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-          status: status,
-        );
+      final currentState = state;
+      if (currentState is! ShowDetailLoaded) return;
+
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      final newValue = !currentState.isInWatchlist;
+      emit(currentState.copyWith(isInWatchlist: newValue));
+
+      try {
+        if (currentState.isInWatchlist) {
+          await _supabaseService.removeFromWatchlist(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+          );
+        } else {
+          await _supabaseService.addToWatchlist(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+            status: status,
+          );
+        }
+      } catch (e) {
+        if (!isClosed) emit(currentState);
       }
-    } catch (e) {
-      if (!isClosed) emit(currentState);
+    } finally {
+      _isTogglingWatchlist = false;
     }
   }
 
   Future<void> toggleFavorite() async {
-    final currentState = state;
-    if (currentState is! ShowDetailLoaded) return;
-
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
-
-    final newValue = !currentState.isFavorite;
-    emit(currentState.copyWith(isFavorite: newValue));
-
+    if (_isTogglingFavorite) return;
+    _isTogglingFavorite = true;
     try {
-      if (currentState.isFavorite) {
-        await _supabaseService.removeFromFavorites(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-        );
-      } else {
-        await _supabaseService.addToFavorites(
-          userId: user.id,
-          tmdbId: showId,
-          mediaType: 'tv',
-        );
+      final currentState = state;
+      if (currentState is! ShowDetailLoaded) return;
+
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
+
+      final newValue = !currentState.isFavorite;
+      emit(currentState.copyWith(isFavorite: newValue));
+
+      try {
+        if (currentState.isFavorite) {
+          await _supabaseService.removeFromFavorites(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+          );
+        } else {
+          await _supabaseService.addToFavorites(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+          );
+        }
+      } catch (e) {
+        if (!isClosed) emit(currentState);
       }
-    } catch (e) {
-      if (!isClosed) emit(currentState);
+    } finally {
+      _isTogglingFavorite = false;
     }
   }
 
@@ -341,11 +356,14 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   }
 
   Future<void> markAllAsWatched() async {
-    final currentState = state;
-    if (currentState is! ShowDetailLoaded) return;
+    if (_isMarkingAll) return;
+    _isMarkingAll = true;
+    try {
+      final currentState = state;
+      if (currentState is! ShowDetailLoaded) return;
 
-    final user = _supabaseService.currentUser;
-    if (user == null) return;
+      final user = _supabaseService.currentUser;
+      if (user == null) return;
 
     final seasons = currentState.show.seasons;
     if (seasons == null || seasons.isEmpty) return;
@@ -434,6 +452,8 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       } catch (_) {}
     } catch (e) {
       if (!isClosed) emit(currentState);
+    } finally {
+      _isMarkingAll = false;
     }
   }
 }
