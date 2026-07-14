@@ -8,7 +8,6 @@ class PwaInstallPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Only show on web, and only once per session
     if (!kIsWeb) return child;
     
     return Stack(
@@ -33,16 +32,9 @@ class _PwaOverlayState extends State<_PwaOverlay> {
   @override
   void initState() {
     super.initState();
-    _checkAndShow();
-  }
-
-  Future<void> _checkAndShow() async {
-    // Small delay for better UX
-    await Future.delayed(const Duration(seconds: 3));
-    if (!mounted) return;
-    
-    // Always show on web (user can dismiss)
-    setState(() => _visible = true);
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _visible = true);
+    });
   }
 
   @override
@@ -50,12 +42,18 @@ class _PwaOverlayState extends State<_PwaOverlay> {
     if (!_visible) return const SizedBox.shrink();
     
     return Positioned.fill(
-      child: Container(
-        color: Colors.black54,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: _GlassCard(onDismiss: () => setState(() => _visible = false)),
+      child: GestureDetector(
+        onTap: () => setState(() => _visible = false),
+        child: Container(
+          color: Colors.black54,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: GestureDetector(
+                onTap: () {}, // Prevent dismiss on card tap
+                child: _InstallCard(onDismiss: () => setState(() => _visible = false)),
+              ),
+            ),
           ),
         ),
       ),
@@ -63,49 +61,75 @@ class _PwaOverlayState extends State<_PwaOverlay> {
   }
 }
 
-class _GlassCard extends StatelessWidget {
+class _InstallCard extends StatelessWidget {
   final VoidCallback onDismiss;
-  const _GlassCard({required this.onDismiss});
+  const _InstallCard({required this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: 0.15),
+            Colors.white.withValues(alpha: 0.2),
             Colors.white.withValues(alpha: 0.05),
           ],
         ),
-        border: Border.all(color: Colors.white24, width: 1),
+        border: Border.all(color: Colors.white24, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 30, offset: const Offset(0, 10)),
+        ],
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // App Icon
           Container(
-            width: 64,
-            height: 64,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: AppColors.primaryGradient,
+              boxShadow: [
+                BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
+              ],
             ),
-            child: const Icon(Icons.play_arrow_rounded, size: 32, color: Colors.white),
+            child: const Icon(Icons.play_arrow_rounded, size: 36, color: Colors.white),
           ),
-          const SizedBox(height: 16),
-          const Text('Install NextUp', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: 8),
-          Text('Get the best experience', style: TextStyle(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 20),
+          
+          // Title
+          const Text('Install NextUp', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 8),
+          Text('Add to Home Screen for the best experience', style: TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          
+          // Steps
+          _buildStep(context, '1', 'Tap the Share button', Icons.ios_share_rounded),
+          _buildDivider(),
+          _buildStep(context, '2', 'Scroll down and tap "Add to Home Screen"', Icons.add_circle_outline_rounded),
+          _buildDivider(),
+          _buildStep(context, '3', 'Tap "Add" to confirm', Icons.check_circle_outline_rounded),
+          const SizedBox(height: 24),
+          
+          // Buttons
           Row(
             children: [
               Expanded(
                 child: TextButton(
                   onPressed: onDismiss,
-                  child: Text('Later', style: TextStyle(color: Colors.white60)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: Colors.white24),
+                    ),
+                  ),
+                  child: Text('Later', style: TextStyle(color: Colors.white60, fontSize: 15)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -114,14 +138,55 @@ class _GlassCard extends StatelessWidget {
                   onPressed: onDismiss,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
                   ),
-                  child: const Text('Got it'),
+                  child: const Text('Got it', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStep(BuildContext context, String number, String text, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.15),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Center(
+              child: Text(number, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
+          ),
+          Icon(icon, color: Colors.white54, size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Container(
+        width: 1,
+        height: 16,
+        color: Colors.white24,
       ),
     );
   }

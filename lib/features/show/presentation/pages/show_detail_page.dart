@@ -201,8 +201,6 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                                     const SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        RatingBadge(rating: state.show.voteAverage),
-                                        const SizedBox(width: 8),
                                         if (state.show.firstAirDate != null && state.show.firstAirDate!.length >= 4)
                                           Text(state.show.firstAirDate!.substring(0, 4), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                                         if (state.show.numberOfSeasons != null) ...[
@@ -213,31 +211,35 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                                     ),
                                     const SizedBox(height: 8),
                                     ExternalRatingsWidget(
+                                      tmdbRating: state.show.voteAverage,
                                       imdbId: state.imdbId,
                                       rottenTomatoesScore: state.rottenTomatoesScore,
                                       imdbRating: state.imdbRating,
                                       contentRating: state.contentRating,
                                       voteCount: state.show.voteCount,
                                     ),
-                                    // NextUp User Ratings
                                     if (state.averageRating > 0 || state.userRating != null) ...[
                                       const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          if (state.averageRating > 0) ...[
-                                            Icon(Icons.people, color: AppColors.textMuted(context), size: 14),
-                                            const SizedBox(width: 4),
-                                            Text('NextUp: ${state.averageRating.toStringAsFixed(1)}', 
-                                              style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12, fontWeight: FontWeight.w600)),
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Row(
+                                          children: [
+                                            if (state.averageRating > 0) ...[
+                                              Icon(Icons.people, color: AppColors.textMuted(context), size: 14),
+                                              const SizedBox(width: 4),
+                                              Text('NextUp: ${state.averageRating.toStringAsFixed(1)}',
+                                                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12, fontWeight: FontWeight.w600)),
+                                            ],
+                                            if (state.userRating != null) ...[
+                                              const SizedBox(width: 12),
+                                              Icon(Icons.star, color: const Color(0xFFFFD93D), size: 14),
+                                              const SizedBox(width: 4),
+                                              Text('You: ${state.userRating!.toStringAsFixed(1)}',
+                                                style: TextStyle(color: const Color(0xFFFFD93D), fontSize: 12, fontWeight: FontWeight.w600)),
+                                            ],
                                           ],
-                                          if (state.userRating != null) ...[
-                                            const SizedBox(width: 12),
-                                            Icon(Icons.star, color: const Color(0xFFFFD93D), size: 14),
-                                            const SizedBox(width: 4),
-                                            Text('You: ${state.userRating!.toStringAsFixed(1)}', 
-                                              style: TextStyle(color: const Color(0xFFFFD93D), fontSize: 12, fontWeight: FontWeight.w600)),
-                                          ],
-                                        ],
+                                        ),
                                       ),
                                     ],
                                   ],

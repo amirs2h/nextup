@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 class ExternalRatingsWidget extends StatelessWidget {
+  final double? tmdbRating;
   final String? imdbId;
   final int? rottenTomatoesScore;
   final String? imdbRating;
@@ -10,6 +11,7 @@ class ExternalRatingsWidget extends StatelessWidget {
 
   const ExternalRatingsWidget({
     super.key,
+    this.tmdbRating,
     this.imdbId,
     this.rottenTomatoesScore,
     this.imdbRating,
@@ -24,6 +26,14 @@ class ExternalRatingsWidget extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Row(
         children: [
+          if (tmdbRating != null && tmdbRating! > 0)
+            _buildRatingChip(
+              context,
+              label: 'TMDB',
+              value: tmdbRating!.toStringAsFixed(1),
+              color: const Color(0xFFE50914),
+              icon: Icons.movie_filter,
+            ),
           if (imdbRating != null && imdbRating != 'N/A')
             _buildRatingChip(
               context,
