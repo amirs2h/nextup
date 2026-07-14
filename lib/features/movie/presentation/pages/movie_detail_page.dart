@@ -14,7 +14,6 @@ import '../../../../shared/widgets/trailer_widget.dart';
 import '../../../../shared/widgets/external_ratings_widget.dart';
 import '../../../../shared/widgets/favorite_actor_voting_widget.dart';
 import '../../../../shared/widgets/rating_dialog.dart';
-import '../../../../shared/widgets/reaction_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../domain/movie_detail_cubit.dart';
@@ -449,8 +448,10 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
   }
 
   Widget _buildReactionsSection(BuildContext context, MovieDetailLoaded state) {
+    final supabase = context.read<SupabaseService>();
+    
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: context.read<SupabaseService>().getReactions(
+      future: supabase.getReactions(
         tmdbId: widget.movieId,
         seasonNumber: 0,
         episodeNumber: 0,
@@ -468,41 +469,70 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (reactionCounts.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: ReactionDisplay(reactions: reactionCounts),
+            Text('Reactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            const SizedBox(height: 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: ['🔥', '😂', '😭', '😱', '❤️', '👏', '🤯', '💀'].map((emoji) {
+                  final count = reactionCounts[emoji] ?? 0;
+                  return GestureDetector(
+                    onTap: () async {
+                      final user = supabase.currentUser;
+                      if (user == null) return;
+                      try {
+                        await supabase.addReaction(
+                          userId: user.id,
+                          tmdbId: widget.movieId,
+                          seasonNumber: 0,
+                          episodeNumber: 0,
+                          emoji: emoji,
+                        );
+                        if (context.mounted) setState(() {});
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: const Text('Failed to add reaction'), backgroundColor: AppColors.error),
+                          );
+                        }
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: count > 0
+                            ? const Color(0xFF6C63FF).withValues(alpha: 0.2)
+                            : AppColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: count > 0
+                              ? const Color(0xFF6C63FF)
+                              : AppColors.border(context),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(emoji, style: const TextStyle(fontSize: 18)),
+                          if (count > 0) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '$count',
+                              style: TextStyle(
+                                color: AppColors.text(context),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
-            ReactionPicker(
-              onReactionSelected: (emoji) async {
-                final supabase = context.read<SupabaseService>();
-                final user = supabase.currentUser;
-                if (user == null) return;
-                try {
-                  await supabase.addReaction(
-                    userId: user.id,
-                    tmdbId: widget.movieId,
-                    seasonNumber: 0,
-                    episodeNumber: 0,
-                    emoji: emoji,
-                  );
-                  // Reload reactions
-                  final newReactions = await supabase.getReactions(
-                    tmdbId: widget.movieId,
-                    seasonNumber: 0,
-                    episodeNumber: 0,
-                  );
-                  if (context.mounted) {
-                    setState(() {});
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: const Text('Failed to add reaction'), backgroundColor: AppColors.error),
-                    );
-                  }
-                }
-              },
             ),
           ],
         );
@@ -513,18 +543,12 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
   Widget _buildCollectionSection(BuildContext context, Map<String, dynamic> collection) {
     final name = collection['name'] ?? '';
     final posterPath = collection['poster_path'];
-    final backdropPath = collection['backdrop_path'];
     final collectionId = collection['id'];
 
-    if (name.isEmpty) return const SizedBox();
+    if (name.isEmpty || collectionId == null) return const SizedBox();
 
     return GestureDetector(
-      onTap: () {
-        // Navigate to a collection page or show dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Collection: $name'), backgroundColor: AppColors.electricPurple),
-        );
-      },
+      onTap: () => _showCollectionMovies(context, collectionId, name),
       child: GlassContainer(
         padding: const EdgeInsets.all(16),
         borderRadius: BorderRadius.circular(16),
@@ -564,6 +588,126 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
         ),
       ),
     );
+  }
+
+  void _showCollectionMovies(BuildContext context, int collectionId, String name) async {
+    try {
+      final tmdb = context.read<TmdbService>();
+      final data = await tmdb.getCollectionDetails(collectionId);
+      final parts = data['parts'] as List? ?? [];
+      
+      if (!context.mounted) return;
+      
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: AppColors.surface(context),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        isScrollControlled: true,
+        builder: (ctx) => DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.3,
+          expand: false,
+          builder: (ctx, scrollController) => Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: parts.length,
+                  itemBuilder: (ctx, index) {
+                    final movie = parts[index];
+                    final movieId = movie['id'];
+                    final title = movie['title'] ?? 'Unknown';
+                    final poster = movie['poster_path'];
+                    final rating = (movie['vote_average'] ?? 0).toDouble();
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          context.push('/movie/$movieId');
+                        },
+                        child: GlassContainer(
+                          padding: const EdgeInsets.all(12),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppColors.cardBg(context),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: poster != null
+                                      ? CachedNetworkImage(imageUrl: AppConfig.getImageUrl(poster, size: 'w92'), fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))))
+                                      : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.star_rounded, color: AppColors.warning, size: 14),
+                                        const SizedBox(width: 4),
+                                        Text(rating.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (movieId == widget.movieId)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text('Current', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w600)),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to load collection'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   void _showAddToListDialog(BuildContext context, int tmdbId, String mediaType, String title) {

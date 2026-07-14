@@ -261,6 +261,10 @@ class TmdbService {
     return _get('/search/person', {'query': query, 'page': page});
   }
 
+  Future<Map<String, dynamic>> getCollectionDetails(int collectionId) async {
+    return _get('/collection/$collectionId');
+  }
+
   Future<Map<String, dynamic>> getPersonDetails(int personId) async {
     return _get('/person/$personId');
   }
