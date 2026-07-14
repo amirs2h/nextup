@@ -83,7 +83,7 @@ class AppTheme {
         iconTheme: IconThemeData(color: textColor),
         titleTextStyle: TextStyle(fontFamily: 'Poppins', fontFamilyFallback: _vazirmatnFallback, fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surfaceColor,
         elevation: cardElevation,
         shadowColor: cardShadowColor,
