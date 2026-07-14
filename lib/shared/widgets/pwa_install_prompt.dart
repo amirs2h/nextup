@@ -1,89 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../core/theme/app_colors.dart';
 
-class PwaInstallPrompt extends StatefulWidget {
+class PwaInstallPrompt extends StatelessWidget {
   final Widget child;
   const PwaInstallPrompt({super.key, required this.child});
 
   @override
-  State<PwaInstallPrompt> createState() => _PwaInstallPromptState();
+  Widget build(BuildContext context) {
+    // Only show on web, and only once per session
+    if (!kIsWeb) return child;
+    
+    return Stack(
+      children: [
+        child,
+        const _PwaOverlay(),
+      ],
+    );
+  }
 }
 
-class _PwaInstallPromptState extends State<PwaInstallPrompt> {
-  bool _showPrompt = false;
-  bool _isIOS = false;
+class _PwaOverlay extends StatefulWidget {
+  const _PwaOverlay();
+
+  @override
+  State<_PwaOverlay> createState() => _PwaOverlayState();
+}
+
+class _PwaOverlayState extends State<_PwaOverlay> {
+  bool _visible = false;
 
   @override
   void initState() {
     super.initState();
-    _checkShouldShow();
+    _checkAndShow();
   }
 
-  Future<void> _checkShouldShow() async {
-    if (!kIsWeb) return;
-
-    // Check if iOS
-    final userAgent = _getUserAgent();
-    final isIOS = userAgent.contains('iPhone') || userAgent.contains('iPad') || userAgent.contains('iPod');
+  Future<void> _checkAndShow() async {
+    // Small delay for better UX
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
     
-    if (!isIOS) return;
-
-    // Check if already dismissed
-    final prefs = await SharedPreferences.getInstance();
-    final dismissed = prefs.getBool('pwa_install_dismissed') ?? false;
-    
-    if (!dismissed && mounted) {
-      // Show after a small delay for better UX
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) {
-        setState(() {
-          _showPrompt = true;
-          _isIOS = true;
-        });
-      }
-    }
-  }
-
-  String _getUserAgent() {
-    try {
-      // ignore: undefined_prefixed_name
-      return const String.fromEnvironment('USER_AGENT', defaultValue: '');
-    } catch (e) {
-      return '';
-    }
-  }
-
-  Future<void> _dismiss() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('pwa_install_dismissed', true);
-    if (mounted) {
-      setState(() => _showPrompt = false);
-    }
+    // Always show on web (user can dismiss)
+    setState(() => _visible = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        widget.child,
-        if (_showPrompt)
-          _buildOverlay(context),
-      ],
-    );
-  }
-
-  Widget _buildOverlay(BuildContext context) {
+    if (!_visible) return const SizedBox.shrink();
+    
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withValues(alpha: 0.6),
+        color: Colors.black54,
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: _LiquidGlassCard(
-              onDismiss: _dismiss,
-            ),
+            padding: const EdgeInsets.all(32),
+            child: _GlassCard(onDismiss: () => setState(() => _visible = false)),
           ),
         ),
       ),
@@ -91,16 +63,15 @@ class _PwaInstallPromptState extends State<PwaInstallPrompt> {
   }
 }
 
-class _LiquidGlassCard extends StatelessWidget {
+class _GlassCard extends StatelessWidget {
   final VoidCallback onDismiss;
-  
-  const _LiquidGlassCard({required this.onDismiss});
+  const _GlassCard({required this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -109,162 +80,49 @@ class _LiquidGlassCard extends StatelessWidget {
             Colors.white.withValues(alpha: 0.05),
           ],
         ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        border: Border.all(color: Colors.white24, width: 1),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.white.withValues(alpha: 0.1),
-                Colors.white.withValues(alpha: 0.02),
-              ],
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: AppColors.primaryGradient,
             ),
+            child: const Icon(Icons.play_arrow_rounded, size: 32, color: Colors.white),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 16),
+          const Text('Install NextUp', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 8),
+          Text('Get the best experience', style: TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 20),
+          Row(
             children: [
-              // App Icon
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.primaryGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.play_arrow_rounded, size: 36, color: Colors.white),
-              ),
-              const SizedBox(height: 20),
-              
-              // Title
-              Text(
-                'نصب NextUp',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                    ),
-                  ],
+              Expanded(
+                child: TextButton(
+                  onPressed: onDismiss,
+                  child: Text('Later', style: TextStyle(color: Colors.white60)),
                 ),
               ),
-              const SizedBox(height: 8),
-              
-              // Subtitle
-              Text(
-                'تجربه بهتر با نصب روی Home Screen',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              
-              // Steps
-              _buildStep('۱', 'روی Share بزن', Icons.ios_share_rounded),
-              const SizedBox(height: 12),
-              _buildStep('۲', 'Add to Home Screen رو انتخاب کن', Icons.add_circle_outline_rounded),
-              const SizedBox(height: 28),
-              
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: onDismiss,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-                        ),
-                      ),
-                      child: Text(
-                        'بعداً',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 15),
-                      ),
-                    ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: onDismiss,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onDismiss,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'متوجه شدم',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
+                  child: const Text('Got it'),
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildStep(String number, String text, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.1),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-          ),
-          child: Center(
-            child: Text(
-              number,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 15),
-          ),
-        ),
-        Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 22),
-      ],
     );
   }
 }
