@@ -40,6 +40,7 @@ supabase/.temp/
 .pub-cache/
 .pub/
 /build/
+/flutter/
 
 # Symbolication related
 app.*.symbols
