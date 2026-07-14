@@ -19,35 +19,37 @@ class ExternalRatingsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        if (imdbRating != null && imdbRating != 'N/A')
-          _buildRatingChip(
-            context,
-            label: 'IMDB',
-            value: imdbRating!,
-            color: const Color(0xFFF5C518),
-            icon: Icons.movie,
-          ),
-        if (rottenTomatoesScore != null)
-          _buildRatingChip(
-            context,
-            label: 'RT',
-            value: '$rottenTomatoesScore%',
-            color: rottenTomatoesScore! >= 60
-                ? const Color(0xFF5C7C2E)  // Green (Fresh)
-                : rottenTomatoesScore! >= 40
-                    ? const Color(0xFFFFD93D)  // Yellow (Mediocre)
-                    : const Color(0xFFFA320A), // Red (Rotten)
-            icon: rottenTomatoesScore! >= 60 ? Icons.thumb_up : Icons.thumb_down,
-          ),
-        if (contentRating != null && contentRating!.isNotEmpty)
-          _buildContentRatingBadge(context, contentRating!),
-        if (voteCount > 0)
-          _buildVoteCountChip(context),
-      ],
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        children: [
+          if (imdbRating != null && imdbRating != 'N/A')
+            _buildRatingChip(
+              context,
+              label: 'IMDB',
+              value: imdbRating!,
+              color: const Color(0xFFF5C518),
+              icon: Icons.movie,
+            ),
+          if (rottenTomatoesScore != null)
+            _buildRatingChip(
+              context,
+              label: 'RT',
+              value: '$rottenTomatoesScore%',
+              color: rottenTomatoesScore! >= 60
+                  ? const Color(0xFF5C7C2E)
+                  : rottenTomatoesScore! >= 40
+                      ? const Color(0xFFFFD93D)
+                      : const Color(0xFFFA320A),
+              icon: rottenTomatoesScore! >= 60 ? Icons.thumb_up : Icons.thumb_down,
+            ),
+          if (contentRating != null && contentRating!.isNotEmpty)
+            _buildContentRatingBadge(context, contentRating!),
+          if (voteCount > 0)
+            _buildVoteCountChip(context),
+        ],
+      ),
     );
   }
 
@@ -59,24 +61,20 @@ class ExternalRatingsWidget extends StatelessWidget {
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 14),
-          const SizedBox(width: 5),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 9, fontWeight: FontWeight.w600)),
-              Text(value, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
-            ],
-          ),
+          Icon(icon, color: color, size: 16),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(value, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -84,18 +82,20 @@ class ExternalRatingsWidget extends StatelessWidget {
 
   Widget _buildContentRatingBadge(BuildContext context, String rating) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.cardBg(context),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border(context)),
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.shield, color: AppColors.textSecondary(context), size: 14),
-          const SizedBox(width: 5),
-          Text(rating, style: TextStyle(color: AppColors.text(context), fontSize: 12, fontWeight: FontWeight.bold)),
+          Icon(Icons.shield, color: AppColors.textSecondary(context), size: 16),
+          const SizedBox(height: 4),
+          Text('Rating', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(rating, style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -103,18 +103,20 @@ class ExternalRatingsWidget extends StatelessWidget {
 
   Widget _buildVoteCountChip(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.cardBg(context),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border(context)),
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.people, color: AppColors.textSecondary(context), size: 14),
-          const SizedBox(width: 5),
-          Text(_formatVoteCount(voteCount), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
+          Icon(Icons.people, color: AppColors.textSecondary(context), size: 16),
+          const SizedBox(height: 4),
+          Text('Votes', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(_formatVoteCount(voteCount), style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
         ],
       ),
     );

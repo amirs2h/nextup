@@ -137,28 +137,27 @@ class _NextUpAppState extends State<NextUpApp> {
                   style: const TextStyle(fontFamilyFallback: ['Vazirmatn']),
                   child: PwaInstallPrompt(
                     child: MaterialApp.router(
-                    title: 'NextUp',
-                    debugShowCheckedModeBanner: false,
-                  theme: AppTheme.lightTheme,
-                  darkTheme: AppTheme.darkTheme,
-                  themeMode: settingsState.themeMode,
-                  routerConfig: AppRouter.router,
-                  locale: settingsState.locale,
-                  localizationsDelegates: const [
-                    GlobalMaterialLocalizations.delegate,
-                    GlobalWidgetsLocalizations.delegate,
-                    GlobalCupertinoLocalizations.delegate,
-                  ],
-                  supportedLocales: const [
-                    Locale('en', 'US'),
-                    Locale('fa', 'IR'),
-                  ],
-                ),
+                      title: 'NextUp',
+                      debugShowCheckedModeBanner: false,
+                      theme: AppTheme.lightTheme,
+                      darkTheme: AppTheme.darkTheme,
+                      themeMode: settingsState.themeMode,
+                      routerConfig: AppRouter.router,
+                      locale: settingsState.locale,
+                      localizationsDelegates: const [
+                        GlobalMaterialLocalizations.delegate,
+                        GlobalWidgetsLocalizations.delegate,
+                        GlobalCupertinoLocalizations.delegate,
+                      ],
+                      supportedLocales: const [
+                        Locale('en', 'US'),
+                        Locale('fa', 'IR'),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
+            );
           },
         ),
       ),
