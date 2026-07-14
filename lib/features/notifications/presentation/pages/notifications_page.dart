@@ -166,6 +166,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
         icon = Icons.person_add;
         iconColor = const Color(0xFF00D4FF);
         break;
+      case 'new_comment':
+        icon = Icons.comment;
+        iconColor = const Color(0xFF6C63FF);
+        break;
       case 'comment_like':
         icon = Icons.favorite;
         iconColor = AppColors.primary;
@@ -305,14 +309,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final tmdbId = data['tmdb_id'];
     final followerId = data['follower_id'];
     final userId = data['user_id'];
+    final mediaType = data['media_type'] ?? 'tv';
+    final seasonNumber = data['season_number'];
+    final episodeNumber = data['episode_number'];
+    final commenterId = data['commenter_id'];
+    final likerId = data['liker_id'];
 
     switch (type) {
       case 'new_episode':
       case 'new_movie':
-      case 'comment_like':
         if (tmdbId != null) {
-          final mediaType = data['media_type'] ?? 'tv';
           context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+        }
+        break;
+      case 'new_comment':
+        // Navigate to the comments page for this show/movie
+        if (tmdbId != null) {
+          context.push('/comments', extra: {
+            'tmdbId': tmdbId,
+            'mediaType': mediaType,
+            'seasonNumber': seasonNumber,
+            'episodeNumber': episodeNumber,
+          });
+        }
+        break;
+      case 'comment_like':
+        // Navigate to the comments page where the liked comment is
+        if (tmdbId != null) {
+          context.push('/comments', extra: {
+            'tmdbId': tmdbId,
+            'mediaType': mediaType,
+            'seasonNumber': seasonNumber,
+            'episodeNumber': episodeNumber,
+          });
         }
         break;
       case 'follow':
