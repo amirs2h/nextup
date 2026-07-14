@@ -8,6 +8,7 @@ import 'core/services/deep_link_service.dart';
 import 'shared/services/supabase_service.dart';
 import 'shared/services/tmdb_service.dart';
 import 'shared/services/omdb_service.dart';
+import 'shared/widgets/pwa_install_prompt.dart';
 import 'features/auth/domain/auth_cubit.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'features/home/domain/recommendations_cubit.dart';
@@ -134,9 +135,10 @@ class _NextUpAppState extends State<NextUpApp> {
                 textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
                 child: DefaultTextStyle(
                   style: const TextStyle(fontFamilyFallback: ['Vazirmatn']),
-                  child: MaterialApp.router(
-                  title: 'NextUp',
-                  debugShowCheckedModeBanner: false,
+                  child: PwaInstallPrompt(
+                    child: MaterialApp.router(
+                    title: 'NextUp',
+                    debugShowCheckedModeBanner: false,
                   theme: AppTheme.lightTheme,
                   darkTheme: AppTheme.darkTheme,
                   themeMode: settingsState.themeMode,
@@ -151,6 +153,8 @@ class _NextUpAppState extends State<NextUpApp> {
                     Locale('en', 'US'),
                     Locale('fa', 'IR'),
                   ],
+                ),
+                  ),
                 ),
               ),
             ),
