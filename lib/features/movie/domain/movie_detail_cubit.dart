@@ -114,11 +114,12 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
     if (isClosed) return;
     emit(MovieDetailLoading());
     try {
-      // Parallel TMDB calls (7 calls in parallel)
+      // Parallel TMDB calls (8 calls in parallel - added recommendations)
       final tmdbResults = await Future.wait([
         _tmdbService.getMovieDetails(movieId),
         _tmdbService.getMovieCredits(movieId),
         _tmdbService.getSimilarMovies(movieId),
+        _tmdbService.getMovieRecommendations(movieId),
         _tmdbService.getMovieVideos(movieId),
         _tmdbService.getMovieWatchProviders(movieId),
         _tmdbService.getMovieExternalIds(movieId),
@@ -128,19 +129,36 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
       final detailsData = tmdbResults[0] as Map<String, dynamic>;
       final creditsData = tmdbResults[1] as Map<String, dynamic>;
       final similarData = tmdbResults[2] as Map<String, dynamic>;
-      final videosData = tmdbResults[3] as List<Map<String, dynamic>>;
-      final providersData = tmdbResults[4] as Map<String, dynamic>;
-      final externalIdsData = tmdbResults[5] as Map<String, dynamic>;
-      final releaseDatesData = tmdbResults[6] as Map<String, dynamic>;
+      final recommendationsData = tmdbResults[3] as Map<String, dynamic>;
+      final videosData = tmdbResults[4] as List<Map<String, dynamic>>;
+      final providersData = tmdbResults[5] as Map<String, dynamic>;
+      final externalIdsData = tmdbResults[6] as Map<String, dynamic>;
+      final releaseDatesData = tmdbResults[7] as Map<String, dynamic>;
 
       final movie = MovieModel.fromJson(detailsData);
       final cast = (creditsData['cast'] as List)
           .take(20)
           .map((json) => PersonModel.fromJson(json))
           .toList();
-      final similarMovies = (similarData['results'] as List)
-          .map((json) => MovieModel.fromJson(json))
-          .toList();
+      
+      // Merge similar + recommendations, remove duplicates
+      final similarMoviesSet = <int>{};
+      final similarMovies = <MovieModel>[];
+      for (final json in (similarData['results'] as List)) {
+        final m = MovieModel.fromJson(json);
+        if (!similarMoviesSet.contains(m.id) && m.id != movieId) {
+          similarMoviesSet.add(m.id);
+          similarMovies.add(m);
+        }
+      }
+      for (final json in (recommendationsData['results'] as List)) {
+        final m = MovieModel.fromJson(json);
+        if (!similarMoviesSet.contains(m.id) && m.id != movieId) {
+          similarMoviesSet.add(m.id);
+          similarMovies.add(m);
+        }
+      }
+      
       final videos = videosData;
       final watchProviders = providersData;
       final imdbId = externalIdsData['imdb_id'] as String?;

@@ -22,6 +22,7 @@ class MovieModel {
   final List<Map<String, dynamic>>? spokenLanguages;
   final String? imdbId;
   final String? homepage;
+  final Map<String, dynamic>? belongsToCollection;
 
   MovieModel({
     required this.id,
@@ -45,6 +46,7 @@ class MovieModel {
     this.spokenLanguages,
     this.imdbId,
     this.homepage,
+    this.belongsToCollection,
   });
 
   factory MovieModel.fromJson(Map<String, dynamic> json) {
@@ -70,6 +72,7 @@ class MovieModel {
       spokenLanguages: json['spoken_languages'] != null ? List<Map<String, dynamic>>.from(json['spoken_languages']) : null,
       imdbId: json['imdb_id'],
       homepage: json['homepage'],
+      belongsToCollection: json['belongs_to_collection'],
     );
   }
 

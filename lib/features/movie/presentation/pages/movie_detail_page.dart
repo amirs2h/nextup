@@ -14,6 +14,7 @@ import '../../../../shared/widgets/trailer_widget.dart';
 import '../../../../shared/widgets/external_ratings_widget.dart';
 import '../../../../shared/widgets/favorite_actor_voting_widget.dart';
 import '../../../../shared/widgets/rating_dialog.dart';
+import '../../../../shared/widgets/reaction_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/movie_detail_cubit.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
@@ -280,6 +281,13 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                     ),
                   ),
                 ),
+                // Reactions Section
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: _buildReactionsSection(context, state),
+                  ),
+                ),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -398,6 +406,14 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                       child: WatchProvidersWidget(providers: state.watchProviders),
                     ),
                   ),
+                // Collection Section
+                if (state.movie.belongsToCollection != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: _buildCollectionSection(context, state.movie.belongsToCollection!),
+                    ),
+                  ),
                 if (state.similarMovies.isNotEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
@@ -428,6 +444,124 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
           ),
         );
       },
+    );
+  }
+
+  Widget _buildReactionsSection(BuildContext context, MovieDetailLoaded state) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: context.read<SupabaseService>().getReactions(
+        tmdbId: widget.movieId,
+        seasonNumber: 0,
+        episodeNumber: 0,
+      ),
+      builder: (context, snapshot) {
+        final reactions = snapshot.data ?? [];
+        Map<String, int> reactionCounts = {};
+        for (final r in reactions) {
+          final emoji = r['emoji'] as String? ?? '';
+          if (emoji.isNotEmpty) {
+            reactionCounts[emoji] = (reactionCounts[emoji] ?? 0) + 1;
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (reactionCounts.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ReactionDisplay(reactions: reactionCounts),
+              ),
+            ReactionPicker(
+              onReactionSelected: (emoji) async {
+                final supabase = context.read<SupabaseService>();
+                final user = supabase.currentUser;
+                if (user == null) return;
+                try {
+                  await supabase.addReaction(
+                    userId: user.id,
+                    tmdbId: widget.movieId,
+                    seasonNumber: 0,
+                    episodeNumber: 0,
+                    emoji: emoji,
+                  );
+                  // Reload reactions
+                  final newReactions = await supabase.getReactions(
+                    tmdbId: widget.movieId,
+                    seasonNumber: 0,
+                    episodeNumber: 0,
+                  );
+                  if (context.mounted) {
+                    setState(() {});
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: const Text('Failed to add reaction'), backgroundColor: AppColors.error),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCollectionSection(BuildContext context, Map<String, dynamic> collection) {
+    final name = collection['name'] ?? '';
+    final posterPath = collection['poster_path'];
+    final backdropPath = collection['backdrop_path'];
+    final collectionId = collection['id'];
+
+    if (name.isEmpty) return const SizedBox();
+
+    return GestureDetector(
+      onTap: () {
+        // Navigate to a collection page or show dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Collection: $name'), backgroundColor: AppColors.electricPurple),
+        );
+      },
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: AppColors.cardBg(context),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: posterPath != null
+                    ? CachedNetworkImage(
+                        imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'),
+                        fit: BoxFit.cover,
+                        errorWidget: (c, u, e) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                      )
+                    : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Part of Collection', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: AppColors.textMuted(context)),
+          ],
+        ),
+      ),
     );
   }
 
