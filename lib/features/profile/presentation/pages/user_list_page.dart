@@ -21,6 +21,7 @@ class UserListPage extends StatefulWidget {
 
 class _UserListPageState extends State<UserListPage> {
   List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _groupedHistory = [];
   bool _isLoading = true;
   String _username = 'User';
 
@@ -46,16 +47,61 @@ class _UserListPageState extends State<UserListPage> {
       // Fetch missing titles
       await _fetchMissingTitles(items);
 
+      // Group history items if needed
+      final grouped = widget.listType == 'history' ? _groupHistoryItems(items) : <Map<String, dynamic>>[];
+
       if (mounted) {
         setState(() {
           _username = profile?['username'] ?? 'User';
           _items = items;
+          _groupedHistory = grouped;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  List<Map<String, dynamic>> _groupHistoryItems(List<Map<String, dynamic>> history) {
+    final Map<int, Map<String, dynamic>> grouped = {};
+    
+    for (final item in history) {
+      final tmdbId = item['tmdb_id'] as int;
+      final mediaType = item['media_type'] as String? ?? 'tv';
+      final title = item['title'] as String? ?? 'Unknown';
+      final posterPath = item['poster_path'] as String?;
+      final watchedAt = item['watched_at'] != null ? DateTime.tryParse(item['watched_at']) ?? DateTime.now() : DateTime.now();
+      final seasonNumber = item['season_number'] as int?;
+      final episodeNumber = item['episode_number'] as int?;
+
+      if (!grouped.containsKey(tmdbId)) {
+        grouped[tmdbId] = {
+          'tmdb_id': tmdbId,
+          'media_type': mediaType,
+          'title': title,
+          'poster_path': posterPath,
+          'episode_count': 0,
+          'latest_season': seasonNumber,
+          'latest_episode': episodeNumber,
+          'latest_watched_at': watchedAt,
+        };
+      }
+
+      final group = grouped[tmdbId]!;
+      group['episode_count'] = (group['episode_count'] as int) + 1;
+      
+      final latestWatched = group['latest_watched_at'] as DateTime;
+      if (watchedAt.isAfter(latestWatched)) {
+        group['latest_watched_at'] = watchedAt;
+        group['latest_season'] = seasonNumber;
+        group['latest_episode'] = episodeNumber;
+      }
+    }
+
+    final result = grouped.values.toList().cast<Map<String, dynamic>>();
+    result.sort((a, b) => (b['latest_watched_at'] as DateTime).compareTo(a['latest_watched_at'] as DateTime));
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> _fetchItems(SupabaseService supabase) async {
@@ -202,69 +248,159 @@ class _UserListPageState extends State<UserListPage> {
                             )
                           : RefreshIndicator(
                               onRefresh: _loadData,
-                              child: GridView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  childAspectRatio: 0.65,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                ),
-                                itemCount: _items.length,
-                                itemBuilder: (context, index) {
-                                  final item = _items[index];
-                                  final tmdbId = item['tmdb_id'];
-                                  final mediaType = item['media_type'] ?? 'tv';
-                                  final posterPath = item['poster_path'];
-                                  final title = item['title'] ?? 'Unknown';
-
-                                  return GestureDetector(
-                                    onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
-                                    child: Column(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(12),
-                                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(12),
-                                              child: posterPath != null && posterPath.toString().isNotEmpty
-                                                  ? CachedNetworkImage(
-                                                      imageUrl: AppConfig.getImageUrl(posterPath, size: 'w300'),
-                                                      fit: BoxFit.cover,
-                                                      errorWidget: (c, u, e) => Container(
-                                                        color: AppColors.cardBg(context),
-                                                        child: Icon(Icons.movie, color: AppColors.textMuted(context)),
-                                                      ),
-                                                    )
-                                                  : Container(
-                                                      color: AppColors.cardBg(context),
-                                                      child: Icon(Icons.movie, color: AppColors.textMuted(context)),
-                                                    ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          title,
-                                          style: TextStyle(color: AppColors.text(context), fontSize: 12),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+                              child: widget.listType == 'history'
+                                  ? _buildGroupedHistoryList()
+                                  : _buildGrid(),
                             ),
                     ),
                   ],
                 ),
               ),
       ),
+    );
+  }
+
+  Widget _buildGroupedHistoryList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      itemCount: _groupedHistory.length,
+      itemBuilder: (context, index) {
+        final item = _groupedHistory[index];
+        final tmdbId = item['tmdb_id'];
+        final mediaType = item['media_type'] ?? 'tv';
+        final posterPath = item['poster_path'];
+        final title = item['title'] ?? 'Unknown';
+        final episodeCount = item['episode_count'] ?? 0;
+        final latestSeason = item['latest_season'];
+        final latestEpisode = item['latest_episode'];
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
+            child: GlassContainer(
+              padding: const EdgeInsets.all(12),
+              borderRadius: BorderRadius.circular(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.cardBg(context),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: posterPath != null && posterPath.toString().isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'),
+                              fit: BoxFit.cover,
+                              errorWidget: (c, u, e) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                            )
+                          : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        if (mediaType == 'tv' && latestSeason != null && latestEpisode != null)
+                          Text(
+                            'S$latestSeason E$latestEpisode',
+                            style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13),
+                          ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (mediaType == 'tv') ...[
+                              Icon(Icons.play_circle_outline, color: AppColors.textMuted(context), size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$episodeCount episodes',
+                                style: TextStyle(color: AppColors.textMuted(context), fontSize: 12),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: AppColors.textMuted(context)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: _items.length,
+      itemBuilder: (context, index) {
+        final item = _items[index];
+        final tmdbId = item['tmdb_id'];
+        final mediaType = item['media_type'] ?? 'tv';
+        final posterPath = item['poster_path'];
+        final title = item['title'] ?? 'Unknown';
+
+        return GestureDetector(
+          onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: posterPath != null && posterPath.toString().isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: AppConfig.getImageUrl(posterPath, size: 'w300'),
+                            fit: BoxFit.cover,
+                            errorWidget: (c, u, e) => Container(
+                              color: AppColors.cardBg(context),
+                              child: Icon(Icons.movie, color: AppColors.textMuted(context)),
+                            ),
+                          )
+                        : Container(
+                            color: AppColors.cardBg(context),
+                            child: Icon(Icons.movie, color: AppColors.textMuted(context)),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: TextStyle(color: AppColors.text(context), fontSize: 12),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

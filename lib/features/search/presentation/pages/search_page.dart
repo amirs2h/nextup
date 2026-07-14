@@ -46,155 +46,253 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.transparent,
-        body: AppBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-              padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildSearchBar(context),
+              Expanded(child: _buildContent(context)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Expanded(
+            child: GlassContainer(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              borderRadius: BorderRadius.circular(16),
               child: Row(
                 children: [
+                  Icon(Icons.search, color: AppColors.textMuted(context), size: 22),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: GlassContainer(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search, color: AppColors.textMuted(context), size: 22),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              autofocus: true,
-                              style: TextStyle(color: AppColors.text(context)),
-                              decoration: InputDecoration(
-                                hintText: 'Search shows, movies, people...',
-                                hintStyle: TextStyle(color: AppColors.textMuted(context)),
-                                border: InputBorder.none,
-                              ),
-                              onChanged: (value) {
-                                _onSearchChanged(value);
-                                setState(() {}); // Update clear button visibility
-                              },
-                            ),
-                          ),
-                          if (_searchController.text.isNotEmpty)
-                            GestureDetector(
-                              onTap: () {
-                                _searchController.clear();
-                                context.read<SearchCubit>().clear();
-                              },
-                              child: Icon(Icons.close, color: AppColors.textMuted(context), size: 20),
-                            ),
-                        ],
+                    child: TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      style: TextStyle(color: AppColors.text(context)),
+                      decoration: InputDecoration(
+                        hintText: 'Search shows, movies, people...',
+                        hintStyle: TextStyle(color: AppColors.textMuted(context)),
+                        border: InputBorder.none,
                       ),
+                      onChanged: (value) {
+                        _onSearchChanged(value);
+                        setState(() {});
+                      },
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () => context.go('/'),
-                    child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 15)),
-                  ),
+                  if (_searchController.text.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        context.read<SearchCubit>().clear();
+                        setState(() {});
+                      },
+                      child: Icon(Icons.close, color: AppColors.textMuted(context), size: 20),
+                    ),
                 ],
               ),
             ),
-            Expanded(
-              child: BlocBuilder<SearchCubit, SearchState>(
-                builder: (context, state) {
-                  if (state is SearchInitial) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.search, size: 60, color: AppColors.textMuted(context)),
-                          const SizedBox(height: 16),
-                          Text('Search for shows, movies, and people', style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
-                        ],
-                      ),
-                    );
-                  }
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => context.go('/'),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 15)),
+          ),
+        ],
+      ),
+    );
+  }
 
-                  if (state is SearchLoading) {
-                    return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-                  }
+  Widget _buildContent(BuildContext context) {
+    return BlocBuilder<SearchCubit, SearchState>(
+      builder: (context, state) {
+        if (state is SearchInitial) {
+          return _buildRecentSearches(context, state.recentSearches);
+        }
 
-                  if (state is SearchError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline, size: 60, color: AppColors.error),
-                          const SizedBox(height: 16),
-                          Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              if (_searchController.text.isNotEmpty) {
-                                context.read<SearchCubit>().search(_searchController.text);
-                              }
-                            },
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
+        if (state is SearchLoading) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
 
-                  if (state is SearchLoaded) {
-                    if (state.users.isEmpty && state.shows.isEmpty && state.movies.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off, size: 60, color: AppColors.textMuted(context)),
-                            const SizedBox(height: 16),
-                            Text('No results found for "${state.query}"', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
-                          ],
-                        ),
-                      );
+        if (state is SearchError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
+                const SizedBox(height: 16),
+                Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_searchController.text.isNotEmpty) {
+                      context.read<SearchCubit>().search(_searchController.text);
                     }
-
-                    final items = <Map<String, dynamic>>[];
-                    
-                    // Add users
-                    for (final user in state.users) {
-                      items.add({'type': 'user', 'data': user});
-                    }
-                    // Add shows
-                    for (final show in state.shows) {
-                      items.add({'type': 'show', 'data': show});
-                    }
-                    // Add movies
-                    for (final movie in state.movies) {
-                      items.add({'type': 'movie', 'data': movie});
-                    }
-
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        if (item['type'] == 'user') {
-                          return _buildUserResultItem(context, user: item['data'] as Map<String, dynamic>);
-                        } else if (item['type'] == 'show') {
-                          final show = item['data'];
-                          return _buildSearchResultItem(context, id: show.id, title: show.name, subtitle: _getYear(show.firstAirDate), rating: show.voteAverage, posterPath: show.posterPath, isMovie: false);
-                        } else {
-                          final movie = item['data'];
-                          return _buildSearchResultItem(context, id: movie.id, title: movie.title, subtitle: _getYear(movie.releaseDate), rating: movie.voteAverage, posterPath: movie.posterPath, isMovie: true);
-                        }
-                      },
-                    );
-                  }
-
-                  return const SizedBox();
-                },
-              ),
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
+          );
+        }
+
+        if (state is SearchLoaded) {
+          if (state.users.isEmpty && state.shows.isEmpty && state.movies.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off, size: 60, color: AppColors.textMuted(context)),
+                  const SizedBox(height: 16),
+                  Text('No results found for "${state.query}"', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                ],
+              ),
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              // Users section
+              if (state.users.isNotEmpty) ...[
+                _buildSectionHeader('Users', Icons.people, const Color(0xFF6C63FF)),
+                ...state.users.map((user) => _buildUserResultItem(context, user: user)),
+                const SizedBox(height: 16),
+              ],
+              // Shows section
+              if (state.shows.isNotEmpty) ...[
+                _buildSectionHeader('TV Shows', Icons.tv, AppColors.primary),
+                ...state.shows.map((show) => _buildSearchResultItem(
+                  context,
+                  id: show.id,
+                  title: show.name,
+                  subtitle: _getYear(show.firstAirDate),
+                  rating: show.voteAverage,
+                  posterPath: show.posterPath,
+                  isMovie: false,
+                )),
+                const SizedBox(height: 16),
+              ],
+              // Movies section
+              if (state.movies.isNotEmpty) ...[
+                _buildSectionHeader('Movies', Icons.movie, AppColors.electricPurple),
+                ...state.movies.map((movie) => _buildSearchResultItem(
+                  context,
+                  id: movie.id,
+                  title: movie.title,
+                  subtitle: _getYear(movie.releaseDate),
+                  rating: movie.voteAverage,
+                  posterPath: movie.posterPath,
+                  isMovie: true,
+                )),
+              ],
+              const SizedBox(height: 20),
+            ],
+          );
+        }
+
+        return const SizedBox();
+      },
+    );
+  }
+
+  Widget _buildRecentSearches(BuildContext context, List<String> recentSearches) {
+    if (recentSearches.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search, size: 60, color: AppColors.textMuted(context)),
+            const SizedBox(height: 16),
+            Text('Search for shows, movies, and people', style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
           ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            children: [
+              Text('Recent Searches', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text(context))),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => context.read<SearchCubit>().clearRecentSearches(),
+                child: Text('Clear', style: TextStyle(color: AppColors.electricPurple, fontSize: 14)),
+              ),
+            ],
           ),
         ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: recentSearches.length,
+            itemBuilder: (context, index) {
+              final query = recentSearches[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    _searchController.text = query;
+                    context.read<SearchCubit>().search(query);
+                  },
+                  child: GlassContainer(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.history, color: AppColors.textMuted(context), size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(query, style: TextStyle(color: AppColors.text(context), fontSize: 15)),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            context.read<SearchCubit>().clear();
+                          },
+                          child: Icon(Icons.north_west, color: AppColors.textMuted(context), size: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 8),
+          Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text(context))),
+        ],
       ),
     );
   }
@@ -254,10 +352,13 @@ class _SearchPageState extends State<SearchPage> {
             Container(
               width: 60,
               height: 85,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: AppColors.cardBg(context)),
-              child: posterPath != null
-                  ? ClipRRect(borderRadius: BorderRadius.circular(8), child: CachedNetworkImage(imageUrl: AppConfig.getImageUrl(posterPath, size: 'w92'), fit: BoxFit.cover, errorWidget: (context, url, error) => Center(child: Icon(Icons.movie, color: AppColors.textMuted(context)))))
-                  : Center(child: Icon(Icons.movie, color: AppColors.textMuted(context))),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: posterPath != null
+                    ? CachedNetworkImage(imageUrl: AppConfig.getImageUrl(posterPath, size: 'w92'), fit: BoxFit.cover, errorWidget: (_, __, ___) => Icon(Icons.movie_rounded, color: AppColors.textMuted(context)))
+                    : Container(color: AppColors.cardBg(context), child: Icon(Icons.movie_rounded, color: AppColors.textMuted(context))),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -268,7 +369,11 @@ class _SearchPageState extends State<SearchPage> {
                   const SizedBox(height: 4),
                   if (subtitle.isNotEmpty) Text(subtitle, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                   const SizedBox(height: 4),
-                  Row(children: [const Icon(Icons.star_rounded, color: AppColors.warning, size: 16), const SizedBox(width: 4), Text(rating.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13))]),
+                  Row(children: [
+                    const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
+                    const SizedBox(width: 4),
+                    Text(rating.toStringAsFixed(1), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+                  ]),
                 ],
               ),
             ),
@@ -279,13 +384,3 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-

@@ -28,32 +28,34 @@ class WatchlistItem extends Equatable {
 
 class WatchlistLoaded extends WatchlistState {
   final List<WatchlistItem> items;
-  final String filter; // 'all', 'shows', 'movies', 'watching', 'completed', 'up_to_date', 'watchlist', 'stopped'
+  final String filter;
+  final String mediaType; // 'all', 'tv', 'movie'
 
-  WatchlistLoaded({required this.items, this.filter = 'all'});
+  WatchlistLoaded({required this.items, this.filter = 'all', this.mediaType = 'all'});
 
   List<WatchlistItem> get filteredItems {
-    switch (filter) {
-      case 'shows':
-        return items.where((i) => i.mediaType == 'tv').toList();
-      case 'movies':
-        return items.where((i) => i.mediaType == 'movie').toList();
-      case 'watching':
-      case 'completed':
-      case 'up_to_date':
-      case 'watchlist':
-      case 'stopped':
-        return items.where((i) => i.status == filter).toList();
-      default:
-        return items;
+    List<WatchlistItem> result = items;
+
+    // Filter by media type
+    if (mediaType == 'tv') {
+      result = result.where((i) => i.mediaType == 'tv').toList();
+    } else if (mediaType == 'movie') {
+      result = result.where((i) => i.mediaType == 'movie').toList();
     }
+
+    // Filter by status
+    if (filter != 'all') {
+      result = result.where((i) => i.status == filter).toList();
+    }
+
+    return result;
   }
 
   List<WatchlistItem> get showItems => filteredItems.where((i) => i.mediaType == 'tv').toList();
   List<WatchlistItem> get movieItems => filteredItems.where((i) => i.mediaType == 'movie').toList();
 
   @override
-  List<Object?> get props => [items, filter];
+  List<Object?> get props => [items, filter, mediaType];
 }
 
 class WatchlistError extends WatchlistState {
@@ -189,7 +191,15 @@ class WatchlistCubit extends Cubit<WatchlistState> {
     if (state is WatchlistLoaded) {
       final current = state as WatchlistLoaded;
       if (isClosed) return;
-      emit(WatchlistLoaded(items: current.items, filter: filter));
+      emit(WatchlistLoaded(items: current.items, filter: filter, mediaType: current.mediaType));
+    }
+  }
+
+  void setMediaType(String mediaType) {
+    if (state is WatchlistLoaded) {
+      final current = state as WatchlistLoaded;
+      if (isClosed) return;
+      emit(WatchlistLoaded(items: current.items, filter: current.filter, mediaType: mediaType));
     }
   }
 }

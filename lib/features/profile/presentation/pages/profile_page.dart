@@ -272,42 +272,35 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   }
 
   Widget _buildQuickStats(BuildContext context, int watchlist, int followers, int following, List<Map<String, dynamic>> followersList, List<Map<String, dynamic>> followingList) {
-    return Row(
-      children: [
-        Expanded(child: _buildStatCard(context, Icons.bookmark_rounded, 'Watchlist', watchlist.toString(), const Color(0xFF6C63FF))),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
+    return GlassContainer(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStatItem(context, 'Watchlist', watchlist),
+          Container(width: 1, height: 40, color: AppColors.divider(context)),
+          GestureDetector(
             onTap: () => _showFollowing(followingList),
-            child: _buildStatCard(context, Icons.person_rounded, 'Following', following.toString(), const Color(0xFF00CC6A)),
+            child: _buildStatItem(context, 'Following', following),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
+          Container(width: 1, height: 40, color: AppColors.divider(context)),
+          GestureDetector(
             onTap: () => _showFollowers(followersList),
-            child: _buildStatCard(context, Icons.people_rounded, 'Followers', followers.toString(), const Color(0xFFFFD93D)),
+            child: _buildStatItem(context, 'Followers', followers),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildStatCard(BuildContext context, IconData icon, String label, String value, Color color) {
-    return GlassContainer(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      borderRadius: BorderRadius.circular(16),
-      opacity: 0.06,
-      borderColor: color.withValues(alpha: 0.2),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
-        ],
-      ),
+  Widget _buildStatItem(BuildContext context, String label, int value) {
+    return Column(
+      children: [
+        Text(value.toString(), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+      ],
     );
   }
 

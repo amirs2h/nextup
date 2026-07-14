@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -28,6 +29,7 @@ class _WatchlistPageView extends StatefulWidget {
 
 class _WatchlistPageViewState extends State<_WatchlistPageView> {
   String _filter = 'all';
+  String _mediaType = 'all'; // 'all', 'tv', 'movie'
 
   @override
   void initState() {
@@ -46,22 +48,22 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   Widget build(BuildContext context) {
     return AppBackground(
       child: SafeArea(
-      child: BlocBuilder<AuthCubit, AuthState>(
-        builder: (context, authState) {
-          if (authState is AuthUnauthenticated) {
-            return _buildLoginPrompt(context);
-          }
+        child: BlocBuilder<AuthCubit, AuthState>(
+          builder: (context, authState) {
+            if (authState is AuthUnauthenticated) {
+              return _buildLoginPrompt(context);
+            }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              _buildFilterTabs(context),
-              Expanded(child: _buildContent(context)),
-            ],
-          );
-        },
-      ),
+            return Column(
+              children: [
+                _buildHeader(context),
+                _buildMediaTypeTabs(context),
+                _buildStatusFilters(context),
+                Expanded(child: _buildContent(context)),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -101,9 +103,55 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
     );
   }
 
-  Widget _buildFilterTabs(BuildContext context) {
+  Widget _buildMediaTypeTabs(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          _buildMediaTypeTab(context, 'All', 'all', Icons.list_rounded),
+          const SizedBox(width: 8),
+          _buildMediaTypeTab(context, 'Shows', 'tv', Icons.tv_rounded),
+          const SizedBox(width: 8),
+          _buildMediaTypeTab(context, 'Movies', 'movie', Icons.movie_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMediaTypeTab(BuildContext context, String label, String value, IconData icon) {
+    final isSelected = _mediaType == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          setState(() => _mediaType = value);
+          context.read<WatchlistCubit>().setMediaType(value);
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: isSelected ? AppColors.primaryGradient : null,
+            color: isSelected ? null : AppColors.cardBg(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: isSelected ? Colors.transparent : AppColors.border(context)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: isSelected ? Colors.white : AppColors.textMuted(context), size: 18),
+              const SizedBox(width: 6),
+              Text(label, style: TextStyle(color: isSelected ? Colors.white : AppColors.textSecondary(context), fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, fontSize: 14)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusFilters(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -114,8 +162,6 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
           _buildFilterChip(context, 'Up to Date', 'up_to_date'),
           _buildFilterChip(context, 'Watchlist', 'watchlist'),
           _buildFilterChip(context, 'Stopped', 'stopped'),
-          _buildFilterChip(context, 'Shows', 'shows'),
-          _buildFilterChip(context, 'Movies', 'movies'),
         ],
       ),
     );
@@ -125,6 +171,7 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
     final isSelected = _filter == value;
     return GestureDetector(
       onTap: () {
+        HapticFeedback.lightImpact();
         setState(() => _filter = value);
         context.read<WatchlistCubit>().setFilter(value);
       },
@@ -165,10 +212,9 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
         }
 
         if (state is WatchlistLoaded) {
-          final showItems = state.showItems;
-          final movieItems = state.movieItems;
+          final items = _getFilteredItems(state);
 
-          if (showItems.isEmpty && movieItems.isEmpty) {
+          if (items.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -189,28 +235,34 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
             );
           }
 
-          return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            children: [
-              if (showItems.isNotEmpty) ...[
-                Text('Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                const SizedBox(height: 12),
-                ...showItems.map((item) => _buildItemCard(context, item)),
-                const SizedBox(height: 20),
-              ],
-              if (movieItems.isNotEmpty) ...[
-                Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                const SizedBox(height: 12),
-                ...movieItems.map((item) => _buildItemCard(context, item)),
-              ],
-              const SizedBox(height: 100),
-            ],
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            itemCount: items.length,
+            itemBuilder: (context, index) => _buildItemCard(context, items[index]),
           );
         }
 
         return const SizedBox();
       },
     );
+  }
+
+  List<WatchlistItem> _getFilteredItems(WatchlistLoaded state) {
+    List<WatchlistItem> items = state.items;
+
+    // Filter by media type
+    if (_mediaType == 'tv') {
+      items = items.where((i) => i.mediaType == 'tv').toList();
+    } else if (_mediaType == 'movie') {
+      items = items.where((i) => i.mediaType == 'movie').toList();
+    }
+
+    // Filter by status
+    if (_filter != 'all') {
+      items = items.where((i) => i.status == _filter).toList();
+    }
+
+    return items;
   }
 
   Widget _buildItemCard(BuildContext context, WatchlistItem item) {
@@ -260,39 +312,42 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
             ),
             IconButton(
               icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (dialogContext) => AlertDialog(
-                    backgroundColor: AppColors.surface(context),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    title: const Text('Remove from Watchlist'),
-                    content: Text('Remove "${item.mediaType == 'tv' ? (item.model as ShowModel).name : (item.model as MovieModel).title}" from your watchlist?'),
-                    actions: [
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.surface(context),
-                          foregroundColor: AppColors.text(context),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(dialogContext);
-                          context.read<WatchlistCubit>().removeFromWatchlist(id, item.mediaType);
-                        },
-                        child: const Text('Remove', style: TextStyle(color: AppColors.error)),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              onPressed: () => _showRemoveDialog(context, item, id),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showRemoveDialog(BuildContext context, WatchlistItem item, int id) {
+    final isShow = item.mediaType == 'tv';
+    final name = isShow ? (item.model as ShowModel).name : (item.model as MovieModel).title;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Remove from Watchlist'),
+        content: Text('Remove "$name" from your watchlist?'),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.surface(context),
+              foregroundColor: AppColors.text(context),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<WatchlistCubit>().removeFromWatchlist(id, item.mediaType);
+            },
+            child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
       ),
     );
   }
@@ -360,7 +415,6 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
       onPressed: () {
         Navigator.pop(ctx);
         if (tmdbId > 0 && mediaType.isNotEmpty) {
-          // If changing to "completed" for a TV show, ask about marking all episodes
           if (value == 'completed' && mediaType == 'tv' && current != 'completed') {
             _showMarkAllDialog(context, tmdbId, mediaType, value);
           } else {
@@ -386,25 +440,19 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Mark as Completed?', style: TextStyle(color: AppColors.text(context))),
-        content: Text(
-          'Do you also want to mark all episodes as watched?',
-          style: TextStyle(color: AppColors.textSecondary(context)),
-        ),
+        content: Text('Do you also want to mark all episodes as watched?', style: TextStyle(color: AppColors.textSecondary(context))),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              // Just change status without marking episodes
               context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, newStatus);
             },
             child: Text('No, just change status', style: TextStyle(color: AppColors.textMuted(context))),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(dialogCtx);
-              // Change status
               context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, newStatus);
-              // Navigate to show detail to mark all episodes
               context.push('/show/$tmdbId');
             },
             style: ElevatedButton.styleFrom(
