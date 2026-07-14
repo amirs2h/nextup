@@ -12,8 +12,8 @@ flutter doctor
 # Get dependencies
 flutter pub get
 
-# Build for web
-flutter build web --release \
+# Build for web with WASM (faster performance)
+flutter build web --release --wasm \
   --dart-define=TMDB_API_KEY=$TMDB_API_KEY \
   --dart-define=OMDB_API_KEY=$OMDB_API_KEY \
   --dart-define=SUPABASE_URL=$SUPABASE_URL \
