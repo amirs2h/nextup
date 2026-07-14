@@ -19,4 +19,8 @@ flutter build web --release --wasm \
   --dart-define=SUPABASE_URL=$SUPABASE_URL \
   --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
+# Copy build output to web/ directory (Cloudflare Pages reads from here)
+rm -rf web/*
+cp -r build/web/* web/
+
 echo "Build complete!"
