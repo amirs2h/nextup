@@ -360,35 +360,45 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
     _isMarkingAll = true;
     try {
       final currentState = state;
-      if (currentState is! ShowDetailLoaded) return;
+      if (currentState is! ShowDetailLoaded) {
+        _isMarkingAll = false;
+        return;
+      }
 
       final user = _supabaseService.currentUser;
-      if (user == null) return;
-
-    final seasons = currentState.show.seasons;
-    if (seasons == null || seasons.isEmpty) return;
-
-    final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
-    for (final season in seasons) {
-      if (season.seasonNumber <= 0) continue;
-      if (season.episodes != null) {
-        for (final episode in season.episodes!) {
-          optimisticWatched[season.seasonNumber * 10000 + episode.episodeNumber] = true;
-        }
-      } else {
-        try {
-          final seasonData = await _tmdbService.getShowSeasonDetails(showId, season.seasonNumber);
-          final episodes = seasonData['episodes'] as List? ?? [];
-          for (final ep in episodes) {
-            final epNum = ep['episode_number'] as int;
-            optimisticWatched[season.seasonNumber * 10000 + epNum] = true;
-          }
-        } catch (_) {}
+      if (user == null) {
+        _isMarkingAll = false;
+        return;
       }
-    }
-    emit(currentState.copyWith(watchedEpisodes: optimisticWatched));
 
-    try {
+      final seasons = currentState.show.seasons;
+      if (seasons == null || seasons.isEmpty) {
+        _isMarkingAll = false;
+        return;
+      }
+
+      // Optimistic update
+      final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+      for (final season in seasons) {
+        if (season.seasonNumber <= 0) continue;
+        if (season.episodes != null) {
+          for (final episode in season.episodes!) {
+            optimisticWatched[season.seasonNumber * 10000 + episode.episodeNumber] = true;
+          }
+        } else {
+          try {
+            final seasonData = await _tmdbService.getShowSeasonDetails(showId, season.seasonNumber);
+            final episodes = seasonData['episodes'] as List? ?? [];
+            for (final ep in episodes) {
+              final epNum = ep['episode_number'] as int;
+              optimisticWatched[season.seasonNumber * 10000 + epNum] = true;
+            }
+          } catch (_) {}
+        }
+      }
+      emit(currentState.copyWith(watchedEpisodes: optimisticWatched));
+
+      // Batch processing
       final List<List<dynamic>> batches = [];
       List<dynamic> currentBatch = [];
 
@@ -436,6 +446,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         }));
       }
 
+      // Auto-compute status
       try {
         final showDetails = await _tmdbService.getShowDetails(showId);
         await _supabaseService.computeAndSetShowStatus(
@@ -451,7 +462,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         if (!isClosed) emit((state as ShowDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
       } catch (_) {}
     } catch (e) {
-      if (!isClosed) emit(currentState);
+      // Error handled silently
     } finally {
       _isMarkingAll = false;
     }

@@ -136,41 +136,52 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
     _isMarkingAll = true;
     try {
       final user = _supabaseService.currentUser;
-      if (user == null) return;
-
-      final currentState = state;
-      if (currentState is! SeasonDetailLoaded) return;
-
-    List<EpisodeModel> episodes;
-    if (currentState.season.episodes != null) {
-      episodes = currentState.season.episodes!;
-    } else {
-      try {
-        final seasonData = await _tmdbService.getShowSeasonDetails(showId, seasonNumber);
-        final fetchedSeason = SeasonModel.fromJson(seasonData);
-        episodes = fetchedSeason.episodes ?? [];
-        if (episodes.isEmpty) return;
-        if (!isClosed) {
-          emit(SeasonDetailLoaded(
-            season: fetchedSeason,
-            watchedEpisodes: currentState.watchedEpisodes,
-          ));
-        }
-      } catch (_) {
+      if (user == null) {
+        _isMarkingAll = false;
         return;
       }
-    }
 
-    final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
-    for (final episode in episodes) {
-      optimisticWatched[episode.episodeNumber] = true;
-    }
-    emit(SeasonDetailLoaded(
-      season: currentState.season,
-      watchedEpisodes: optimisticWatched,
-    ));
+      final currentState = state;
+      if (currentState is! SeasonDetailLoaded) {
+        _isMarkingAll = false;
+        return;
+      }
 
-    try {
+      List<EpisodeModel> episodes;
+      if (currentState.season.episodes != null) {
+        episodes = currentState.season.episodes!;
+      } else {
+        try {
+          final seasonData = await _tmdbService.getShowSeasonDetails(showId, seasonNumber);
+          final fetchedSeason = SeasonModel.fromJson(seasonData);
+          episodes = fetchedSeason.episodes ?? [];
+          if (episodes.isEmpty) {
+            _isMarkingAll = false;
+            return;
+          }
+          if (!isClosed) {
+            emit(SeasonDetailLoaded(
+              season: fetchedSeason,
+              watchedEpisodes: currentState.watchedEpisodes,
+            ));
+          }
+        } catch (_) {
+          _isMarkingAll = false;
+          return;
+        }
+      }
+
+      // Optimistic update
+      final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+      for (final episode in episodes) {
+        optimisticWatched[episode.episodeNumber] = true;
+      }
+      emit(SeasonDetailLoaded(
+        season: currentState.season,
+        watchedEpisodes: optimisticWatched,
+      ));
+
+      // Batch processing
       final List<List<dynamic>> batches = [];
       List<dynamic> currentBatch = [];
 
@@ -202,7 +213,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
 
       await _autoComputeStatus(user.id);
     } catch (e) {
-      if (!isClosed) emit(currentState);
+      // Error handled silently
     } finally {
       _isMarkingAll = false;
     }
