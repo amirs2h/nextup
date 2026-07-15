@@ -118,7 +118,7 @@ class _NextUpAppState extends State<NextUpApp> {
           BlocProvider(create: (context) => WatchHistoryCubit(widget.supabaseService, widget.tmdbService)),
           BlocProvider(create: (context) => CommentsCubit(widget.supabaseService)),
           BlocProvider(create: (context) => StatsCubit(widget.supabaseService, widget.tmdbService)),
-          BlocProvider(create: (context) => AchievementsCubit(widget.supabaseService)),
+          BlocProvider(create: (context) => AchievementsCubit(widget.supabaseService, widget.tmdbService)),
           BlocProvider(create: (context) => ActivityCubit(widget.supabaseService)),
           BlocProvider(create: (context) => CalendarCubit(widget.supabaseService, widget.tmdbService)),
           BlocProvider(create: (context) => ComingSoonCubit(widget.tmdbService)),

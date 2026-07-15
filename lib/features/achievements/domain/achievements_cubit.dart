@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
+import '../../../shared/services/tmdb_service.dart';
 
 enum AchievementRarity { common, rare, epic, legendary }
 
@@ -17,7 +18,6 @@ class Achievement extends Equatable {
   final int xpReward;
   final bool isUnlocked;
   final int current;
-  final DateTime? unlockedAt;
 
   const Achievement({
     required this.id,
@@ -31,7 +31,6 @@ class Achievement extends Equatable {
     required this.xpReward,
     this.isUnlocked = false,
     this.current = 0,
-    this.unlockedAt,
   });
 
   double get progress => requirement > 0 ? (current / requirement).clamp(0.0, 1.0) : 0.0;
@@ -55,7 +54,7 @@ class Achievement extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, title, description, icon, color, requirement, category, rarity, xpReward, isUnlocked, current, unlockedAt];
+  List<Object?> get props => [id, title, description, icon, color, requirement, category, rarity, xpReward, isUnlocked, current];
 }
 
 abstract class AchievementsState extends Equatable {
@@ -64,7 +63,6 @@ abstract class AchievementsState extends Equatable {
 }
 
 class AchievementsInitial extends AchievementsState {}
-
 class AchievementsLoading extends AchievementsState {}
 
 class AchievementsLoaded extends AchievementsState {
@@ -102,21 +100,21 @@ class AchievementsLoaded extends AchievementsState {
 class AchievementsError extends AchievementsState {
   final String message;
   AchievementsError(this.message);
-
   @override
   List<Object?> get props => [message];
 }
 
 class AchievementsCubit extends Cubit<AchievementsState> {
   final SupabaseService _supabaseService;
+  final TmdbService _tmdbService;
 
-  AchievementsCubit(this._supabaseService) : super(AchievementsInitial());
+  AchievementsCubit(this._supabaseService, this._tmdbService) : super(AchievementsInitial());
 
   Future<void> loadAchievements() async {
     final user = _supabaseService.currentUser;
     if (user == null) {
       if (isClosed) return;
-      emit(AchievementsLoaded(achievements: _getAchievements(0, 0, 0, 0)));
+      emit(AchievementsLoaded(achievements: []));
       return;
     }
 
@@ -126,24 +124,28 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       final results = await Future.wait([
         _supabaseService.getWatchHistory(userId: user.id),
         _supabaseService.getWatchlist(userId: user.id),
+        _supabaseService.getFavorites(userId: user.id),
       ]);
 
       final history = results[0] as List<Map<String, dynamic>>;
       final watchlist = results[1] as List<Map<String, dynamic>>;
+      final favorites = results[2] as List<Map<String, dynamic>>;
 
+      // Calculate stats
       int totalShows = 0;
       int totalMovies = 0;
       int totalEpisodes = 0;
       Set<String> showIds = {};
       Set<String> movieIds = {};
       Set<String> activeDays = {};
+      Map<int, int> hourCounts = {};
+      Map<String, int> genreCounts = {};
+      Map<String, int> countryCounts = {};
 
       for (final item in history) {
         if (item['media_type'] == 'tv') {
           showIds.add(item['tmdb_id'].toString());
-          if (item['episode_number'] != null) {
-            totalEpisodes++;
-          }
+          if (item['episode_number'] != null) totalEpisodes++;
         } else {
           movieIds.add(item['tmdb_id'].toString());
         }
@@ -151,6 +153,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
           final date = DateTime.tryParse(item['watched_at']);
           if (date != null) {
             activeDays.add('${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}');
+            hourCounts[date.hour] = (hourCounts[date.hour] ?? 0) + 1;
           }
         }
       }
@@ -162,7 +165,6 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       // Calculate streaks
       final sortedDays = activeDays.toList()..sort();
       int longestStreak = 0;
-      int currentStreak = 0;
       int tempStreak = 1;
       for (int i = 1; i < sortedDays.length; i++) {
         final prev = DateTime.parse(sortedDays[i - 1]);
@@ -177,7 +179,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       if (tempStreak > longestStreak) longestStreak = tempStreak;
 
       final now = DateTime.now();
-      currentStreak = 0;
+      int currentStreak = 0;
       for (int i = 0; i < 365; i++) {
         final checkDate = now.subtract(Duration(days: i));
         final checkKey = '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
@@ -188,12 +190,54 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         }
       }
 
-      // Calculate level and XP
-      final achievements = _getAchievements(totalShows, totalMovies, totalEpisodes, totalHours);
+      // Get genres from recent items
+      final recentItems = history.take(20).toList();
+      for (final item in recentItems) {
+        try {
+          final tmdbId = item['tmdb_id'] as int;
+          final mediaType = item['media_type'] as String;
+          Map<String, dynamic> data;
+          if (mediaType == 'tv') {
+            data = await _tmdbService.getShowDetails(tmdbId);
+          } else {
+            data = await _tmdbService.getMovieDetails(tmdbId);
+          }
+          final genres = (data['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? [];
+          for (final genre in genres) {
+            genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+          }
+          final originCountries = (data['origin_country'] as List?)?.map((c) => c.toString()).toList() ?? [];
+          for (final country in originCountries) {
+            countryCounts[country] = (countryCounts[country] ?? 0) + 1;
+          }
+        } catch (e) {
+          // Skip failed items
+        }
+      }
+
+      // Check night owl / early bird
+      bool isNightOwl = hourCounts.containsKey(0) || hourCounts.containsKey(1) || hourCounts.containsKey(2) || hourCounts.containsKey(3);
+      bool isEarlyBird = hourCounts.containsKey(5) || hourCounts.containsKey(6);
+
+      // Build achievements
+      final achievements = _getAchievements(
+        shows: totalShows,
+        movies: totalMovies,
+        episodes: totalEpisodes,
+        hours: totalHours,
+        currentStreak: currentStreak,
+        longestStreak: longestStreak,
+        isNightOwl: isNightOwl,
+        isEarlyBird: isEarlyBird,
+        genreCounts: genreCounts,
+        countryCounts: countryCounts,
+        watchlistCount: watchlist.length,
+        favoriteCount: favorites.length,
+      );
+
       final totalXp = achievements.where((a) => a.isUnlocked).fold(0, (sum, a) => sum + a.xpReward);
       final level = (totalXp / 100).floor() + 1;
       final currentXp = totalXp % 100;
-      const xpToNextLevel = 100;
 
       if (isClosed) return;
       emit(AchievementsLoaded(
@@ -204,7 +248,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         totalHours: totalHours,
         level: level,
         currentXp: currentXp,
-        xpToNextLevel: xpToNextLevel,
+        xpToNextLevel: 100,
         longestStreak: longestStreak,
         currentStreak: currentStreak,
       ));
@@ -214,32 +258,59 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     }
   }
 
-  List<Achievement> _getAchievements(int shows, int movies, int episodes, int hours) {
+  List<Achievement> _getAchievements({
+    required int shows,
+    required int movies,
+    required int episodes,
+    required int hours,
+    required int currentStreak,
+    required int longestStreak,
+    required bool isNightOwl,
+    required bool isEarlyBird,
+    required Map<String, int> genreCounts,
+    required Map<String, int> countryCounts,
+    required int watchlistCount,
+    required int favoriteCount,
+  }) {
     return [
-      // ===== SHOWS =====
-      Achievement(id: 'first_show', title: 'First Steps', description: 'Watch your first show', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 1, category: 'shows', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: shows >= 1, current: shows),
-      Achievement(id: 'show_5', title: 'Show Lover', description: 'Watch 5 different shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 5, category: 'shows', rarity: AchievementRarity.common, xpReward: 25, isUnlocked: shows >= 5, current: shows),
-      Achievement(id: 'show_10', title: 'Show Expert', description: 'Watch 10 different shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 10, category: 'shows', rarity: AchievementRarity.rare, xpReward: 50, isUnlocked: shows >= 10, current: shows),
-      Achievement(id: 'show_25', title: 'Show Master', description: 'Watch 25 different shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 25, category: 'shows', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: shows >= 25, current: shows),
-      Achievement(id: 'show_50', title: 'Show Legend', description: 'Watch 50 different shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 50, category: 'shows', rarity: AchievementRarity.legendary, xpReward: 250, isUnlocked: shows >= 50, current: shows),
-      // ===== MOVIES =====
-      Achievement(id: 'first_movie', title: 'Movie Night', description: 'Watch your first movie', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 1, category: 'movies', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: movies >= 1, current: movies),
-      Achievement(id: 'movie_10', title: 'Movie Buff', description: 'Watch 10 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 10, category: 'movies', rarity: AchievementRarity.common, xpReward: 25, isUnlocked: movies >= 10, current: movies),
-      Achievement(id: 'movie_25', title: 'Movie Addict', description: 'Watch 25 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 25, category: 'movies', rarity: AchievementRarity.rare, xpReward: 50, isUnlocked: movies >= 25, current: movies),
-      Achievement(id: 'movie_50', title: 'Cinema King', description: 'Watch 50 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 50, category: 'movies', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: movies >= 50, current: movies),
-      Achievement(id: 'movie_100', title: 'Movie Legend', description: 'Watch 100 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 100, category: 'movies', rarity: AchievementRarity.legendary, xpReward: 250, isUnlocked: movies >= 100, current: movies),
-      // ===== EPISODES =====
-      Achievement(id: 'episode_10', title: 'Getting Started', description: 'Watch 10 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 10, category: 'episodes', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: episodes >= 10, current: episodes),
-      Achievement(id: 'episode_50', title: 'Binge Watcher', description: 'Watch 50 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 50, category: 'episodes', rarity: AchievementRarity.common, xpReward: 25, isUnlocked: episodes >= 50, current: episodes),
-      Achievement(id: 'episode_100', title: 'Binge Master', description: 'Watch 100 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 100, category: 'episodes', rarity: AchievementRarity.rare, xpReward: 50, isUnlocked: episodes >= 100, current: episodes),
-      Achievement(id: 'episode_500', title: 'Binge Legend', description: 'Watch 500 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 500, category: 'episodes', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: episodes >= 500, current: episodes),
-      Achievement(id: 'episode_1000', title: 'Binge God', description: 'Watch 1000 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 1000, category: 'episodes', rarity: AchievementRarity.legendary, xpReward: 500, isUnlocked: episodes >= 1000, current: episodes),
-      // ===== HOURS =====
-      Achievement(id: 'hours_10', title: 'Just Started', description: 'Watch 10 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 10, category: 'hours', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: hours >= 10, current: hours),
-      Achievement(id: 'hours_50', title: 'Regular Viewer', description: 'Watch 50 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 50, category: 'hours', rarity: AchievementRarity.common, xpReward: 25, isUnlocked: hours >= 50, current: hours),
-      Achievement(id: 'hours_100', title: 'Dedicated Fan', description: 'Watch 100 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 100, category: 'hours', rarity: AchievementRarity.rare, xpReward: 50, isUnlocked: hours >= 100, current: hours),
-      Achievement(id: 'hours_500', title: 'Time Master', description: 'Watch 500 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 500, category: 'hours', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: hours >= 500, current: hours),
-      Achievement(id: 'hours_1000', title: 'Ultimate Fan', description: 'Watch 1000 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 1000, category: 'hours', rarity: AchievementRarity.legendary, xpReward: 500, isUnlocked: hours >= 1000, current: hours),
+      // ===== WATCHING =====
+      Achievement(id: 'first_episode', title: 'First Episode', description: 'Watch your first episode', icon: Icons.play_circle, color: const Color(0xFF6C63FF), requirement: 1, category: 'watching', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: episodes >= 1, current: episodes),
+      Achievement(id: 'binge_master', title: 'Binge Master', description: 'Watch 5 episodes in one day', icon: Icons.bolt, color: const Color(0xFFFFD93D), requirement: 5, category: 'watching', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: episodes >= 5, current: episodes),
+      Achievement(id: 'marathon_monster', title: 'Marathon Monster', description: 'Watch 10 episodes in one day', icon: Icons.flash_on, color: const Color(0xFFE50914), requirement: 10, category: 'watching', rarity: AchievementRarity.epic, xpReward: 50, isUnlocked: episodes >= 10, current: episodes),
+      Achievement(id: 'night_owl', title: 'Night Owl', description: 'Watch between 12AM-4AM', icon: Icons.nightlight_round, color: const Color(0xFF6C63FF), requirement: 1, category: 'watching', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: isNightOwl, current: isNightOwl ? 1 : 0),
+      Achievement(id: 'early_bird', title: 'Early Bird', description: 'Watch before 7AM', icon: Icons.wb_sunny, color: const Color(0xFFFFD93D), requirement: 1, category: 'watching', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: isEarlyBird, current: isEarlyBird ? 1 : 0),
+      Achievement(id: 'daily_streak', title: 'Daily Streak', description: '7 days in a row', icon: Icons.local_fire_department, color: const Color(0xFFE50914), requirement: 7, category: 'watching', rarity: AchievementRarity.rare, xpReward: 30, isUnlocked: longestStreak >= 7, current: longestStreak),
+      Achievement(id: 'monthly_streak', title: 'Monthly Streak', description: '30 days in a row', icon: Icons.local_fire_department, color: const Color(0xFF9C27B0), requirement: 30, category: 'watching', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: longestStreak >= 30, current: longestStreak),
+      Achievement(id: 'year_streak', title: 'One Year Streak', description: '365 days in a row', icon: Icons.local_fire_department, color: const Color(0xFFFF9800), requirement: 365, category: 'watching', rarity: AchievementRarity.legendary, xpReward: 500, isUnlocked: longestStreak >= 365, current: longestStreak),
+      Achievement(id: 'movie_maniac', title: 'Movie Maniac', description: 'Watch 100 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 100, category: 'watching', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: movies >= 100, current: movies),
+      Achievement(id: 'series_addict', title: 'Series Addict', description: 'Watch 50 shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 50, category: 'watching', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: shows >= 50, current: shows),
+      Achievement(id: 'episode_hunter', title: 'Episode Hunter', description: 'Watch 1000 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 1000, category: 'watching', rarity: AchievementRarity.legendary, xpReward: 250, isUnlocked: episodes >= 1000, current: episodes),
+
+      // ===== GENRES =====
+      Achievement(id: 'action_lover', title: 'Action Lover', description: 'Watch 5 action titles', icon: Icons.local_fire_department, color: const Color(0xFFE50914), requirement: 5, category: 'genre', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (genreCounts['Action'] ?? 0) >= 5, current: genreCounts['Action'] ?? 0),
+      Achievement(id: 'comedy_expert', title: 'Comedy Expert', description: 'Watch 5 comedy titles', icon: Icons.sentiment_very_satisfied, color: const Color(0xFFFFD93D), requirement: 5, category: 'genre', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (genreCounts['Comedy'] ?? 0) >= 5, current: genreCounts['Comedy'] ?? 0),
+      Achievement(id: 'scifi_explorer', title: 'Sci-Fi Explorer', description: 'Watch 5 sci-fi titles', icon: Icons.rocket_launch, color: const Color(0xFF00D4FF), requirement: 5, category: 'genre', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (genreCounts['Science Fiction'] ?? 0) >= 5, current: genreCounts['Science Fiction'] ?? 0),
+      Achievement(id: 'fantasy_wizard', title: 'Fantasy Wizard', description: 'Watch 5 fantasy titles', icon: Icons.auto_awesome, color: const Color(0xFF9C27B0), requirement: 5, category: 'genre', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (genreCounts['Fantasy'] ?? 0) >= 5, current: genreCounts['Fantasy'] ?? 0),
+      Achievement(id: 'crime_detective', title: 'Crime Detective', description: 'Watch 5 crime titles', icon: Icons.gavel, color: const Color(0xFF795548), requirement: 5, category: 'genre', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (genreCounts['Crime'] ?? 0) >= 5, current: genreCounts['Crime'] ?? 0),
+      Achievement(id: 'horror_survivor', title: 'Horror Survivor', description: 'Watch 5 horror titles', icon: Icons.sentiment_very_dissatisfied, color: const Color(0xFFE50914), requirement: 5, category: 'genre', rarity: AchievementRarity.rare, xpReward: 20, isUnlocked: (genreCounts['Horror'] ?? 0) >= 5, current: genreCounts['Horror'] ?? 0),
+      Achievement(id: 'romance_expert', title: 'Romance Expert', description: 'Watch 5 romance titles', icon: Icons.favorite, color: const Color(0xFFE91E63), requirement: 5, category: 'genre', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (genreCounts['Romance'] ?? 0) >= 5, current: genreCounts['Romance'] ?? 0),
+      Achievement(id: 'genre_explorer', title: 'Genre Explorer', description: 'Watch from 5 different genres', icon: Icons.explore, color: const Color(0xFF00D4FF), requirement: 5, category: 'genre', rarity: AchievementRarity.rare, xpReward: 30, isUnlocked: genreCounts.length >= 5, current: genreCounts.length),
+
+      // ===== COUNTRY =====
+      Achievement(id: 'hollywood_tourist', title: 'Hollywood Tourist', description: 'Watch 5 US titles', icon: Icons.movie, color: const Color(0xFF2196F3), requirement: 5, category: 'country', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (countryCounts['US'] ?? 0) >= 5, current: countryCounts['US'] ?? 0),
+      Achievement(id: 'korean_fan', title: 'K-Drama Fan', description: 'Watch 5 Korean titles', icon: Icons.tv, color: const Color(0xFFE91E63), requirement: 5, category: 'country', rarity: AchievementRarity.rare, xpReward: 20, isUnlocked: (countryCounts['KR'] ?? 0) >= 5, current: countryCounts['KR'] ?? 0),
+      Achievement(id: 'anime_world', title: 'Anime World', description: 'Watch 5 Japanese titles', icon: Icons.animation, color: const Color(0xFFE50914), requirement: 5, category: 'country', rarity: AchievementRarity.rare, xpReward: 20, isUnlocked: (countryCounts['JP'] ?? 0) >= 5, current: countryCounts['JP'] ?? 0),
+
+      // ===== WATCHLIST =====
+      Achievement(id: 'first_save', title: 'First Save', description: 'Add first item to watchlist', icon: Icons.bookmark, color: const Color(0xFF6C63FF), requirement: 1, category: 'watchlist', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: watchlistCount >= 1, current: watchlistCount),
+      Achievement(id: 'collector', title: 'Collector', description: 'Add 10 items to watchlist', icon: Icons.bookmark, color: const Color(0xFF6C63FF), requirement: 10, category: 'watchlist', rarity: AchievementRarity.common, xpReward: 25, isUnlocked: watchlistCount >= 10, current: watchlistCount),
+      Achievement(id: 'wishlist_king', title: 'Wishlist King', description: 'Add 100 items to watchlist', icon: Icons.bookmark, color: const Color(0xFF9C27B0), requirement: 100, category: 'watchlist', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: watchlistCount >= 100, current: watchlistCount),
+
+      // ===== TIME =====
+      Achievement(id: 'hours_10', title: 'Getting Started', description: 'Watch 10 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 10, category: 'time', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: hours >= 10, current: hours),
+      Achievement(id: 'hours_100', title: 'Dedicated Viewer', description: 'Watch 100 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 100, category: 'time', rarity: AchievementRarity.rare, xpReward: 50, isUnlocked: hours >= 100, current: hours),
+      Achievement(id: 'hours_500', title: 'Time Master', description: 'Watch 500 hours', icon: Icons.access_time, color: const Color(0xFF9C27B0), requirement: 500, category: 'time', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: hours >= 500, current: hours),
+      Achievement(id: 'hours_1000', title: 'Ultimate Fan', description: 'Watch 1000 hours', icon: Icons.access_time, color: const Color(0xFFFF9800), requirement: 1000, category: 'time', rarity: AchievementRarity.legendary, xpReward: 250, isUnlocked: hours >= 1000, current: hours),
     ];
   }
 }

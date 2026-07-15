@@ -125,22 +125,15 @@ class _AchievementsPageState extends State<AchievementsPage> {
         children: [
           Row(
             children: [
-              // Level badge
               Container(
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.electricPurple],
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
-                  ],
+                  gradient: LinearGradient(colors: [AppColors.primary, AppColors.electricPurple]),
+                  boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8))],
                 ),
-                child: Center(
-                  child: Text('${state.level}', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                ),
+                child: Center(child: Text('${state.level}', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -153,7 +146,6 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   ],
                 ),
               ),
-              // Streak
               Column(
                 children: [
                   Icon(Icons.local_fire_department_rounded, color: AppColors.primary, size: 28),
@@ -165,7 +157,6 @@ class _AchievementsPageState extends State<AchievementsPage> {
             ],
           ),
           const SizedBox(height: 16),
-          // XP Progress bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -195,10 +186,11 @@ class _AchievementsPageState extends State<AchievementsPage> {
         scrollDirection: Axis.horizontal,
         children: [
           _buildCategoryTab('All', 'all', Icons.grid_view_rounded),
-          _buildCategoryTab('Shows', 'shows', Icons.tv_rounded),
-          _buildCategoryTab('Movies', 'movies', Icons.movie_rounded),
-          _buildCategoryTab('Episodes', 'episodes', Icons.play_circle_rounded),
-          _buildCategoryTab('Hours', 'hours', Icons.access_time_rounded),
+          _buildCategoryTab('Watching', 'watching', Icons.play_circle_rounded),
+          _buildCategoryTab('Genre', 'genre', Icons.category_rounded),
+          _buildCategoryTab('Country', 'country', Icons.flag_rounded),
+          _buildCategoryTab('Watchlist', 'watchlist', Icons.bookmark_rounded),
+          _buildCategoryTab('Time', 'time', Icons.access_time_rounded),
         ],
       ),
     );
@@ -248,29 +240,19 @@ class _AchievementsPageState extends State<AchievementsPage> {
         borderColor: achievement.isUnlocked ? achievement.color.withValues(alpha: 0.3) : null,
         child: Row(
           children: [
-            // Icon
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: achievement.isUnlocked
-                    ? achievement.color.withValues(alpha: 0.2)
-                    : AppColors.cardBg(context),
-                boxShadow: achievement.isUnlocked
-                    ? [BoxShadow(color: achievement.color.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))]
-                    : null,
+                color: achievement.isUnlocked ? achievement.color.withValues(alpha: 0.2) : AppColors.cardBg(context),
+                boxShadow: achievement.isUnlocked ? [BoxShadow(color: achievement.color.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))] : null,
               ),
               child: Center(
-                child: Icon(
-                  achievement.icon,
-                  color: achievement.isUnlocked ? achievement.color : AppColors.textMuted(context),
-                  size: 22,
-                ),
+                child: Icon(achievement.icon, color: achievement.isUnlocked ? achievement.color : AppColors.textMuted(context), size: 22),
               ),
             ),
             const SizedBox(width: 12),
-            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,16 +260,8 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          achievement.title,
-                          style: TextStyle(
-                            color: achievement.isUnlocked ? AppColors.text(context) : AppColors.textMuted(context),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
+                        child: Text(achievement.title, style: TextStyle(color: achievement.isUnlocked ? AppColors.text(context) : AppColors.textMuted(context), fontWeight: FontWeight.w600, fontSize: 14)),
                       ),
-                      // Rarity badge
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
