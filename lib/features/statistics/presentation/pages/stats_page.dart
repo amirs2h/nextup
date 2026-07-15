@@ -96,14 +96,16 @@ class _StatsPageState extends State<StatsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildOverviewCards(context, state),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  _buildStreakCard(context, state),
+                  const SizedBox(height: 16),
                   _buildWatchTimeChart(context, state),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   _buildDistributionChart(context, state),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   if (state.topGenres.isNotEmpty) ...[
                     _buildTopGenres(context, state),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                   ],
                   _buildInsights(context, state),
                   const SizedBox(height: 100),
@@ -134,22 +136,69 @@ class _StatsPageState extends State<StatsPage> {
 
   Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color color) {
     return GlassContainer(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       borderRadius: BorderRadius.circular(14),
       child: Column(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color.withValues(alpha: 0.2),
             ),
-            child: Center(child: Icon(icon, color: color, size: 18)),
+            child: Center(child: Icon(icon, color: color, size: 16)),
           ),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+          const SizedBox(height: 6),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreakCard(BuildContext context, StatsLoaded stats) {
+    return GlassContainer(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(16),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryLight],
+              ),
+              boxShadow: [
+                BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6)),
+              ],
+            ),
+            child: Center(
+              child: Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 28),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Watch Streak', style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text('${stats.currentStreak}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    Text(' days', style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
+                    const SizedBox(width: 16),
+                    Icon(Icons.emoji_events_rounded, color: const Color(0xFFFFD93D), size: 16),
+                    const SizedBox(width: 4),
+                    Text('Best: ${stats.longestStreak}', style: TextStyle(fontSize: 13, color: AppColors.textMuted(context))),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -412,10 +461,6 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildInsights(BuildContext context, StatsLoaded stats) {
-    final totalItems = stats.totalShows + stats.totalMovies;
-    final avgEpisodesPerShow = stats.totalShows > 0 ? (stats.totalEpisodes / stats.totalShows).round() : 0;
-    final avgHoursPerDay = stats.totalHours > 0 ? (stats.totalHours / 365).toStringAsFixed(1) : '0';
-
     return GlassContainer(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(16),
@@ -430,10 +475,15 @@ class _StatsPageState extends State<StatsPage> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildInsightRow(Icons.movie_rounded, 'Total Content', '$totalItems items', const Color(0xFF6C63FF)),
-          _buildInsightRow(Icons.play_circle_rounded, 'Avg Episodes/Show', '$avgEpisodesPerShow episodes', const Color(0xFF00D4FF)),
-          _buildInsightRow(Icons.access_time_rounded, 'Avg Watch Time', '$avgHoursPerDay hrs/day', const Color(0xFFFFD93D)),
-          _buildInsightRow(Icons.local_fire_department_rounded, 'Longest Streak', 'Coming soon', AppColors.primary),
+          if (stats.mostWatchedShow.isNotEmpty)
+            _buildInsightRow(Icons.tv_rounded, 'Most Watched Show', '${stats.mostWatchedShow} (${stats.mostWatchedShowEpisodes} eps)', const Color(0xFF6C63FF)),
+          _buildInsightRow(Icons.play_circle_rounded, 'Avg Episodes/Show', '${stats.avgEpisodesPerShow} episodes', const Color(0xFF00D4FF)),
+          if (stats.favoriteDay.isNotEmpty)
+            _buildInsightRow(Icons.calendar_today_rounded, 'Favorite Day', stats.favoriteDay, const Color(0xFFE50914)),
+          if (stats.favoriteTime.isNotEmpty)
+            _buildInsightRow(Icons.access_time_rounded, 'Favorite Time', stats.favoriteTime, const Color(0xFFFFD93D)),
+          _buildInsightRow(Icons.local_fire_department_rounded, 'Current Streak', '${stats.currentStreak} days', AppColors.primary),
+          _buildInsightRow(Icons.emoji_events_rounded, 'Longest Streak', '${stats.longestStreak} days', const Color(0xFFFFD93D)),
         ],
       ),
     );
