@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/settings_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
@@ -557,8 +558,11 @@ class SettingsPage extends StatelessWidget {
                 if (user?.email != null) {
                   // Re-authenticate first
                   await supabase.signIn(email: user!.email!, password: passwordController.text);
-                  // Then delete
+                  // Delete account (signs out internally)
                   await supabase.deleteAccount(user.id);
+                  // Clear local preferences
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
                   if (context.mounted) {
                     context.read<AuthCubit>().signOut();
                     context.go('/login');

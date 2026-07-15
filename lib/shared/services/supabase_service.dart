@@ -67,75 +67,76 @@ class SupabaseService {
     );
   }
 
-  Future<void> deleteAccount(String userId) async {
-    // Delete user data from all tables with individual error handling
-    final deleteOperations = [
-      _client.from('comment_likes').delete().eq('user_id', userId),
-      _client.from('comments').delete().eq('user_id', userId),
-      _client.from('reactions').delete().eq('user_id', userId),
-      _client.from('ratings').delete().eq('user_id', userId),
-      _client.from('notifications').delete().eq('user_id', userId),
-      _client.from('watch_history').delete().eq('user_id', userId),
-      _client.from('favorites').delete().eq('user_id', userId),
-      _client.from('watchlist').delete().eq('user_id', userId),
-      _client.from('follows').delete().or('follower_id.eq.$userId,following_id.eq.$userId'),
-      _client.from('shared_list_members').delete().eq('user_id', userId),
-      _client.from('character_votes').delete().eq('user_id', userId),
-      _client.from('favorite_actor_votes').delete().eq('user_id', userId),
-    ];
+  Future<bool> deleteAccount(String userId) async {
+    try {
+      // Delete user data from all tables
+      final deleteOperations = [
+        _client.from('comment_likes').delete().eq('user_id', userId),
+        _client.from('comments').delete().eq('user_id', userId),
+        _client.from('reactions').delete().eq('user_id', userId),
+        _client.from('ratings').delete().eq('user_id', userId),
+        _client.from('notifications').delete().eq('user_id', userId),
+        _client.from('watch_history').delete().eq('user_id', userId),
+        _client.from('favorites').delete().eq('user_id', userId),
+        _client.from('watchlist').delete().eq('user_id', userId),
+        _client.from('follows').delete().or('follower_id.eq.$userId,following_id.eq.$userId'),
+        _client.from('shared_list_members').delete().eq('user_id', userId),
+        _client.from('character_votes').delete().eq('user_id', userId),
+        _client.from('favorite_actor_votes').delete().eq('user_id', userId),
+      ];
 
-    // Execute all deletes, catching individual errors
-    for (final op in deleteOperations) {
+      for (final op in deleteOperations) {
+        try {
+          await op;
+        } catch (e) {
+          // Continue deletion
+        }
+      }
+
+      // Delete custom list items
       try {
-        await op;
+        final customLists = await _client.from('custom_lists').select('id').eq('user_id', userId);
+        final customListIds = (customLists as List).map((l) => l['id']).toList();
+        if (customListIds.isNotEmpty) {
+          await _client.from('custom_list_items').delete().inFilter('list_id', customListIds);
+        }
       } catch (e) {
-        // Silently continue deletion
+        // Continue
       }
-    }
 
-    // Delete custom list items (need to fetch list IDs first)
-    try {
-      final customLists = await _client.from('custom_lists').select('id').eq('user_id', userId);
-      final customListIds = (customLists as List).map((l) => l['id']).toList();
-      if (customListIds.isNotEmpty) {
-        await _client.from('custom_list_items').delete().inFilter('list_id', customListIds);
+      // Delete lists
+      try {
+        await _client.from('shared_lists').delete().eq('creator_id', userId);
+      } catch (e) {
+        // Continue
       }
-    } catch (e) {
-      // Silently continue
-    }
+      try {
+        await _client.from('custom_lists').delete().eq('user_id', userId);
+      } catch (e) {
+        // Continue
+      }
 
-    // Delete lists owned by user
-    try {
-      await _client.from('shared_lists').delete().eq('creator_id', userId);
-    } catch (e) {
-      // Silently continue
-    }
+      // Delete profile
+      try {
+        await _client.from('profiles').delete().eq('id', userId);
+      } catch (e) {
+        // Continue
+      }
 
-    try {
-      await _client.from('custom_lists').delete().eq('user_id', userId);
-    } catch (e) {
-      // Silently continue
-    }
+      // Sign out first (clears local session)
+      await _client.auth.signOut();
 
-    // Delete profile
-    try {
-      await _client.from('profiles').delete().eq('id', userId);
-    } catch (e) {
-      // Silently continue
-    }
-
-    // Delete auth user via Edge Function (requires service_role key)
-    try {
-      final response = await _client.functions.invoke('delete-user', body: {'user_id': userId});
-      if (response.status != 200) {
-        // Log but don't throw - data is already deleted
+      // Delete auth user via Edge Function (requires service_role key)
+      try {
+        final response = await _client.functions.invoke('delete-user', body: {'user_id': userId});
+        return response.status == 200;
+      } catch (e) {
+        // Edge Function may not be deployed - auth user remains but data is deleted
+        return false;
       }
     } catch (e) {
-      // Edge Function may not be deployed yet - continue with sign out
+      return false;
     }
-
-    // Sign out
-    await _client.auth.signOut();
   }
 
   // Profile - Trigger handles creation, we just read
