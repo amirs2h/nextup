@@ -558,13 +558,14 @@ class SettingsPage extends StatelessWidget {
                 if (user?.email != null) {
                   // Re-authenticate first
                   await supabase.signIn(email: user!.email!, password: passwordController.text);
-                  // Delete account (signs out internally)
+                  // Delete account (deletes data + auth user via Edge Function)
                   await supabase.deleteAccount(user.id);
                   // Clear local preferences
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.clear();
+                  // Sign out (clears local session)
                   if (context.mounted) {
-                    context.read<AuthCubit>().signOut();
+                    await context.read<AuthCubit>().signOut();
                     context.go('/login');
                   }
                 }

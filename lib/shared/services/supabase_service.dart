@@ -123,17 +123,18 @@ class SupabaseService {
         // Continue
       }
 
-      // Sign out first (clears local session)
-      await _client.auth.signOut();
-
-      // Delete auth user via Edge Function (requires service_role key)
+      // Delete auth user via Edge Function (BEFORE signOut - needs JWT)
       try {
         final response = await _client.functions.invoke('delete-user', body: {'user_id': userId});
-        return response.status == 200;
+        if (response.status == 200) {
+          // Auth user deleted successfully
+          return true;
+        }
       } catch (e) {
-        // Edge Function may not be deployed - auth user remains but data is deleted
-        return false;
+        // Edge Function may not be deployed
       }
+
+      return false;
     } catch (e) {
       return false;
     }
