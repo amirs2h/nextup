@@ -98,12 +98,13 @@ class _AchievementsPageState extends State<AchievementsPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildProgressCard(context, state),
+                  _buildLevelCard(context, state),
                   const SizedBox(height: 16),
                   _buildCategoryTabs(context),
                   const SizedBox(height: 16),
-                  _buildAchievementsGrid(context, filteredAchievements),
+                  _buildAchievementsList(context, filteredAchievements),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -116,11 +117,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
     );
   }
 
-  Widget _buildProgressCard(BuildContext context, AchievementsLoaded state) {
-    final unlocked = state.unlockedCount;
-    final total = state.achievements.length;
-    final progress = total > 0 ? unlocked / total : 0.0;
-
+  Widget _buildLevelCard(BuildContext context, AchievementsLoaded state) {
     return GlassContainer(
       padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(20),
@@ -128,61 +125,66 @@ class _AchievementsPageState extends State<AchievementsPage> {
         children: [
           Row(
             children: [
-              // Stats
+              // Level badge
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.electricPurple],
+                  ),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
+                  ],
+                ),
+                child: Center(
+                  child: Text('${state.level}', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        _buildMiniStat(Icons.tv_rounded, state.totalShows.toString(), const Color(0xFF6C63FF)),
-                        const SizedBox(width: 16),
-                        _buildMiniStat(Icons.movie_rounded, state.totalMovies.toString(), const Color(0xFFE50914)),
-                        const SizedBox(width: 16),
-                        _buildMiniStat(Icons.play_circle_rounded, state.totalEpisodes.toString(), const Color(0xFF00D4FF)),
-                        const SizedBox(width: 16),
-                        _buildMiniStat(Icons.access_time_rounded, state.totalHours.toString(), const Color(0xFFFFD93D)),
-                      ],
-                    ),
+                    Text('Level ${state.level}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    const SizedBox(height: 4),
+                    Text('${state.unlockedCount}/${state.achievements.length} unlocked', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                   ],
                 ),
               ),
-              // Progress circle
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      value: progress,
-                      backgroundColor: AppColors.border(context),
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                      strokeWidth: 6,
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('$unlocked', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                        Text('of $total', style: TextStyle(fontSize: 11, color: AppColors.textMuted(context))),
-                      ],
-                    ),
-                  ],
-                ),
+              // Streak
+              Column(
+                children: [
+                  Icon(Icons.local_fire_department_rounded, color: AppColors.primary, size: 28),
+                  const SizedBox(height: 4),
+                  Text('${state.currentStreak}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  Text('streak', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
+                ],
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          // XP Progress bar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('${state.currentXp} XP', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+              Text('${state.xpToNextLevel} XP', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: state.currentXp / state.xpToNextLevel,
+              backgroundColor: AppColors.border(context),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              minHeight: 8,
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMiniStat(IconData icon, String value, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-      ],
     );
   }
 
@@ -230,99 +232,108 @@ class _AchievementsPageState extends State<AchievementsPage> {
     );
   }
 
-  Widget _buildAchievementsGrid(BuildContext context, List<Achievement> achievements) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: achievements.length,
-      itemBuilder: (context, index) {
-        return _buildAchievementCard(context, achievements[index]);
-      },
+  Widget _buildAchievementsList(BuildContext context, List<Achievement> achievements) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: achievements.map((achievement) => _buildAchievementCard(context, achievement)).toList(),
     );
   }
 
   Widget _buildAchievementCard(BuildContext context, Achievement achievement) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(12),
-      borderRadius: BorderRadius.circular(14),
-      borderColor: achievement.isUnlocked ? achievement.color.withValues(alpha: 0.3) : null,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Icon
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: achievement.isUnlocked
-                  ? achievement.color.withValues(alpha: 0.2)
-                  : AppColors.cardBg(context),
-            ),
-            child: Center(
-              child: Icon(
-                achievement.icon,
-                color: achievement.isUnlocked ? achievement.color : AppColors.textMuted(context),
-                size: 22,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(14),
+        borderRadius: BorderRadius.circular(14),
+        borderColor: achievement.isUnlocked ? achievement.color.withValues(alpha: 0.3) : null,
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: achievement.isUnlocked
+                    ? achievement.color.withValues(alpha: 0.2)
+                    : AppColors.cardBg(context),
+                boxShadow: achievement.isUnlocked
+                    ? [BoxShadow(color: achievement.color.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))]
+                    : null,
+              ),
+              child: Center(
+                child: Icon(
+                  achievement.icon,
+                  color: achievement.isUnlocked ? achievement.color : AppColors.textMuted(context),
+                  size: 22,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          // Title
-          Text(
-            achievement.title,
-            style: TextStyle(
-              color: achievement.isUnlocked ? AppColors.text(context) : AppColors.textMuted(context),
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          // Description
-          Text(
-            achievement.description,
-            style: TextStyle(color: AppColors.textMuted(context), fontSize: 10),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          // Progress or checkmark
-          if (achievement.isUnlocked)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle, color: achievement.color, size: 14),
-                const SizedBox(width: 4),
-                Text('Unlocked', style: TextStyle(color: achievement.color, fontSize: 10, fontWeight: FontWeight.w600)),
-              ],
-            )
-          else
-            Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: achievement.progress,
-                    backgroundColor: AppColors.border(context),
-                    valueColor: AlwaysStoppedAnimation<Color>(achievement.color),
-                    minHeight: 3,
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          achievement.title,
+                          style: TextStyle(
+                            color: achievement.isUnlocked ? AppColors.text(context) : AppColors.textMuted(context),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      // Rarity badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: achievement.rarityColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(achievement.rarityLabel, style: TextStyle(color: achievement.rarityColor, fontSize: 9, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text('${achievement.current}/${achievement.requirement}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
-              ],
+                  const SizedBox(height: 4),
+                  Text(achievement.description, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                  const SizedBox(height: 6),
+                  if (achievement.isUnlocked)
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, color: achievement.color, size: 14),
+                        const SizedBox(width: 4),
+                        Text('Unlocked', style: TextStyle(color: achievement.color, fontSize: 11, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Text('+${achievement.xpReward} XP', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: LinearProgressIndicator(
+                              value: achievement.progress,
+                              backgroundColor: AppColors.border(context),
+                              valueColor: AlwaysStoppedAnimation<Color>(achievement.color),
+                              minHeight: 4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('${achievement.current}/${achievement.requirement}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
+                      ],
+                    ),
+                ],
+              ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
