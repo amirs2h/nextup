@@ -10,7 +10,7 @@ class Achievement extends Equatable {
   final IconData icon;
   final Color color;
   final int requirement;
-  final String category; // 'shows', 'movies', 'episodes', 'hours', 'special'
+  final String category;
   final bool isUnlocked;
   final int current;
 
@@ -47,7 +47,6 @@ class AchievementsLoaded extends AchievementsState {
   final int totalMovies;
   final int totalEpisodes;
   final int totalHours;
-  final int totalComments;
 
   AchievementsLoaded({
     required this.achievements,
@@ -55,13 +54,12 @@ class AchievementsLoaded extends AchievementsState {
     this.totalMovies = 0,
     this.totalEpisodes = 0,
     this.totalHours = 0,
-    this.totalComments = 0,
   });
 
   int get unlockedCount => achievements.where((a) => a.isUnlocked).length;
 
   @override
-  List<Object?> get props => [achievements, totalShows, totalMovies, totalEpisodes, totalHours, totalComments];
+  List<Object?> get props => [achievements, totalShows, totalMovies, totalEpisodes, totalHours];
 }
 
 class AchievementsError extends AchievementsState {
@@ -81,7 +79,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     final user = _supabaseService.currentUser;
     if (user == null) {
       if (isClosed) return;
-      emit(AchievementsLoaded(achievements: _getAchievements(0, 0, 0, 0, 0)));
+      emit(AchievementsLoaded(achievements: _getAchievements(0, 0, 0, 0)));
       return;
     }
 
@@ -119,7 +117,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
 
       if (isClosed) return;
       emit(AchievementsLoaded(
-        achievements: _getAchievements(totalShows, totalMovies, totalEpisodes, totalHours, 0),
+        achievements: _getAchievements(totalShows, totalMovies, totalEpisodes, totalHours),
         totalShows: totalShows,
         totalMovies: totalMovies,
         totalEpisodes: totalEpisodes,
@@ -131,188 +129,32 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     }
   }
 
-  List<Achievement> _getAchievements(int shows, int movies, int episodes, int hours, int comments) {
+  List<Achievement> _getAchievements(int shows, int movies, int episodes, int hours) {
     return [
-      // Shows category
-      Achievement(
-        id: 'first_show',
-        title: 'First Steps',
-        description: 'Watch your first show',
-        icon: Icons.tv,
-        color: const Color(0xFF6C63FF),
-        requirement: 1,
-        category: 'shows',
-        isUnlocked: shows >= 1,
-        current: shows,
-      ),
-      Achievement(
-        id: 'show_5',
-        title: 'Show Enthusiast',
-        description: 'Watch 5 different shows',
-        icon: Icons.tv,
-        color: const Color(0xFF6C63FF),
-        requirement: 5,
-        category: 'shows',
-        isUnlocked: shows >= 5,
-        current: shows,
-      ),
-      Achievement(
-        id: 'show_10',
-        title: 'Show Master',
-        description: 'Watch 10 different shows',
-        icon: Icons.tv,
-        color: const Color(0xFF6C63FF),
-        requirement: 10,
-        category: 'shows',
-        isUnlocked: shows >= 10,
-        current: shows,
-      ),
-      Achievement(
-        id: 'show_25',
-        title: 'Show Legend',
-        description: 'Watch 25 different shows',
-        icon: Icons.tv,
-        color: const Color(0xFF6C63FF),
-        requirement: 25,
-        category: 'shows',
-        isUnlocked: shows >= 25,
-        current: shows,
-      ),
-      // Movies category
-      Achievement(
-        id: 'first_movie',
-        title: 'Movie Night',
-        description: 'Watch your first movie',
-        icon: Icons.movie,
-        color: const Color(0xFFE50914),
-        requirement: 1,
-        category: 'movies',
-        isUnlocked: movies >= 1,
-        current: movies,
-      ),
-      Achievement(
-        id: 'movie_10',
-        title: 'Movie Buff',
-        description: 'Watch 10 movies',
-        icon: Icons.movie,
-        color: const Color(0xFFE50914),
-        requirement: 10,
-        category: 'movies',
-        isUnlocked: movies >= 10,
-        current: movies,
-      ),
-      Achievement(
-        id: 'movie_50',
-        title: 'Cinema King',
-        description: 'Watch 50 movies',
-        icon: Icons.movie,
-        color: const Color(0xFFE50914),
-        requirement: 50,
-        category: 'movies',
-        isUnlocked: movies >= 50,
-        current: movies,
-      ),
-      Achievement(
-        id: 'movie_100',
-        title: 'Movie Legend',
-        description: 'Watch 100 movies',
-        icon: Icons.movie,
-        color: const Color(0xFFE50914),
-        requirement: 100,
-        category: 'movies',
-        isUnlocked: movies >= 100,
-        current: movies,
-      ),
-      // Episodes category
-      Achievement(
-        id: 'episode_10',
-        title: 'Binge Starter',
-        description: 'Watch 10 episodes',
-        icon: Icons.play_circle,
-        color: const Color(0xFF00D4FF),
-        requirement: 10,
-        category: 'episodes',
-        isUnlocked: episodes >= 10,
-        current: episodes,
-      ),
-      Achievement(
-        id: 'episode_100',
-        title: 'Binge Master',
-        description: 'Watch 100 episodes',
-        icon: Icons.play_circle,
-        color: const Color(0xFF00D4FF),
-        requirement: 100,
-        category: 'episodes',
-        isUnlocked: episodes >= 100,
-        current: episodes,
-      ),
-      Achievement(
-        id: 'episode_500',
-        title: 'Binge Legend',
-        description: 'Watch 500 episodes',
-        icon: Icons.play_circle,
-        color: const Color(0xFF00D4FF),
-        requirement: 500,
-        category: 'episodes',
-        isUnlocked: episodes >= 500,
-        current: episodes,
-      ),
-      Achievement(
-        id: 'episode_1000',
-        title: 'Binge God',
-        description: 'Watch 1000 episodes',
-        icon: Icons.play_circle,
-        color: const Color(0xFF00D4FF),
-        requirement: 1000,
-        category: 'episodes',
-        isUnlocked: episodes >= 1000,
-        current: episodes,
-      ),
-      // Hours category
-      Achievement(
-        id: 'hours_10',
-        title: 'Getting Started',
-        description: 'Watch 10 hours',
-        icon: Icons.access_time,
-        color: const Color(0xFFFFD93D),
-        requirement: 10,
-        category: 'hours',
-        isUnlocked: hours >= 10,
-        current: hours,
-      ),
-      Achievement(
-        id: 'hours_100',
-        title: 'Dedicated Viewer',
-        description: 'Watch 100 hours',
-        icon: Icons.access_time,
-        color: const Color(0xFFFFD93D),
-        requirement: 100,
-        category: 'hours',
-        isUnlocked: hours >= 100,
-        current: hours,
-      ),
-      Achievement(
-        id: 'hours_500',
-        title: 'Time Master',
-        description: 'Watch 500 hours',
-        icon: Icons.access_time,
-        color: const Color(0xFFFFD93D),
-        requirement: 500,
-        category: 'hours',
-        isUnlocked: hours >= 500,
-        current: hours,
-      ),
-      Achievement(
-        id: 'hours_1000',
-        title: 'Ultimate Fan',
-        description: 'Watch 1000 hours',
-        icon: Icons.access_time,
-        color: const Color(0xFFFFD93D),
-        requirement: 1000,
-        category: 'hours',
-        isUnlocked: hours >= 1000,
-        current: hours,
-      ),
+      // ===== SHOWS =====
+      Achievement(id: 'first_show', title: 'First Steps', description: 'Watch your first show', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 1, category: 'shows', isUnlocked: shows >= 1, current: shows),
+      Achievement(id: 'show_5', title: 'Show Lover', description: 'Watch 5 shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 5, category: 'shows', isUnlocked: shows >= 5, current: shows),
+      Achievement(id: 'show_10', title: 'Show Expert', description: 'Watch 10 shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 10, category: 'shows', isUnlocked: shows >= 10, current: shows),
+      Achievement(id: 'show_25', title: 'Show Master', description: 'Watch 25 shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 25, category: 'shows', isUnlocked: shows >= 25, current: shows),
+      Achievement(id: 'show_50', title: 'Show Legend', description: 'Watch 50 shows', icon: Icons.tv, color: const Color(0xFF6C63FF), requirement: 50, category: 'shows', isUnlocked: shows >= 50, current: shows),
+      // ===== MOVIES =====
+      Achievement(id: 'first_movie', title: 'Movie Night', description: 'Watch your first movie', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 1, category: 'movies', isUnlocked: movies >= 1, current: movies),
+      Achievement(id: 'movie_10', title: 'Movie Buff', description: 'Watch 10 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 10, category: 'movies', isUnlocked: movies >= 10, current: movies),
+      Achievement(id: 'movie_25', title: 'Movie Addict', description: 'Watch 25 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 25, category: 'movies', isUnlocked: movies >= 25, current: movies),
+      Achievement(id: 'movie_50', title: 'Cinema King', description: 'Watch 50 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 50, category: 'movies', isUnlocked: movies >= 50, current: movies),
+      Achievement(id: 'movie_100', title: 'Movie Legend', description: 'Watch 100 movies', icon: Icons.movie, color: const Color(0xFFE50914), requirement: 100, category: 'movies', isUnlocked: movies >= 100, current: movies),
+      // ===== EPISODES =====
+      Achievement(id: 'episode_10', title: 'Getting Started', description: 'Watch 10 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 10, category: 'episodes', isUnlocked: episodes >= 10, current: episodes),
+      Achievement(id: 'episode_50', title: 'Binge Watcher', description: 'Watch 50 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 50, category: 'episodes', isUnlocked: episodes >= 50, current: episodes),
+      Achievement(id: 'episode_100', title: 'Binge Master', description: 'Watch 100 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 100, category: 'episodes', isUnlocked: episodes >= 100, current: episodes),
+      Achievement(id: 'episode_500', title: 'Binge Legend', description: 'Watch 500 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 500, category: 'episodes', isUnlocked: episodes >= 500, current: episodes),
+      Achievement(id: 'episode_1000', title: 'Binge God', description: 'Watch 1000 episodes', icon: Icons.play_circle, color: const Color(0xFF00D4FF), requirement: 1000, category: 'episodes', isUnlocked: episodes >= 1000, current: episodes),
+      // ===== HOURS =====
+      Achievement(id: 'hours_10', title: 'Just Started', description: 'Watch 10 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 10, category: 'hours', isUnlocked: hours >= 10, current: hours),
+      Achievement(id: 'hours_50', title: 'Regular Viewer', description: 'Watch 50 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 50, category: 'hours', isUnlocked: hours >= 50, current: hours),
+      Achievement(id: 'hours_100', title: 'Dedicated Fan', description: 'Watch 100 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 100, category: 'hours', isUnlocked: hours >= 100, current: hours),
+      Achievement(id: 'hours_500', title: 'Time Master', description: 'Watch 500 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 500, category: 'hours', isUnlocked: hours >= 500, current: hours),
+      Achievement(id: 'hours_1000', title: 'Ultimate Fan', description: 'Watch 1000 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 1000, category: 'hours', isUnlocked: hours >= 1000, current: hours),
     ];
   }
 }

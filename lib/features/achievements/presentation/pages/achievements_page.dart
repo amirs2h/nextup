@@ -100,9 +100,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
               child: Column(
                 children: [
                   _buildProgressCard(context, state),
-                  const SizedBox(height: 20),
-                  _buildStatsRow(context, state),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   _buildCategoryTabs(context),
                   const SizedBox(height: 16),
                   _buildAchievementsGrid(context, filteredAchievements),
@@ -124,89 +122,73 @@ class _AchievementsPageState extends State<AchievementsPage> {
     final progress = total > 0 ? unlocked / total : 0.0;
 
     return GlassContainer(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       borderRadius: BorderRadius.circular(20),
       child: Column(
         children: [
           Row(
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.electricPurple],
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: Center(
-                  child: Text('$unlocked', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(width: 16),
+              // Stats
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Achievements Unlocked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                    const SizedBox(height: 4),
-                    Text('$unlocked of $total unlocked', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                    Row(
+                      children: [
+                        _buildMiniStat(Icons.tv_rounded, state.totalShows.toString(), const Color(0xFF6C63FF)),
+                        const SizedBox(width: 16),
+                        _buildMiniStat(Icons.movie_rounded, state.totalMovies.toString(), const Color(0xFFE50914)),
+                        const SizedBox(width: 16),
+                        _buildMiniStat(Icons.play_circle_rounded, state.totalEpisodes.toString(), const Color(0xFF00D4FF)),
+                        const SizedBox(width: 16),
+                        _buildMiniStat(Icons.access_time_rounded, state.totalHours.toString(), const Color(0xFFFFD93D)),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              Text('${(progress * 100).toInt()}%', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary)),
+              // Progress circle
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: progress,
+                      backgroundColor: AppColors.border(context),
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      strokeWidth: 6,
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('$unlocked', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                        Text('of $total', style: TextStyle(fontSize: 11, color: AppColors.textMuted(context))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 20),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppColors.border(context),
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              minHeight: 8,
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsRow(BuildContext context, AchievementsLoaded state) {
-    return Row(
+  Widget _buildMiniStat(IconData icon, String value, Color color) {
+    return Column(
       children: [
-        Expanded(child: _buildStatCard(context, 'Shows', state.totalShows.toString(), Icons.tv_rounded, const Color(0xFF6C63FF))),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(context, 'Movies', state.totalMovies.toString(), Icons.movie_rounded, const Color(0xFFE50914))),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(context, 'Episodes', state.totalEpisodes.toString(), Icons.play_circle_rounded, const Color(0xFF00D4FF))),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(context, 'Hours', state.totalHours.toString(), Icons.access_time_rounded, const Color(0xFFFFD93D))),
+        Icon(icon, color: color, size: 18),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text(context))),
       ],
-    );
-  }
-
-  Widget _buildStatCard(BuildContext context, String label, String value, IconData icon, Color color) {
-    return GlassContainer(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
-        ],
-      ),
     );
   }
 
   Widget _buildCategoryTabs(BuildContext context) {
     return SizedBox(
-      height: 40,
+      height: 36,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -229,7 +211,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
       },
       child: Container(
         margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           gradient: isSelected ? AppColors.primaryGradient : null,
           color: isSelected ? null : AppColors.cardBg(context),
@@ -239,9 +221,9 @@ class _AchievementsPageState extends State<AchievementsPage> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: isSelected ? Colors.white : AppColors.textMuted(context), size: 16),
+            Icon(icon, color: isSelected ? Colors.white : AppColors.textMuted(context), size: 14),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: isSelected ? Colors.white : AppColors.textSecondary(context), fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, fontSize: 13)),
+            Text(label, style: TextStyle(color: isSelected ? Colors.white : AppColors.textSecondary(context), fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, fontSize: 12)),
           ],
         ),
       ),
@@ -254,9 +236,9 @@ class _AchievementsPageState extends State<AchievementsPage> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.85,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       itemCount: achievements.length,
       itemBuilder: (context, index) {
@@ -267,16 +249,16 @@ class _AchievementsPageState extends State<AchievementsPage> {
 
   Widget _buildAchievementCard(BuildContext context, Achievement achievement) {
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.all(12),
+      borderRadius: BorderRadius.circular(14),
       borderColor: achievement.isUnlocked ? achievement.color.withValues(alpha: 0.3) : null,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Icon
           Container(
-            width: 56,
-            height: 56,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: achievement.isUnlocked
@@ -287,18 +269,18 @@ class _AchievementsPageState extends State<AchievementsPage> {
               child: Icon(
                 achievement.icon,
                 color: achievement.isUnlocked ? achievement.color : AppColors.textMuted(context),
-                size: 28,
+                size: 22,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // Title
           Text(
             achievement.title,
             style: TextStyle(
               color: achievement.isUnlocked ? AppColors.text(context) : AppColors.textMuted(context),
               fontWeight: FontWeight.w600,
-              fontSize: 14,
+              fontSize: 12,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -308,32 +290,32 @@ class _AchievementsPageState extends State<AchievementsPage> {
           // Description
           Text(
             achievement.description,
-            style: TextStyle(color: AppColors.textMuted(context), fontSize: 11),
+            style: TextStyle(color: AppColors.textMuted(context), fontSize: 10),
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
-          // Progress bar or checkmark
+          // Progress or checkmark
           if (achievement.isUnlocked)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle, color: achievement.color, size: 16),
+                Icon(Icons.check_circle, color: achievement.color, size: 14),
                 const SizedBox(width: 4),
-                Text('Unlocked', style: TextStyle(color: achievement.color, fontSize: 11, fontWeight: FontWeight.w600)),
+                Text('Unlocked', style: TextStyle(color: achievement.color, fontSize: 10, fontWeight: FontWeight.w600)),
               ],
             )
           else
             Column(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
                     value: achievement.progress,
                     backgroundColor: AppColors.border(context),
                     valueColor: AlwaysStoppedAnimation<Color>(achievement.color),
-                    minHeight: 4,
+                    minHeight: 3,
                   ),
                 ),
                 const SizedBox(height: 4),
