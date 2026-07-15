@@ -29,8 +29,8 @@ class _SearchPageState extends State<SearchPage> {
 
   void _onSearchChanged(String query) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      if (query.length >= 2) {
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (query.length >= 1) {
         context.read<SearchCubit>().search(query);
       } else if (query.isEmpty) {
         context.read<SearchCubit>().clear();
