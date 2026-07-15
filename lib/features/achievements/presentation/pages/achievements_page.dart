@@ -236,6 +236,8 @@ class _AchievementsPageState extends State<AchievementsPage> {
   }
 
   Widget _buildAchievementCard(BuildContext context, Achievement achievement) {
+    final isHiddenAndLocked = achievement.isHidden && !achievement.isUnlocked;
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassContainer(
@@ -253,7 +255,9 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 boxShadow: achievement.isUnlocked ? [BoxShadow(color: achievement.color.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))] : null,
               ),
               child: Center(
-                child: Icon(achievement.icon, color: achievement.isUnlocked ? achievement.color : AppColors.textMuted(context), size: 22),
+                child: isHiddenAndLocked
+                    ? Icon(Icons.help_outline, color: AppColors.textMuted(context), size: 22)
+                    : Icon(achievement.icon, color: achievement.isUnlocked ? achievement.color : AppColors.textMuted(context), size: 22),
               ),
             ),
             const SizedBox(width: 12),
@@ -264,7 +268,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(achievement.title, style: TextStyle(color: achievement.isUnlocked ? AppColors.text(context) : AppColors.textMuted(context), fontWeight: FontWeight.w600, fontSize: 14)),
+                        child: Text(isHiddenAndLocked ? '???' : achievement.title, style: TextStyle(color: achievement.isUnlocked ? AppColors.text(context) : AppColors.textMuted(context), fontWeight: FontWeight.w600, fontSize: 14)),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -277,7 +281,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(achievement.description, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                  Text(isHiddenAndLocked ? 'Hidden achievement' : achievement.description, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
                   const SizedBox(height: 6),
                   if (achievement.isUnlocked)
                     Row(
@@ -289,7 +293,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                         Text('+${achievement.xpReward} XP', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
                       ],
                     )
-                  else
+                  else if (!isHiddenAndLocked)
                     Row(
                       children: [
                         Expanded(
