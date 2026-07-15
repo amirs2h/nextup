@@ -8,8 +8,10 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/modern_widgets.dart';
 import '../../domain/home_cubit.dart';
 import '../../domain/recommendations_cubit.dart';
+import '../../domain/friends_activity_cubit.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../../notifications/domain/notifications_cubit.dart';
+import '../widgets/friends_activity_section.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -40,6 +42,7 @@ class _HomePageViewState extends State<_HomePageView> {
   void _reloadData() {
     context.read<HomeCubit>().refresh();
     context.read<RecommendationsCubit>().loadRecommendations();
+    context.read<FriendsActivityCubit>().loadFriendsActivity();
   }
 
   @override
@@ -56,6 +59,8 @@ class _HomePageViewState extends State<_HomePageView> {
                   SliverToBoxAdapter(child: _buildAppBar(context)),
                   SliverToBoxAdapter(child: _buildHeroSection(context, state)),
                   SliverToBoxAdapter(child: _buildSearchBar(context)),
+                  // Friends Activity Section
+                  SliverToBoxAdapter(child: const FriendsActivitySection()),
                   // For You Section
                   SliverToBoxAdapter(child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
                     builder: (context, recState) {
