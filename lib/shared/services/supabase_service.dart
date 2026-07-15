@@ -254,6 +254,26 @@ class SupabaseService {
     }
   }
 
+  Future<String?> getWatchlistStatus({
+    required String userId,
+    required int tmdbId,
+    required String mediaType,
+    String listName = 'default',
+  }) async {
+    try {
+      final response = await _client.from('watchlist')
+          .select('status')
+          .eq('user_id', userId)
+          .eq('tmdb_id', tmdbId)
+          .eq('media_type', mediaType)
+          .eq('list_name', listName)
+          .maybeSingle();
+      return response?['status'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getWatchlist({
     required String userId,
     String? mediaType,
@@ -868,12 +888,22 @@ class SupabaseService {
   }) async {
     try {
       // Check if show is in watchlist
-      final watchlistItem = await _client.from('watchlist')
+      var watchlistItem = await _client.from('watchlist')
           .select()
           .eq('user_id', userId)
           .eq('tmdb_id', tmdbId)
           .eq('media_type', 'tv')
           .maybeSingle();
+
+      if (watchlistItem == null) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        watchlistItem = await _client.from('watchlist')
+            .select()
+            .eq('user_id', userId)
+            .eq('tmdb_id', tmdbId)
+            .eq('media_type', 'tv')
+            .maybeSingle();
+      }
 
       if (watchlistItem == null) return; // Not in watchlist
 
@@ -928,12 +958,22 @@ class SupabaseService {
   }) async {
     try {
       // Check if movie is in watchlist
-      final watchlistItem = await _client.from('watchlist')
+      var watchlistItem = await _client.from('watchlist')
           .select()
           .eq('user_id', userId)
           .eq('tmdb_id', tmdbId)
           .eq('media_type', 'movie')
           .maybeSingle();
+
+      if (watchlistItem == null) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        watchlistItem = await _client.from('watchlist')
+            .select()
+            .eq('user_id', userId)
+            .eq('tmdb_id', tmdbId)
+            .eq('media_type', 'movie')
+            .maybeSingle();
+      }
 
       if (watchlistItem == null) return; // Not in watchlist
 

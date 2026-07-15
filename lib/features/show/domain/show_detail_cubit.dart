@@ -266,6 +266,22 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             mediaType: 'tv',
             status: status,
           );
+          try {
+            final showDetails = await _tmdbService.getShowDetails(showId);
+            await _supabaseService.computeAndSetShowStatus(
+              userId: user.id,
+              tmdbId: showId,
+              showDetails: showDetails,
+            );
+            final newStatus = await _supabaseService.getWatchlistStatus(
+              userId: user.id,
+              tmdbId: showId,
+              mediaType: 'tv',
+            );
+            if (!isClosed && newStatus != null) {
+              emit((state as ShowDetailLoaded).copyWith(isInWatchlist: true));
+            }
+          } catch (_) {}
         }
       } catch (e) {
         if (!isClosed) emit(currentState);
@@ -347,6 +363,20 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             posterPath: currentState.show.posterPath,
           );
         }
+        try {
+          final showDetails = await _tmdbService.getShowDetails(showId);
+          await _supabaseService.computeAndSetShowStatus(
+            userId: user.id,
+            tmdbId: showId,
+            showDetails: showDetails,
+          );
+          final newIsInWatchlist = await _supabaseService.isInWatchlist(
+            userId: user.id,
+            tmdbId: showId,
+            mediaType: 'tv',
+          );
+          if (!isClosed) emit((state as ShowDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
+        } catch (_) {}
       } catch (e) {
         if (!isClosed) emit(currentState);
       }

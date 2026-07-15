@@ -271,6 +271,13 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             mediaType: 'movie',
             status: status,
           );
+          try {
+            await _supabaseService.computeAndSetMovieStatus(
+              userId: user.id,
+              tmdbId: movieId,
+              isWatched: false,
+            );
+          } catch (_) {}
         }
       } catch (e) {
         if (!isClosed) emit(currentState);
