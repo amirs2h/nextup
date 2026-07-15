@@ -288,7 +288,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     final isValentine = now.month == 2 && now.day == 14;
     final isSummer = now.month >= 6 && now.month <= 8;
 
-    return [
+    final achievements = [
       // ===== WATCHING =====
       Achievement(id: 'first_episode', title: 'First Episode', description: 'Watch your first episode', icon: Icons.play_circle, color: const Color(0xFF6C63FF), requirement: 1, category: 'watching', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: episodes >= 1, current: episodes),
       Achievement(id: 'binge_master', title: 'Binge Master', description: 'Watch 50 episodes', icon: Icons.bolt, color: const Color(0xFFFFD93D), requirement: 50, category: 'watching', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: episodes >= 50, current: episodes),
@@ -341,9 +341,12 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       Achievement(id: 'halloween', title: 'Halloween Special', description: 'Watch during October', icon: Icons.emoji_emotions, color: const Color(0xFFFF9800), requirement: 1, category: 'seasonal', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: isHalloween, current: isHalloween ? 1 : 0),
       Achievement(id: 'christmas', title: 'Christmas Spirit', description: 'Watch during December', icon: Icons.celebration, color: const Color(0xFFE50914), requirement: 1, category: 'seasonal', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: isChristmas, current: isChristmas ? 1 : 0),
       Achievement(id: 'summer_vacation', title: 'Summer Vibes', description: 'Watch during summer', icon: Icons.wb_sunny, color: const Color(0xFFFFD93D), requirement: 1, category: 'seasonal', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: isSummer, current: isSummer ? 1 : 0),
-
-      // ===== HIDDEN =====
-      Achievement(id: 'hidden_completionist', title: '???', description: 'Unlock 20 achievements', icon: Icons.help, color: const Color(0xFF9C27B0), requirement: 20, category: 'hidden', rarity: AchievementRarity.epic, xpReward: 100, isHidden: true, isUnlocked: false, current: 0),
     ];
+
+    final unlockedCount = achievements.where((a) => a.isUnlocked).length;
+
+    achievements.add(Achievement(id: 'hidden_completionist', title: 'Completionist', description: 'Unlock 20 achievements', icon: Icons.emoji_events, color: const Color(0xFF9C27B0), requirement: 20, category: 'hidden', rarity: AchievementRarity.epic, xpReward: 100, isHidden: true, isUnlocked: unlockedCount >= 20, current: unlockedCount));
+
+    return achievements;
   }
 }
