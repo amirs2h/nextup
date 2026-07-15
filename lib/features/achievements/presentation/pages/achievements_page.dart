@@ -236,7 +236,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1.1,
+        childAspectRatio: 1.3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
