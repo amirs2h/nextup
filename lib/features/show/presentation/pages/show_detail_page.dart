@@ -18,6 +18,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/show_detail_cubit.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
+import '../../../watchlist/domain/watchlist_cubit.dart';
+import '../../../profile/domain/favorites_cubit.dart';
+import '../../../profile/domain/watch_history_cubit.dart';
 
 class ShowDetailPage extends StatelessWidget {
   final int showId;
@@ -75,6 +78,8 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
     try {
       await context.read<ShowDetailCubit>().markAllAsWatched();
       if (mounted) {
+        context.read<WatchHistoryCubit>().loadHistory();
+        context.read<WatchlistCubit>().loadWatchlist();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('All episodes marked as watched!'),
@@ -254,7 +259,12 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                   actions: [
                     IconButton(
                       icon: Icon(state.isFavorite ? Icons.favorite : Icons.favorite_outline, color: state.isFavorite ? const Color(0xFFE50914) : AppColors.text(context)),
-                      onPressed: () => withToggleLock(() => context.read<ShowDetailCubit>().toggleFavorite()),
+                      onPressed: () => withToggleLock(() async {
+                        await context.read<ShowDetailCubit>().toggleFavorite();
+                        if (mounted) {
+                          context.read<FavoritesCubit>().loadFavorites();
+                        }
+                      }),
                     ),
                     IconButton(
                       icon: Icon(Icons.playlist_add, color: AppColors.text(context)),
@@ -278,7 +288,12 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                                 text: state.isInWatchlist ? 'In Watchlist' : 'Add to Watchlist',
                                 icon: state.isInWatchlist ? Icons.check : Icons.add,
                                 gradient: state.isInWatchlist ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)]) : null,
-                                onPressed: () => withToggleLock(() => context.read<ShowDetailCubit>().toggleWatchlist()),
+                                onPressed: () => withToggleLock(() async {
+                                  await context.read<ShowDetailCubit>().toggleWatchlist();
+                                  if (mounted) {
+                                    context.read<WatchlistCubit>().loadWatchlist();
+                                  }
+                                }),
                               ),
                             ),
                             const SizedBox(width: 12),

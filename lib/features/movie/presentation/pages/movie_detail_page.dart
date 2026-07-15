@@ -18,6 +18,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../domain/movie_detail_cubit.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
+import '../../../watchlist/domain/watchlist_cubit.dart';
+import '../../../profile/domain/favorites_cubit.dart';
+import '../../../profile/domain/watch_history_cubit.dart';
 
 class MovieDetailPage extends StatelessWidget {
   final int movieId;
@@ -201,7 +204,12 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                   actions: [
                     IconButton(
                       icon: Icon(state.isFavorite ? Icons.favorite : Icons.favorite_outline, color: state.isFavorite ? const Color(0xFFE50914) : AppColors.text(context)),
-                      onPressed: () => withToggleLock(() => context.read<MovieDetailCubit>().toggleFavorite()),
+                      onPressed: () => withToggleLock(() async {
+                        await context.read<MovieDetailCubit>().toggleFavorite();
+                        if (mounted) {
+                          context.read<FavoritesCubit>().loadFavorites();
+                        }
+                      }),
                     ),
                     IconButton(
                       icon: Icon(Icons.playlist_add, color: AppColors.text(context)),
@@ -225,7 +233,12 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                                 text: state.isInWatchlist ? 'In Watchlist' : 'Add to Watchlist',
                                 icon: state.isInWatchlist ? Icons.check : Icons.add,
                                 gradient: state.isInWatchlist ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)]) : null,
-                                onPressed: () => withToggleLock(() => context.read<MovieDetailCubit>().toggleWatchlist()),
+                                onPressed: () => withToggleLock(() async {
+                                  await context.read<MovieDetailCubit>().toggleWatchlist();
+                                  if (mounted) {
+                                    context.read<WatchlistCubit>().loadWatchlist();
+                                  }
+                                }),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -234,7 +247,12 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                                 text: state.isWatched ? 'Watched' : 'Mark Watched',
                                 icon: state.isWatched ? Icons.check_circle : Icons.check_circle_outline,
                                 gradient: state.isWatched ? const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]) : null,
-                                onPressed: () => withToggleLock(() => context.read<MovieDetailCubit>().toggleWatched()),
+                                onPressed: () => withToggleLock(() async {
+                                  await context.read<MovieDetailCubit>().toggleWatched();
+                                  if (mounted) {
+                                    context.read<WatchHistoryCubit>().loadHistory();
+                                  }
+                                }),
                               ),
                             ),
                           ],

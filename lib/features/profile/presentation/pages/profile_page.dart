@@ -324,7 +324,10 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             final id = isMovie ? movies[index - shows.length].id : shows[index].id;
             final title = isMovie ? movies[index - shows.length].title : shows[index].name;
             final posterUrl = isMovie ? movies[index - shows.length].posterUrl : shows[index].posterUrl;
-            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () => context.push(isMovie ? '/movie/$id' : '/show/$id'));
+            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () async {
+              await context.push(isMovie ? '/movie/$id' : '/show/$id');
+              if (mounted) _loadData();
+            });
           },
         );
       },
@@ -350,7 +353,10 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             final id = isMovie ? (item.model as MovieModel).id : (item.model as ShowModel).id;
             final title = isMovie ? (item.model as MovieModel).title : (item.model as ShowModel).name;
             final posterUrl = isMovie ? (item.model as MovieModel).posterUrl : (item.model as ShowModel).posterUrl;
-            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () => context.push(isMovie ? '/movie/$id' : '/show/$id'));
+            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () async {
+              await context.push(isMovie ? '/movie/$id' : '/show/$id');
+              if (mounted) _loadData();
+            });
           },
         );
       },
@@ -377,7 +383,10 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             final id = isMovie ? movies[index - shows.length].id : shows[index].id;
             final title = isMovie ? movies[index - shows.length].title : shows[index].name;
             final posterUrl = isMovie ? movies[index - shows.length].posterUrl : shows[index].posterUrl;
-            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () => context.push(isMovie ? '/movie/$id' : '/show/$id'));
+            return _buildCarouselItem(context, title: title, posterUrl: posterUrl, onTap: () async {
+              await context.push(isMovie ? '/movie/$id' : '/show/$id');
+              if (mounted) _loadData();
+            });
           },
         );
       },

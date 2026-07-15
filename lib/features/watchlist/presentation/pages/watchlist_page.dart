@@ -276,7 +276,10 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassCard(
         padding: const EdgeInsets.all(12),
-        onTap: () => context.push(isShow ? '/show/$id' : '/movie/$id'),
+        onTap: () async {
+          await context.push(isShow ? '/show/$id' : '/movie/$id');
+          if (mounted) _loadWatchlist();
+        },
         onLongPress: () => _showStatusPicker(context, id, item.mediaType, item.status),
         child: Row(
           children: [
@@ -450,10 +453,11 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
             child: Text('No, just change status', style: TextStyle(color: AppColors.textMuted(context))),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogCtx);
               context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, newStatus);
-              context.push('/show/$tmdbId');
+              await context.push('/show/$tmdbId');
+              if (mounted) _loadWatchlist();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

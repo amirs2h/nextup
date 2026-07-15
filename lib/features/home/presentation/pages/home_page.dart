@@ -33,8 +33,13 @@ class _HomePageViewState extends State<_HomePageView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<RecommendationsCubit>().loadRecommendations();
+      _reloadData();
     });
+  }
+
+  void _reloadData() {
+    context.read<HomeCubit>().refresh();
+    context.read<RecommendationsCubit>().loadRecommendations();
   }
 
   @override
@@ -67,7 +72,10 @@ class _HomePageViewState extends State<_HomePageView> {
                               itemCount: recState.shows.length,
                               itemBuilder: (context, index) {
                                 final show = recState.shows[index];
-                                return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () => context.push('/show/${show.id}'));
+                                return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () async {
+                                  await context.push('/show/${show.id}');
+                                  if (mounted) _reloadData();
+                                });
                               },
                             ),
                           ),
@@ -92,7 +100,10 @@ class _HomePageViewState extends State<_HomePageView> {
                           itemCount: state.trendingShows.length,
                           itemBuilder: (context, index) {
                             final show = state.trendingShows[index];
-                            return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () => context.push('/show/${show.id}'));
+                            return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () async {
+                              await context.push('/show/${show.id}');
+                              if (mounted) _reloadData();
+                            });
                           },
                         ),
                       ),
@@ -110,7 +121,10 @@ class _HomePageViewState extends State<_HomePageView> {
                           itemCount: state.trendingMovies.length,
                           itemBuilder: (context, index) {
                             final movie = state.trendingMovies[index];
-                            return ModernShowCard(id: movie.id, title: movie.title, posterPath: movie.posterPath, rating: movie.voteAverage, isMovie: true, onTap: () => context.push('/movie/${movie.id}'));
+                            return ModernShowCard(id: movie.id, title: movie.title, posterPath: movie.posterPath, rating: movie.voteAverage, isMovie: true, onTap: () async {
+                              await context.push('/movie/${movie.id}');
+                              if (mounted) _reloadData();
+                            });
                           },
                         ),
                       ),
@@ -128,7 +142,10 @@ class _HomePageViewState extends State<_HomePageView> {
                           itemCount: state.topRatedShows.length,
                           itemBuilder: (context, index) {
                             final show = state.topRatedShows[index];
-                            return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () => context.push('/show/${show.id}'));
+                            return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () async {
+                              await context.push('/show/${show.id}');
+                              if (mounted) _reloadData();
+                            });
                           },
                         ),
                       ),
@@ -233,7 +250,10 @@ class _HomePageViewState extends State<_HomePageView> {
     final show = state.trendingShows.first;
     
     return GestureDetector(
-      onTap: () => context.push('/show/${show.id}'),
+      onTap: () async {
+        await context.push('/show/${show.id}');
+        if (mounted) _reloadData();
+      },
       child: Container(
         height: 200,
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

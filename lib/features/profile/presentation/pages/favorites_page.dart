@@ -151,7 +151,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassCard(
         padding: const EdgeInsets.all(12),
-        onTap: () => context.push('/show/${show.id}'),
+        onTap: () async {
+          await context.push('/show/${show.id}');
+          if (mounted) _loadFavorites();
+        },
         child: Row(
           children: [
             Container(
@@ -195,7 +198,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassCard(
         padding: const EdgeInsets.all(12),
-        onTap: () => context.push('/movie/${movie.id}'),
+        onTap: () async {
+          await context.push('/movie/${movie.id}');
+          if (mounted) _loadFavorites();
+        },
         child: Row(
           children: [
             Container(

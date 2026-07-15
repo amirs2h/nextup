@@ -92,7 +92,10 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: GestureDetector(
-                                onTap: () => context.push(item.mediaType == 'movie' ? '/movie/${item.tmdbId}' : '/show/${item.tmdbId}'),
+                                onTap: () async {
+                                  await context.push(item.mediaType == 'movie' ? '/movie/${item.tmdbId}' : '/show/${item.tmdbId}');
+                                  if (mounted) _loadHistory();
+                                },
                                 child: GlassContainer(
                                   padding: const EdgeInsets.all(12),
                                   borderRadius: BorderRadius.circular(16),
