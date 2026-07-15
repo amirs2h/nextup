@@ -191,6 +191,10 @@ class _AchievementsPageState extends State<AchievementsPage> {
           _buildCategoryTab('Country', 'country', Icons.flag_rounded),
           _buildCategoryTab('Watchlist', 'watchlist', Icons.bookmark_rounded),
           _buildCategoryTab('Time', 'time', Icons.access_time_rounded),
+          _buildCategoryTab('Collection', 'collection', Icons.collections_rounded),
+          _buildCategoryTab('Funny', 'funny', Icons.emoji_emotions_rounded),
+          _buildCategoryTab('Seasonal', 'seasonal', Icons.celebration_rounded),
+          _buildCategoryTab('Hidden', 'hidden', Icons.help_rounded),
         ],
       ),
     );

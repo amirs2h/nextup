@@ -18,6 +18,7 @@ class Achievement extends Equatable {
   final int xpReward;
   final bool isUnlocked;
   final int current;
+  final bool isHidden;
 
   const Achievement({
     required this.id,
@@ -31,6 +32,7 @@ class Achievement extends Equatable {
     required this.xpReward,
     this.isUnlocked = false,
     this.current = 0,
+    this.isHidden = false,
   });
 
   double get progress => requirement > 0 ? (current / requirement).clamp(0.0, 1.0) : 0.0;
@@ -54,7 +56,7 @@ class Achievement extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, title, description, icon, color, requirement, category, rarity, xpReward, isUnlocked, current];
+  List<Object?> get props => [id, title, description, icon, color, requirement, category, rarity, xpReward, isUnlocked, current, isHidden];
 }
 
 abstract class AchievementsState extends Equatable {
@@ -138,7 +140,6 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       Set<String> showIds = {};
       Set<String> movieIds = {};
       Set<String> activeDays = {};
-      Map<int, int> hourCounts = {};
       Map<String, int> genreCounts = {};
       Map<String, int> countryCounts = {};
 
@@ -153,7 +154,6 @@ class AchievementsCubit extends Cubit<AchievementsState> {
           final date = DateTime.tryParse(item['watched_at']);
           if (date != null) {
             activeDays.add('${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}');
-            hourCounts[date.hour] = (hourCounts[date.hour] ?? 0) + 1;
           }
         }
       }
@@ -216,8 +216,17 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       }
 
       // Check night owl / early bird
-      bool isNightOwl = hourCounts.containsKey(0) || hourCounts.containsKey(1) || hourCounts.containsKey(2) || hourCounts.containsKey(3);
-      bool isEarlyBird = hourCounts.containsKey(5) || hourCounts.containsKey(6);
+      bool isNightOwl = false;
+      bool isEarlyBird = false;
+      for (final item in history) {
+        if (item['watched_at'] != null) {
+          final date = DateTime.tryParse(item['watched_at']);
+          if (date != null) {
+            if (date.hour >= 0 && date.hour < 4) isNightOwl = true;
+            if (date.hour >= 5 && date.hour < 7) isEarlyBird = true;
+          }
+        }
+      }
 
       // Build achievements
       final achievements = _getAchievements(
@@ -272,11 +281,18 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     required int watchlistCount,
     required int favoriteCount,
   }) {
+    final totalTitles = shows + movies;
+    final now = DateTime.now();
+    final isHalloween = now.month == 10;
+    final isChristmas = now.month == 12;
+    final isValentine = now.month == 2 && now.day == 14;
+    final isSummer = now.month >= 6 && now.month <= 8;
+
     return [
       // ===== WATCHING =====
       Achievement(id: 'first_episode', title: 'First Episode', description: 'Watch your first episode', icon: Icons.play_circle, color: const Color(0xFF6C63FF), requirement: 1, category: 'watching', rarity: AchievementRarity.common, xpReward: 10, isUnlocked: episodes >= 1, current: episodes),
-      Achievement(id: 'binge_master', title: 'Binge Master', description: 'Watch 5 episodes in one day', icon: Icons.bolt, color: const Color(0xFFFFD93D), requirement: 5, category: 'watching', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: episodes >= 5, current: episodes),
-      Achievement(id: 'marathon_monster', title: 'Marathon Monster', description: 'Watch 10 episodes in one day', icon: Icons.flash_on, color: const Color(0xFFE50914), requirement: 10, category: 'watching', rarity: AchievementRarity.epic, xpReward: 50, isUnlocked: episodes >= 10, current: episodes),
+      Achievement(id: 'binge_master', title: 'Binge Master', description: 'Watch 50 episodes', icon: Icons.bolt, color: const Color(0xFFFFD93D), requirement: 50, category: 'watching', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: episodes >= 50, current: episodes),
+      Achievement(id: 'marathon_monster', title: 'Marathon Monster', description: 'Watch 200 episodes', icon: Icons.flash_on, color: const Color(0xFFE50914), requirement: 200, category: 'watching', rarity: AchievementRarity.epic, xpReward: 50, isUnlocked: episodes >= 200, current: episodes),
       Achievement(id: 'night_owl', title: 'Night Owl', description: 'Watch between 12AM-4AM', icon: Icons.nightlight_round, color: const Color(0xFF6C63FF), requirement: 1, category: 'watching', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: isNightOwl, current: isNightOwl ? 1 : 0),
       Achievement(id: 'early_bird', title: 'Early Bird', description: 'Watch before 7AM', icon: Icons.wb_sunny, color: const Color(0xFFFFD93D), requirement: 1, category: 'watching', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: isEarlyBird, current: isEarlyBird ? 1 : 0),
       Achievement(id: 'daily_streak', title: 'Daily Streak', description: '7 days in a row', icon: Icons.local_fire_department, color: const Color(0xFFE50914), requirement: 7, category: 'watching', rarity: AchievementRarity.rare, xpReward: 30, isUnlocked: longestStreak >= 7, current: longestStreak),
@@ -311,6 +327,23 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       Achievement(id: 'hours_100', title: 'Dedicated Viewer', description: 'Watch 100 hours', icon: Icons.access_time, color: const Color(0xFFFFD93D), requirement: 100, category: 'time', rarity: AchievementRarity.rare, xpReward: 50, isUnlocked: hours >= 100, current: hours),
       Achievement(id: 'hours_500', title: 'Time Master', description: 'Watch 500 hours', icon: Icons.access_time, color: const Color(0xFF9C27B0), requirement: 500, category: 'time', rarity: AchievementRarity.epic, xpReward: 100, isUnlocked: hours >= 500, current: hours),
       Achievement(id: 'hours_1000', title: 'Ultimate Fan', description: 'Watch 1000 hours', icon: Icons.access_time, color: const Color(0xFFFF9800), requirement: 1000, category: 'time', rarity: AchievementRarity.legendary, xpReward: 250, isUnlocked: hours >= 1000, current: hours),
+
+      // ===== COLLECTION =====
+      Achievement(id: 'unique_50', title: 'Variety Seeker', description: 'Watch 50 unique titles', icon: Icons.collections, color: const Color(0xFF6C63FF), requirement: 50, category: 'collection', rarity: AchievementRarity.rare, xpReward: 30, isUnlocked: totalTitles >= 50, current: totalTitles),
+      Achievement(id: 'unique_100', title: 'Content Explorer', description: 'Watch 100 unique titles', icon: Icons.collections, color: const Color(0xFF9C27B0), requirement: 100, category: 'collection', rarity: AchievementRarity.epic, xpReward: 50, isUnlocked: totalTitles >= 100, current: totalTitles),
+      Achievement(id: 'unique_500', title: 'The Archivist', description: 'Watch 500 unique titles', icon: Icons.collections, color: const Color(0xFFFF9800), requirement: 500, category: 'collection', rarity: AchievementRarity.legendary, xpReward: 250, isUnlocked: totalTitles >= 500, current: totalTitles),
+
+      // ===== FUNNY =====
+      Achievement(id: 'pizza_movies', title: 'Pizza & Movies', description: 'Watch 10 movies', icon: Icons.local_pizza, color: const Color(0xFFFFD93D), requirement: 10, category: 'funny', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: movies >= 10, current: movies),
+      Achievement(id: 'cry_baby', title: 'Cry Baby', description: 'Watch 10 dramas', icon: Icons.sentiment_very_dissatisfied, color: const Color(0xFF2196F3), requirement: 10, category: 'funny', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: (genreCounts['Drama'] ?? 0) >= 10, current: genreCounts['Drama'] ?? 0),
+
+      // ===== SEASONAL =====
+      Achievement(id: 'halloween', title: 'Halloween Special', description: 'Watch during October', icon: Icons.emoji_emotions, color: const Color(0xFFFF9800), requirement: 1, category: 'seasonal', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: isHalloween, current: isHalloween ? 1 : 0),
+      Achievement(id: 'christmas', title: 'Christmas Spirit', description: 'Watch during December', icon: Icons.celebration, color: const Color(0xFFE50914), requirement: 1, category: 'seasonal', rarity: AchievementRarity.rare, xpReward: 25, isUnlocked: isChristmas, current: isChristmas ? 1 : 0),
+      Achievement(id: 'summer_vacation', title: 'Summer Vibes', description: 'Watch during summer', icon: Icons.wb_sunny, color: const Color(0xFFFFD93D), requirement: 1, category: 'seasonal', rarity: AchievementRarity.common, xpReward: 15, isUnlocked: isSummer, current: isSummer ? 1 : 0),
+
+      // ===== HIDDEN =====
+      Achievement(id: 'hidden_completionist', title: '???', description: 'Unlock 20 achievements', icon: Icons.help, color: const Color(0xFF9C27B0), requirement: 20, category: 'hidden', rarity: AchievementRarity.epic, xpReward: 100, isHidden: true, isUnlocked: false, current: 0),
     ];
   }
 }
