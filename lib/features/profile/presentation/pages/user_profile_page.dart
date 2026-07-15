@@ -420,7 +420,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             : Icons.person_add,
                     onPressed: _isTogglingFollow ? null : _toggleFollow,
                     gradient: _isFollowing
-                        ? LinearGradient(colors: [AppColors.cardBg(context), AppColors.cardBg(context)])
+                        ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)])
                         : null,
                   ),
                 ),
