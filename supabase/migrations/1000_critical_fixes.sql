@@ -1,23 +1,25 @@
 -- Migration 1000: Critical fixes for data integrity and security
 
 -- ============================================================
--- 1. FIX watch_history UNIQUE constraint (NULL-inequality bug)
+-- 1. FIX watch_history UNIQUE constraint
 -- ============================================================
--- Migration 021 created a COALESCE expression index that treated
--- NULL season/episode as 0. Migrations 025/999 reverted to a plain
--- constraint, reintroducing the bug: two rows with
--- (season_number=NULL, episode_number=NULL) for the same movie
--- bypass the UNIQUE constraint (NULL != NULL in Postgres).
--- Fix: restore the COALESCE expression index.
+-- The COALESCE expression index (from migration 021/999) doesn't work
+-- with Supabase upsert onConflict (which expects column names, not expressions).
+-- Solution: use a plain UNIQUE constraint + normalize NULLs in Dart code.
+-- For movies (season_number=NULL, episode_number=NULL), the Dart code will
+-- use 0 instead of NULL so the constraint catches duplicates.
 
--- Drop the plain constraint that doesn't handle NULLs
+-- Drop any existing indexes/constraints first (idempotent)
 ALTER TABLE watch_history DROP CONSTRAINT IF EXISTS watch_history_unique_key;
--- Drop the expression index if it exists (idempotent)
+ALTER TABLE watch_history DROP CONSTRAINT IF EXISTS watch_history_unique;
 DROP INDEX IF EXISTS watch_history_unique_idx;
+DROP INDEX IF EXISTS watch_history_unique_key;
 DROP INDEX IF EXISTS watch_history_user_episode_unique;
--- Create the expression index that correctly handles NULLs
-CREATE UNIQUE INDEX watch_history_unique_idx ON watch_history
-  (user_id, tmdb_id, media_type, COALESCE(season_number, 0), COALESCE(episode_number, 0));
+
+-- Create plain UNIQUE constraint (works with Supabase upsert onConflict)
+ALTER TABLE watch_history 
+  ADD CONSTRAINT watch_history_unique_key 
+  UNIQUE (user_id, tmdb_id, media_type, season_number, episode_number);
 
 -- ============================================================
 -- 2. FIX notification INSERT policy (spoofing vulnerability)

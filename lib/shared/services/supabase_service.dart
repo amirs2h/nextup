@@ -316,8 +316,8 @@ class SupabaseService {
         'user_id': userId,
         'tmdb_id': tmdbId,
         'media_type': mediaType,
-        'season_number': seasonNumber,
-        'episode_number': episodeNumber,
+        'season_number': seasonNumber ?? 0,
+        'episode_number': episodeNumber ?? 0,
         'title': title,
         'poster_path': posterPath,
       }, onConflict: 'user_id,tmdb_id,media_type,season_number,episode_number');
@@ -334,24 +334,13 @@ class SupabaseService {
     int? episodeNumber,
   }) async {
     try {
-      var query = _client.from('watch_history')
+      await _client.from('watch_history')
           .delete()
           .eq('user_id', userId)
           .eq('tmdb_id', tmdbId)
-          .eq('media_type', mediaType);
-
-      if (seasonNumber != null) {
-        query = query.eq('season_number', seasonNumber);
-      } else {
-        query = query.isFilter('season_number', null);
-      }
-      if (episodeNumber != null) {
-        query = query.eq('episode_number', episodeNumber);
-      } else {
-        query = query.isFilter('episode_number', null);
-      }
-
-      await query;
+          .eq('media_type', mediaType)
+          .eq('season_number', seasonNumber ?? 0)
+          .eq('episode_number', episodeNumber ?? 0);
     } catch (e) {
       rethrow;
     }
@@ -365,24 +354,14 @@ class SupabaseService {
     int? episodeNumber,
   }) async {
     try {
-      var query = _client.from('watch_history')
+      final response = await _client.from('watch_history')
           .select()
           .eq('user_id', userId)
           .eq('tmdb_id', tmdbId)
-          .eq('media_type', mediaType);
-
-      if (seasonNumber != null) {
-        query = query.eq('season_number', seasonNumber);
-      } else {
-        query = query.isFilter('season_number', null);
-      }
-      if (episodeNumber != null) {
-        query = query.eq('episode_number', episodeNumber);
-      } else {
-        query = query.isFilter('episode_number', null);
-      }
-
-      final response = await query.maybeSingle();
+          .eq('media_type', mediaType)
+          .eq('season_number', seasonNumber ?? 0)
+          .eq('episode_number', episodeNumber ?? 0)
+          .maybeSingle();
       return response != null;
     } catch (e) {
       return false;
