@@ -56,6 +56,18 @@ class AuthCubit extends Cubit<AuthState> {
 
   AuthCubit(this._supabaseService) : super(AuthInitial()) {
     _checkAuth();
+    _listenToAuthChanges();
+  }
+
+  void _listenToAuthChanges() {
+    _supabaseService.client.auth.onAuthStateChange.listen((data) {
+      if (isClosed) return;
+      if (data.event == AuthChangeEvent.signedIn && data.session != null) {
+        _loadProfile(data.session!.user);
+      } else if (data.event == AuthChangeEvent.signedOut) {
+        emit(AuthUnauthenticated());
+      }
+    });
   }
 
   void _checkAuth() {
