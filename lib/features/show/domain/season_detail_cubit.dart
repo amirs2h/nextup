@@ -96,6 +96,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
 
       final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
       newWatched[episodeNumber] = !isWatched;
+      if (isClosed) return;
       emit(SeasonDetailLoaded(
         season: currentState.season,
         watchedEpisodes: newWatched,
@@ -134,6 +135,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   Future<void> markAllEpisodes() async {
     if (_isMarkingAll) return;
     _isMarkingAll = true;
+    Map<int, bool>? originalWatched;
     try {
       final user = _supabaseService.currentUser;
       if (user == null) {
@@ -171,11 +173,17 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
         }
       }
 
+      if (isClosed) return;
+
+      // Save original state for revert on failure
+      originalWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+
       // Optimistic update
       final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
       for (final episode in episodes) {
         optimisticWatched[episode.episodeNumber] = true;
       }
+      if (isClosed) return;
       emit(SeasonDetailLoaded(
         season: currentState.season,
         watchedEpisodes: optimisticWatched,
@@ -213,7 +221,14 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
 
       await _autoComputeStatus(user.id);
     } catch (e) {
-      // Error handled silently
+      // Revert optimistic update on failure
+      final currentState = state;
+      if (!isClosed && currentState is SeasonDetailLoaded && originalWatched != null) {
+        emit(SeasonDetailLoaded(
+          season: currentState.season,
+          watchedEpisodes: originalWatched,
+        ));
+      }
     } finally {
       _isMarkingAll = false;
     }
