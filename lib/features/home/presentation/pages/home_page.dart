@@ -60,7 +60,20 @@ class _HomePageViewState extends State<_HomePageView> {
                   SliverToBoxAdapter(child: _buildHeroSection(context, state)),
                   SliverToBoxAdapter(child: _buildSearchBar(context)),
                   // Friends Activity Section
-                  SliverToBoxAdapter(child: const FriendsActivitySection()),
+                  SliverToBoxAdapter(child: BlocBuilder<FriendsActivityCubit, FriendsActivityState>(
+                    builder: (context, faState) {
+                      if (faState is FriendsActivityLoaded) {
+                        return _buildSection(
+                          context: context,
+                          title: 'Friends Are Watching',
+                          subtitle: 'What your friends are watching right now',
+                          onSeeAll: () => context.push('/activity'),
+                          child: const FriendsActivitySection(),
+                        );
+                      }
+                      return const SizedBox();
+                    },
+                  )),
                   // For You Section
                   SliverToBoxAdapter(child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
                     builder: (context, recState) {

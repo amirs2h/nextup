@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
-import '../../../../shared/widgets/glass_container.dart';
 import '../../domain/friends_activity_cubit.dart';
 
 class FriendsActivitySection extends StatelessWidget {
@@ -33,55 +33,37 @@ class FriendsActivitySection extends StatelessWidget {
   }
 
   Widget _buildLoadingState(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-          child: Text('Friends Are Watching', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-        ),
-        SizedBox(
-          height: 280,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: 3,
-            itemBuilder: (context, index) {
-              return Container(
-                width: 140,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBg(context),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+    return SizedBox(
+      height: 260,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 140,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg(context),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          );
+        },
+      ),
     );
   }
 
   Widget _buildActivityList(BuildContext context, List<FriendActivity> activities) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-          child: Text('Friends Are Watching', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-        ),
-        SizedBox(
-          height: 280,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: activities.length,
-            itemBuilder: (context, index) {
-              return _buildActivityCard(context, activities[index]);
-            },
-          ),
-        ),
-      ],
+    return SizedBox(
+      height: 260,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: activities.length,
+        itemBuilder: (context, index) {
+          return _buildActivityCard(context, activities[index]);
+        },
+      ),
     );
   }
 
@@ -97,33 +79,35 @@ class FriendsActivitySection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Poster with gradient overlay
             Container(
-              height: 190,
+              height: 180,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Poster image
                     activity.posterPath != null && activity.posterPath!.isNotEmpty
                         ? CachedNetworkImage(
-                            imageUrl: AppConfig.getImageUrl(activity.posterPath, size: 'w300'),
+                            imageUrl: AppConfig.getImageUrl(activity.posterPath, size: 'w500'),
                             fit: BoxFit.cover,
+                            placeholder: (context, url) => Shimmer.fromColors(
+                              baseColor: AppColors.cardBg(context),
+                              highlightColor: AppColors.cardBgStrong(context),
+                              child: Container(color: AppColors.cardBg(context)),
+                            ),
                             errorWidget: (c, u, e) => Container(
                               color: AppColors.cardBg(context),
-                              child: Icon(Icons.movie_rounded, color: AppColors.textMuted(context), size: 40),
+                              child: Icon(Icons.movie_rounded, color: AppColors.iconMuted(context), size: 40),
                             ),
                           )
                         : Container(
                             color: AppColors.cardBg(context),
-                            child: Icon(Icons.movie_rounded, color: AppColors.textMuted(context), size: 40),
+                            child: Icon(Icons.movie_rounded, color: AppColors.iconMuted(context), size: 40),
                           ),
-                    // Gradient overlay at bottom
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -139,14 +123,12 @@ class FriendsActivitySection extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Avatar + Username + Badges at bottom
                     Positioned(
                       bottom: 8,
                       left: 8,
                       right: 8,
                       child: Row(
                         children: [
-                          // Avatar
                           GestureDetector(
                             onTap: () {
                               HapticFeedback.lightImpact();
@@ -175,7 +157,6 @@ class FriendsActivitySection extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          // Username + Activity
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,8 +172,7 @@ class FriendsActivitySection extends StatelessWidget {
                               ],
                             ),
                           ),
-                          // Rating badge (if rated)
-                          if (activity.rating != null)
+                          if (activity.rating != null && activity.rating! > 0)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                               decoration: BoxDecoration(
@@ -204,7 +184,7 @@ class FriendsActivitySection extends StatelessWidget {
                                 children: [
                                   const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 10),
                                   const SizedBox(width: 2),
-                                  Text('${activity.rating}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  Text(activity.rating!.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -216,10 +196,15 @@ class FriendsActivitySection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Title
             Text(activity.title, style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-            // Time ago
-            Text(_formatTimeAgo(activity.timestamp), style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(activity.activityIcon, color: activity.activityColor, size: 12),
+                const SizedBox(width: 4),
+                Text('${activity.username} • ${_formatTimeAgo(activity.timestamp)}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+              ],
+            ),
           ],
         ),
       ),

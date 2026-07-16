@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
-import '../../../shared/services/tmdb_service.dart';
 
 class FriendActivity extends Equatable {
   final String userId;
@@ -13,7 +12,7 @@ class FriendActivity extends Equatable {
   final String mediaType;
   final String title;
   final String? posterPath;
-  final int? rating;
+  final double? rating;
   final DateTime timestamp;
 
   const FriendActivity({
@@ -95,9 +94,8 @@ class FriendsActivityEmpty extends FriendsActivityState {}
 
 class FriendsActivityCubit extends Cubit<FriendsActivityState> {
   final SupabaseService _supabaseService;
-  final TmdbService _tmdbService;
 
-  FriendsActivityCubit(this._supabaseService, this._tmdbService) : super(FriendsActivityInitial());
+  FriendsActivityCubit(this._supabaseService) : super(FriendsActivityInitial());
 
   Future<void> loadFriendsActivity() async {
     final user = _supabaseService.currentUser;
@@ -110,7 +108,6 @@ class FriendsActivityCubit extends Cubit<FriendsActivityState> {
     if (isClosed) return;
     emit(FriendsActivityLoading());
     try {
-      // Get followed users
       final following = await _supabaseService.getFollowing(user.id);
       if (following.isEmpty) {
         if (isClosed) return;
@@ -118,7 +115,6 @@ class FriendsActivityCubit extends Cubit<FriendsActivityState> {
         return;
       }
 
-      // Get recent activity from followed users (limit to 10 users)
       final activities = <FriendActivity>[];
       final recentUsers = following.take(10).toList();
       
@@ -129,19 +125,42 @@ class FriendsActivityCubit extends Cubit<FriendsActivityState> {
         
         try {
           final history = await _supabaseService.getWatchHistory(userId: friendId);
-          final recentItems = history.take(3).toList(); // Get 3 most recent items per friend
           
-          for (final item in recentItems) {
+          // Deduplicate by tmdb_id - keep the most recent entry per show/movie
+          final Map<int, Map<String, dynamic>> uniqueByTmdbId = {};
+          for (final item in history) {
             final tmdbId = item['tmdb_id'] as int;
+            if (!uniqueByTmdbId.containsKey(tmdbId)) {
+              uniqueByTmdbId[tmdbId] = item;
+            }
+          }
+          
+          final uniqueItems = uniqueByTmdbId.values.take(3).toList();
+          
+          for (final item in uniqueItems) {
+            final tmdbId = item['tmdb_id'] as int;
+            
             final mediaType = item['media_type'] as String? ?? 'tv';
             final title = item['title'] as String? ?? 'Unknown';
             final posterPath = item['poster_path'] as String?;
             final watchedAt = item['watched_at'] != null ? DateTime.tryParse(item['watched_at']) ?? DateTime.now() : DateTime.now();
             
-            // Determine activity type
+            // Fetch user rating for this item
+            double? userRating;
+            try {
+              userRating = await _supabaseService.getUserRating(
+                userId: friendId,
+                tmdbId: tmdbId,
+                mediaType: mediaType,
+              );
+            } catch (_) {}
+
             String activityType = 'watching';
             if (mediaType == 'movie') {
               activityType = 'finished';
+            }
+            if (userRating != null && userRating > 0) {
+              activityType = 'rated';
             }
             
             activities.add(FriendActivity(
@@ -153,6 +172,7 @@ class FriendsActivityCubit extends Cubit<FriendsActivityState> {
               mediaType: mediaType,
               title: title,
               posterPath: posterPath,
+              rating: userRating,
               timestamp: watchedAt,
             ));
           }
@@ -161,7 +181,6 @@ class FriendsActivityCubit extends Cubit<FriendsActivityState> {
         }
       }
 
-      // Sort by timestamp (most recent first)
       activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
       if (isClosed) return;

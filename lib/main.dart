@@ -127,7 +127,7 @@ class _NextUpAppState extends State<NextUpApp> {
           BlocProvider(create: (context) => SharedListsCubit(widget.supabaseService, widget.tmdbService)),
           BlocProvider(create: (context) => CustomListsCubit(widget.supabaseService, widget.tmdbService)),
           BlocProvider(create: (context) => RankingsCubit(widget.supabaseService)),
-          BlocProvider(create: (context) => FriendsActivityCubit(widget.supabaseService, widget.tmdbService)),
+          BlocProvider(create: (context) => FriendsActivityCubit(widget.supabaseService)),
         ],
         child: BlocBuilder<SettingsCubit, SettingsState>(
           builder: (context, settingsState) {

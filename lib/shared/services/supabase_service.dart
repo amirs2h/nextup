@@ -832,7 +832,17 @@ class SupabaseService {
           .maybeSingle();
       return response?['rating']?.toDouble();
     } catch (e) {
-      return null;
+      try {
+        final response = await _client.from('ratings')
+            .select('rating')
+            .eq('user_id', userId)
+            .eq('tmdb_id', tmdbId)
+            .eq('media_type', mediaType)
+            .maybeSingle();
+        return response?['rating']?.toDouble();
+      } catch (_) {
+        return null;
+      }
     }
   }
 
