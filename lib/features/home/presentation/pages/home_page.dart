@@ -62,7 +62,7 @@ class _HomePageViewState extends State<_HomePageView> {
                   // Friends Activity Section
                   SliverToBoxAdapter(child: BlocBuilder<FriendsActivityCubit, FriendsActivityState>(
                     builder: (context, faState) {
-                      if (faState is FriendsActivityLoaded) {
+                      if (faState is FriendsActivityLoaded || faState is FriendsActivityLoading) {
                         return _buildSection(
                           context: context,
                           title: 'Friends Are Watching',
