@@ -103,31 +103,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             }
           },
           child: SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: GlassContainer(
-                          padding: const EdgeInsets.all(24),
-                          borderRadius: BorderRadius.circular(28),
-                          opacity: 0.06,
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: GlassContainer(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        borderRadius: BorderRadius.circular(28),
+                        opacity: 0.06,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              const Spacer(flex: 2),
                               // Logo
                               Center(
                                 child: Container(
-                                  width: 80,
-                                  height: 80,
+                                  width: 72,
+                                  height: 72,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     gradient: AppColors.primaryGradient,
@@ -139,28 +138,28 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(Icons.play_arrow_rounded, size: 40, color: Colors.white),
+                                  child: const Icon(Icons.play_arrow_rounded, size: 36, color: Colors.white),
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 20),
                               // Title
                               Text(
                                 'Welcome Back!',
                                 style: TextStyle(
-                                  fontSize: 28,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.text(context),
                                   letterSpacing: -0.5,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                               Text(
                                 'Login to continue watching',
-                                style: TextStyle(fontSize: 14, color: AppColors.textMuted(context)),
+                                style: TextStyle(fontSize: 13, color: AppColors.textMuted(context)),
                                 textAlign: TextAlign.center,
                               ),
-                              const Spacer(flex: 1),
+                              const SizedBox(height: 28),
                               // Email Field
                               GlassTextField(
                                 controller: _emailController,
@@ -173,7 +172,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                   return null;
                                 },
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 14),
                               // Password Field
                               GlassTextField(
                                 controller: _passwordController,
@@ -192,143 +191,146 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                   return null;
                                 },
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 8),
                               // Forgot Password
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
-                            onPressed: () async {
-                              if (_emailController.text.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Please enter your email first'),
-                                    backgroundColor: AppColors.warning,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  onPressed: () async {
+                                    if (_emailController.text.isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Text('Please enter your email first'),
+                                          backgroundColor: AppColors.warning,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(_emailController.text)) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Text('Please enter a valid email'),
+                                          backgroundColor: AppColors.error,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    try {
+                                      await context.read<AuthCubit>().resetPassword(_emailController.text.trim());
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: const Text('Password reset email sent!'),
+                                            backgroundColor: AppColors.success,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: const Text('Failed to send reset email. Please try again.'),
+                                            backgroundColor: AppColors.error,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                );
-                                return;
-                              }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(_emailController.text)) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Please enter a valid email'),
-                                    backgroundColor: AppColors.error,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  child: Text(
+                                    'Forgot Password?',
+                                    style: TextStyle(color: AppColors.electricPurple.withValues(alpha: 0.8), fontWeight: FontWeight.w500, fontSize: 13),
                                   ),
-                                );
-                                return;
-                              }
-                              try {
-                                await context.read<AuthCubit>().resetPassword(_emailController.text.trim());
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text('Password reset email sent!'),
-                                      backgroundColor: AppColors.success,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              // Login Button
+                              BlocBuilder<AuthCubit, AuthState>(
+                                builder: (context, state) {
+                                  return GlassButton(
+                                    text: state is AuthLoading ? 'Loading...' : 'Login',
+                                    icon: state is AuthLoading ? null : Icons.login_rounded,
+                                    onPressed: state is AuthLoading ? null : _handleLogin,
                                   );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text('Failed to send reset email. Please try again.'),
-                                      backgroundColor: AppColors.error,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                },
+                              ),
+                              const SizedBox(height: 24),
+                              // Divider
+                              Row(
+                                children: [
+                                  Expanded(child: Container(height: 1, color: AppColors.border(context))),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    child: Text('Or continue with', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                                  ),
+                                  Expanded(child: Container(height: 1, color: AppColors.border(context))),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              // Social Buttons
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildSocialButton(
+                                      context,
+                                      icon: Icons.g_mobiledata_rounded,
+                                      label: 'Google',
+                                      onTap: () {
+                                        context.read<AuthCubit>().signInWithGoogle();
+                                      },
                                     ),
-                                  );
-                                }
-                              }
-                            },
-                            child: Text(
-                              'Forgot Password?',
-                              style: TextStyle(color: AppColors.electricPurple.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
-                            ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: _buildSocialButton(
+                                      context,
+                                      icon: Icons.apple_rounded,
+                                      label: 'Apple',
+                                      onTap: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: const Text('Coming soon!'), backgroundColor: AppColors.electricPurple, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              // Register Link
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text("Don't have an account? ", style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                                  GestureDetector(
+                                    onTap: () => context.go('/register'),
+                                    child: const Text('Sign Up', style: TextStyle(color: AppColors.electricPurple, fontWeight: FontWeight.w600, fontSize: 13)),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        // Login Button
-                        BlocBuilder<AuthCubit, AuthState>(
-                          builder: (context, state) {
-                            return GlassButton(
-                              text: state is AuthLoading ? 'Loading...' : 'Login',
-                              icon: state is AuthLoading ? null : Icons.login_rounded,
-                              onPressed: state is AuthLoading ? null : _handleLogin,
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 32),
-                        // Divider
-                        Row(
-                          children: [
-                            Expanded(child: Container(height: 1, color: AppColors.border(context))),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('Or continue with', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
-                            ),
-                            Expanded(child: Container(height: 1, color: AppColors.border(context))),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        // Social Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildSocialButton(
-                                context,
-                                icon: Icons.g_mobiledata_rounded,
-                                label: 'Google',
-                                onTap: () {
-                                  context.read<AuthCubit>().signInWithGoogle();
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildSocialButton(
-                                context,
-                                icon: Icons.apple_rounded,
-                                label: 'Apple',
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: const Text('Coming soon!'), backgroundColor: AppColors.electricPurple, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(flex: 2),
-                        // Register Link
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text("Don't have an account? ", style: TextStyle(color: AppColors.textMuted(context))),
-                            GestureDetector(
-                              onTap: () => context.go('/register'),
-                              child: const Text('Sign Up', style: TextStyle(color: AppColors.electricPurple, fontWeight: FontWeight.w600)),
-                            ),
-                          ],
-                        ),
-                        const Spacer(flex: 1),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-              ),
-              ),
             ),
-            ],
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -336,14 +338,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     return GestureDetector(
       onTap: onTap,
       child: GlassContainer(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         borderRadius: BorderRadius.circular(14),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppColors.text(context), size: 24),
+            Icon(icon, color: AppColors.text(context), size: 22),
             const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+            Text(label, style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
