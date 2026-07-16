@@ -43,6 +43,7 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
 
   Future<void> _loadVoteResults() async {
     if (_isLoadingVotes) return;
+    if (!mounted) return;
     final state = context.read<PersonCubit>().state;
     if (state is! PersonLoaded) return;
 
@@ -68,6 +69,8 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
         _voteResults[widget.personId] ??= {};
         _voteResults[widget.personId]!['${tmdbId}_$characterName'] = vote;
       }
+    } catch (e) {
+      // Non-critical: vote results failure should not crash the page
     } finally {
       if (mounted) setState(() => _isLoadingVotes = false);
     }
@@ -201,7 +204,7 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
                                   final title = credit['title'] ?? credit['name'] ?? '';
                                   final posterPath = credit['poster_path'];
                                   final mediaType = credit['media_type'] ?? 'movie';
-                                  final id = credit['id'];
+                                  final id = credit['id'] as int?;
                                   final characterName = credit['character'] ?? '';
 
                                   return GestureDetector(
@@ -259,7 +262,7 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                          if (characterName.isNotEmpty && widget.personId > 0 && id > 0)
+                                          if (characterName.isNotEmpty && widget.personId > 0 && id != null && id > 0)
                                             _buildVoteButtons(context, widget.personId, id, characterName),
                                         ],
                                       ),

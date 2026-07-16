@@ -139,7 +139,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
           posterPath: _showPosterPath,
         );
       }
-      setState(() => _isWatched = !_isWatched);
+      if (mounted) setState(() => _isWatched = !_isWatched);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -640,7 +640,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
   Widget _buildCommentCard(Map<String, dynamic> comment) {
     final username = comment['profiles']?['username'] ?? 'User';
     final content = comment['content'] ?? '';
-    final createdAt = comment['created_at'] != null ? DateTime.parse(comment['created_at']) : DateTime.now();
+    final createdAt = DateTime.tryParse(comment['created_at'] as String? ?? '') ?? DateTime.now();
     final isSpoiler = content.startsWith('[SPOILER]');
     final displayContent = isSpoiler ? (content.length > 10 ? content.substring(10) : '') : content;
 

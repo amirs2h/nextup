@@ -11,17 +11,17 @@ void showRatingDialog({
   showDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        backgroundColor: AppColors.surface(context),
+      builder: (ctx, setState) => AlertDialog(
+        backgroundColor: AppColors.surface(ctx),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Rate $title', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+        title: Text('Rate $title', style: TextStyle(color: AppColors.text(ctx), fontWeight: FontWeight.bold), textAlign: TextAlign.center),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               rating > 0 ? '${rating.toStringAsFixed(0)} / 10' : 'Tap to rate',
               style: TextStyle(
-                color: rating > 0 ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
+                color: rating > 0 ? const Color(0xFFFFD93D) : AppColors.textMuted(ctx),
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -40,7 +40,7 @@ void showRatingDialog({
                       padding: const EdgeInsets.symmetric(horizontal: 1),
                       child: Icon(
                         rating >= starValue ? Icons.star_rounded : Icons.star_outline_rounded,
-                        color: rating >= starValue ? const Color(0xFFFFD93D) : AppColors.textMuted(context),
+                        color: rating >= starValue ? const Color(0xFFFFD93D) : AppColors.textMuted(ctx),
                         size: 24,
                       ),
                     ),
@@ -54,12 +54,12 @@ void showRatingDialog({
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.surface(context),
-              foregroundColor: AppColors.text(context),
+              backgroundColor: AppColors.surface(ctx),
+              foregroundColor: AppColors.text(ctx),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(ctx), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: rating > 0 ? () async {

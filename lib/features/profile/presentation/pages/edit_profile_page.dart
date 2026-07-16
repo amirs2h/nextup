@@ -347,19 +347,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _removeAvatar() async {
     setState(() => _isLoading = true);
+    final supabase = context.read<SupabaseService>();
+    final authCubit = context.read<AuthCubit>();
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      final user = context.read<SupabaseService>().currentUser;
+      final user = supabase.currentUser;
       if (user == null) return;
-      await context.read<SupabaseService>().deleteAvatar(user.id);
-      await context.read<AuthCubit>().refreshProfile();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Avatar removed!'), backgroundColor: AppColors.success),
-        );
-      }
+      await supabase.deleteAvatar(user.id);
+      if (!mounted) return;
+      await authCubit.refreshProfile();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: const Text('Avatar removed!'), backgroundColor: AppColors.success),
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: const Text('Failed to remove avatar'), backgroundColor: AppColors.error),
         );
       }
@@ -432,11 +435,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _pickAndUploadHeader() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
-    if (image == null) return;
+    if (image == null || !mounted) return;
 
     setState(() => _isLoading = true);
+    final supabase = context.read<SupabaseService>();
+    final authCubit = context.read<AuthCubit>();
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final bytes = await image.readAsBytes();
+      if (!mounted) return;
       // Get file extension from mimeType or fallback to jpg
       String ext = 'jpg';
       if (image.name.contains('.')) {
@@ -446,19 +453,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ext = 'jpg';
       }
       
-      final user = context.read<SupabaseService>().currentUser;
+      final user = supabase.currentUser;
       if (user == null) return;
 
-      final url = await context.read<SupabaseService>().uploadHeader(user.id, bytes, '.$ext');
+      final url = await supabase.uploadHeader(user.id, bytes, '.$ext');
       if (url != null && mounted) {
-        await context.read<AuthCubit>().refreshProfile();
-        ScaffoldMessenger.of(context).showSnackBar(
+        await authCubit.refreshProfile();
+        if (!mounted) return;
+        messenger.showSnackBar(
           SnackBar(content: const Text('Header image updated!'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: const Text('Failed to upload header image'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         );
       }

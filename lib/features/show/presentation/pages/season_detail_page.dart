@@ -334,23 +334,36 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                       final supabase = context.read<SupabaseService>();
                       final user = supabase.currentUser;
                       if (user != null) {
-                        await supabase.addReaction(
-                          userId: user.id,
-                          tmdbId: widget.showId,
-                          seasonNumber: widget.seasonNumber,
-                          episodeNumber: episode.episodeNumber,
-                          emoji: emoji,
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Reacted with $emoji'),
-                              backgroundColor: AppColors.success,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              duration: const Duration(seconds: 1),
-                            ),
+                        try {
+                          await supabase.addReaction(
+                            userId: user.id,
+                            tmdbId: widget.showId,
+                            seasonNumber: widget.seasonNumber,
+                            episodeNumber: episode.episodeNumber,
+                            emoji: emoji,
                           );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Reacted with $emoji'),
+                                backgroundColor: AppColors.success,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Failed to add reaction'),
+                                backgroundColor: AppColors.error,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            );
+                          }
                         }
                       }
                     },

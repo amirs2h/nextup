@@ -122,7 +122,8 @@ class _UserListPageState extends State<UserListPage> {
     for (final item in items) {
       if (item['title'] == null || (item['title'] as String).isEmpty) {
         try {
-          final tmdbId = item['tmdb_id'] as int;
+      final tmdbId = item['tmdb_id'] as int?;
+      if (tmdbId == null) continue;
           final mediaType = item['media_type'] as String? ?? 'tv';
           if (mediaType == 'tv') {
             final data = await tmdb.getShowDetails(tmdbId);
