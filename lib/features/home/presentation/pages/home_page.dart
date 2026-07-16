@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/modern_widgets.dart';
+import '../../../../shared/models/show_model.dart';
+import '../../../../shared/models/movie_model.dart';
 import '../../domain/home_cubit.dart';
 import '../../domain/recommendations_cubit.dart';
 import '../../domain/friends_activity_cubit.dart';
@@ -30,13 +33,50 @@ class _HomePageView extends StatefulWidget {
 }
 
 class _HomePageViewState extends State<_HomePageView> {
+  late PageController _heroPageController;
+  Timer? _heroTimer;
+  int _heroIndex = 0;
+
   @override
   void initState() {
     super.initState();
+    _heroPageController = PageController(viewportFraction: 0.92);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _reloadData();
+      _startHeroAutoPlay();
     });
+  }
+
+  void _startHeroAutoPlay() {
+    _heroTimer?.cancel();
+    _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_heroPageController.hasClients) return;
+      final state = context.read<HomeCubit>().state;
+      if (state is! HomeLoaded) return;
+      final total = _getHeroItems(state).length;
+      if (total <= 1) return;
+      _heroIndex = (_heroIndex + 1) % total;
+      _heroPageController.animateToPage(
+        _heroIndex,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  List<dynamic> _getHeroItems(HomeLoaded state) {
+    final items = <dynamic>[];
+    items.addAll(state.trendingShows.take(5));
+    items.addAll(state.trendingMovies.take(5));
+    return items;
+  }
+
+  @override
+  void dispose() {
+    _heroTimer?.cancel();
+    _heroPageController.dispose();
+    super.dispose();
   }
 
   void _reloadData() {
@@ -264,90 +304,139 @@ class _HomePageViewState extends State<_HomePageView> {
   }
 
   Widget _buildHeroSection(BuildContext context, HomeState state) {
-    if (state is! HomeLoaded || state.trendingShows.isEmpty) return const SizedBox();
-    final show = state.trendingShows.first;
-    
-    return GestureDetector(
-      onTap: () async {
-        await context.push('/show/${show.id}');
-        if (mounted) _reloadData();
-      },
-      child: Container(
-        height: 200,
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Backdrop image
-              if (show.backdropUrl != null)
-                CachedNetworkImage(
-                  imageUrl: show.backdropUrl!,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => Container(color: AppColors.cardBg(context)),
-                )
-              else
-                Container(color: AppColors.cardBg(context)),
-              // Glass overlay
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                  ),
-                ),
-              ),
-              // Content
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('TRENDING', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(show.name, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 4),
-                    Row(
+    if (state is! HomeLoaded) return const SizedBox();
+    final items = _getHeroItems(state);
+    if (items.isEmpty) return const SizedBox();
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 200,
+          child: PageView.builder(
+            controller: _heroPageController,
+            itemCount: items.length,
+            onPageChanged: (index) => setState(() => _heroIndex = index),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final isShow = item is ShowModel;
+              final id = isShow ? item.id : (item as MovieModel).id;
+              final name = isShow ? item.name : (item as MovieModel).title;
+              final backdropUrl = isShow ? item.backdropUrl : (item as MovieModel).backdropUrl;
+              final rating = isShow ? item.voteAverage : (item as MovieModel).voteAverage;
+              final year = isShow
+                  ? (item.firstAirDate != null && item.firstAirDate!.length >= 4 ? item.firstAirDate!.substring(0, 4) : null)
+                  : (item.releaseDate != null && item.releaseDate!.length >= 4 ? item.releaseDate!.substring(0, 4) : null);
+              final extra = isShow && item.numberOfSeasons != null ? '${item.numberOfSeasons} Seasons' : null;
+
+              return GestureDetector(
+                onTap: () async {
+                  await context.push(isShow ? '/show/$id' : '/movie/$id');
+                  if (mounted) _reloadData();
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: [
-                        const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
-                        const SizedBox(width: 4),
-                        Text(show.voteAverage.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 12),
-                        if (show.firstAirDate != null && show.firstAirDate!.length >= 4)
-                          Text(show.firstAirDate!.substring(0, 4), style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14)),
-                        const SizedBox(width: 12),
-                        if (show.numberOfSeasons != null)
-                          Text('${show.numberOfSeasons} Seasons', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14)),
+                        // Backdrop
+                        if (backdropUrl != null)
+                          CachedNetworkImage(
+                            imageUrl: backdropUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Container(color: AppColors.cardBg(context)),
+                          )
+                        else
+                          Container(color: AppColors.cardBg(context)),
+                        // Gradient overlay
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.85)],
+                            ),
+                          ),
+                        ),
+                        // Content
+                        Positioned(
+                          bottom: 20,
+                          left: 20,
+                          right: 20,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: (isShow ? AppColors.primary : AppColors.electricPurple).withValues(alpha: 0.8),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  isShow ? 'TRENDING SHOW' : 'TRENDING MOVIE',
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(name, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.star_rounded, color: AppColors.warning, size: 15),
+                                  const SizedBox(width: 4),
+                                  Text(rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                  if (year != null) ...[
+                                    const SizedBox(width: 10),
+                                    Text(year, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                                  ],
+                                  if (extra != null) ...[
+                                    const SizedBox(width: 10),
+                                    Text(extra, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Play icon
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: GlassContainer(
+                            padding: const EdgeInsets.all(10),
+                            borderRadius: BorderRadius.circular(12),
+                            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                          ),
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              // Play button
-              Positioned(
-                top: 16,
-                right: 16,
-                child: GlassContainer(
-                  padding: const EdgeInsets.all(10),
-                  borderRadius: BorderRadius.circular(12),
-                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
-      ),
+        const SizedBox(height: 10),
+        // Dots indicator
+        if (items.length > 1)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(items.length, (index) {
+              final isActive = index == _heroIndex;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: isActive ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.primary : AppColors.textMuted(context).withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+      ],
     );
   }
 
