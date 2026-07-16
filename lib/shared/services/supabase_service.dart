@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/app_config.dart';
 
@@ -61,9 +62,12 @@ class SupabaseService {
   }
 
   Future<bool> signInWithGoogle() async {
+    final redirectUrl = kIsWeb
+        ? '${Uri.base.origin}/'  // Web: current site URL
+        : 'io.supabase.nextup://login-callback/';  // Mobile: deep link scheme
     return await _client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: 'io.supabase.nextup://login-callback/',
+      redirectTo: redirectUrl,
     );
   }
 
