@@ -81,14 +81,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
         isFollowingMe = results2[1] as bool;
       }
 
-      // Fetch missing titles for items that don't have them
-      await _fetchMissingTitles(watchlist);
-      await _fetchMissingTitles(favorites);
-      await _fetchMissingTitles(watchHistory);
-
       // Group watch history by tmdb_id
       final groupedHistory = _groupWatchHistory(watchHistory);
 
+      // Show profile immediately — don't wait for missing titles
       if (mounted) {
         setState(() {
           _profile = profile;
@@ -107,6 +103,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _isLoading = false;
         });
       }
+
+      // Fetch missing titles in background, then update UI
+      await _fetchMissingTitles(watchlist);
+      await _fetchMissingTitles(favorites);
+      await _fetchMissingTitles(watchHistory);
+
+      // Re-group history with fetched titles and refresh UI
+      final updatedGroupedHistory = _groupWatchHistory(watchHistory);
+      if (mounted) {
+        setState(() {
+          _groupedWatchHistory = updatedGroupedHistory;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -114,25 +123,30 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
     final tmdb = context.read<TmdbService>();
-    for (final item in items) {
-      if (item['title'] == null || (item['title'] as String).isEmpty) {
-        try {
-          final tmdbId = item['tmdb_id'] as int;
-          final mediaType = item['media_type'] as String? ?? 'tv';
-          if (mediaType == 'tv') {
-            final data = await tmdb.getShowDetails(tmdbId);
-            item['title'] = data['name'] ?? 'Unknown';
-            item['poster_path'] = item['poster_path'] ?? data['poster_path'];
-          } else {
-            final data = await tmdb.getMovieDetails(tmdbId);
-            item['title'] = data['title'] ?? 'Unknown';
-            item['poster_path'] = item['poster_path'] ?? data['poster_path'];
-          }
-        } catch (e) {
-          item['title'] = 'Unknown';
+    final itemsNeedingFetch = items.where((item) =>
+        item['title'] == null || (item['title'] as String).isEmpty).take(10).toList();
+
+    if (itemsNeedingFetch.isEmpty) return;
+
+    final futures = itemsNeedingFetch.map((item) async {
+      try {
+        final tmdbId = item['tmdb_id'] as int;
+        final mediaType = item['media_type'] as String? ?? 'tv';
+        if (mediaType == 'tv') {
+          final data = await tmdb.getShowDetails(tmdbId).timeout(const Duration(seconds: 5));
+          item['title'] = data['name'] ?? 'Unknown';
+          item['poster_path'] = item['poster_path'] ?? data['poster_path'];
+        } else {
+          final data = await tmdb.getMovieDetails(tmdbId).timeout(const Duration(seconds: 5));
+          item['title'] = data['title'] ?? 'Unknown';
+          item['poster_path'] = item['poster_path'] ?? data['poster_path'];
         }
+      } catch (e) {
+        item['title'] = 'Unknown';
       }
-    }
+    }).toList();
+
+    await Future.wait(futures);
   }
 
   List<Map<String, dynamic>> _groupWatchHistory(List<Map<String, dynamic>> history) {
