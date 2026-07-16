@@ -333,16 +333,19 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   Widget _buildSocialButton(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
-    return GlassContainer(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      borderRadius: BorderRadius.circular(14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: AppColors.text(context), size: 24),
-          const SizedBox(width: 8),
-          Text(label, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassContainer(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        borderRadius: BorderRadius.circular(14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.text(context), size: 24),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+          ],
+        ),
       ),
     );
   }
