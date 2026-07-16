@@ -276,11 +276,13 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                             onTap: () => showRatingDialog(
                               context: context,
                               title: state.movie.title,
+                              initialRating: state.userRating,
                               onRate: (rating) async {
                                 final supabase = context.read<SupabaseService>();
                                 final user = supabase.currentUser;
                                 if (user != null) {
                                   await supabase.rateMovie(userId: user.id, tmdbId: widget.movieId, rating: rating);
+                                  if (mounted) context.read<MovieDetailCubit>().loadMovieDetails();
                                 }
                               },
                             ),

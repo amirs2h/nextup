@@ -136,8 +136,9 @@ class CommentsCubit extends Cubit<CommentsState> {
         episodeNumber: episodeNumber,
       );
     } catch (e) {
-        // Error handled silently
-      }
+      if (isClosed) return;
+      emit(CommentsError('Failed to like comment. Please try again.'));
+    }
   }
 
   Future<void> unlikeComment(String commentId, {
@@ -158,7 +159,8 @@ class CommentsCubit extends Cubit<CommentsState> {
         episodeNumber: episodeNumber,
       );
     } catch (e) {
-        // Error handled silently
-      }
+      if (isClosed) return;
+      emit(CommentsError('Failed to unlike comment. Please try again.'));
+    }
   }
 }

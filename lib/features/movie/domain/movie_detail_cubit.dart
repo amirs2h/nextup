@@ -255,6 +255,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
       if (user == null) return;
 
       final newValue = !currentState.isInWatchlist;
+      if (isClosed) return;
       emit(currentState.copyWith(isInWatchlist: newValue));
 
       try {
@@ -298,6 +299,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
       if (user == null) return;
 
       final newValue = !currentState.isFavorite;
+      if (isClosed) return;
       emit(currentState.copyWith(isFavorite: newValue));
 
       try {
@@ -333,6 +335,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
       if (user == null) return;
 
       final newIsWatched = !currentState.isWatched;
+      if (isClosed) return;
       emit(currentState.copyWith(isWatched: newIsWatched));
 
       try {

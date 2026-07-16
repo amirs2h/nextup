@@ -5,8 +5,9 @@ void showRatingDialog({
   required BuildContext context,
   required String title,
   required Future<void> Function(double rating) onRate,
+  double? initialRating,
 }) {
-  double rating = 0;
+  double rating = initialRating ?? 0;
   showDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(

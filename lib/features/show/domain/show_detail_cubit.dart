@@ -250,6 +250,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       if (user == null) return;
 
       final newValue = !currentState.isInWatchlist;
+      if (isClosed) return;
       emit(currentState.copyWith(isInWatchlist: newValue));
 
       try {
@@ -302,6 +303,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       if (user == null) return;
 
       final newValue = !currentState.isFavorite;
+      if (isClosed) return;
       emit(currentState.copyWith(isFavorite: newValue));
 
       try {
@@ -341,6 +343,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
 
       final newWatched = Map<int, bool>.from(currentState.watchedEpisodes);
       newWatched[key] = !isWatched;
+      if (isClosed) return;
       emit(currentState.copyWith(watchedEpisodes: newWatched));
 
       try {
@@ -388,6 +391,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   Future<void> markAllAsWatched() async {
     if (_isMarkingAll) return;
     _isMarkingAll = true;
+    Map<int, bool>? originalWatched;
     try {
       final currentState = state;
       if (currentState is! ShowDetailLoaded) {
@@ -407,6 +411,9 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         return;
       }
 
+      // Save original state for revert on failure
+      originalWatched = Map<int, bool>.from(currentState.watchedEpisodes);
+
       // Optimistic update
       final optimisticWatched = Map<int, bool>.from(currentState.watchedEpisodes);
       for (final season in seasons) {
@@ -420,12 +427,13 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             final seasonData = await _tmdbService.getShowSeasonDetails(showId, season.seasonNumber);
             final episodes = seasonData['episodes'] as List? ?? [];
             for (final ep in episodes) {
-              final epNum = ep['episode_number'] as int;
-              optimisticWatched[season.seasonNumber * 10000 + epNum] = true;
+              final epNum = ep['episode_number'] as int? ?? 0;
+              if (epNum > 0) optimisticWatched[season.seasonNumber * 10000 + epNum] = true;
             }
           } catch (_) {}
         }
       }
+      if (isClosed) return;
       emit(currentState.copyWith(watchedEpisodes: optimisticWatched));
 
       // Batch processing
@@ -447,8 +455,8 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             final seasonData = await _tmdbService.getShowSeasonDetails(showId, season.seasonNumber);
             final episodes = seasonData['episodes'] as List? ?? [];
             for (final ep in episodes) {
-              final epNum = ep['episode_number'] as int;
-              currentBatch.add([season.seasonNumber, epNum]);
+              final epNum = ep['episode_number'] as int? ?? 0;
+              if (epNum > 0) currentBatch.add([season.seasonNumber, epNum]);
               if (currentBatch.length >= 10) {
                 batches.add(currentBatch);
                 currentBatch = [];
@@ -492,7 +500,11 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         if (!isClosed) emit((state as ShowDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
       } catch (_) {}
     } catch (e) {
-      // Error handled silently
+      // Revert optimistic update on failure
+      final currentState = state;
+      if (!isClosed && currentState is ShowDetailLoaded) {
+        emit(currentState.copyWith(watchedEpisodes: originalWatched));
+      }
     } finally {
       _isMarkingAll = false;
     }

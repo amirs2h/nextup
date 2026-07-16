@@ -339,11 +339,13 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                             onTap: () => showRatingDialog(
                               context: context,
                               title: state.show.name,
+                              initialRating: state.userRating,
                               onRate: (rating) async {
                                 final supabase = context.read<SupabaseService>();
                                 final user = supabase.currentUser;
                                 if (user != null) {
                                   await supabase.rateShow(userId: user.id, tmdbId: widget.showId, rating: rating);
+                                  if (mounted) context.read<ShowDetailCubit>().loadShowDetails();
                                 }
                               },
                             ),

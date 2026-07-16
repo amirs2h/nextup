@@ -27,10 +27,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
     });
   }
 
-  void _loadFavorites() {
+  Future<void> _loadFavorites() async {
     final authState = context.read<AuthCubit>().state;
     if (authState is AuthAuthenticated) {
-      context.read<FavoritesCubit>().loadFavorites();
+      await context.read<FavoritesCubit>().loadFavorites();
     }
   }
 
@@ -118,9 +118,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
           }
 
           return RefreshIndicator(
-            onRefresh: () async {
-              _loadFavorites();
-            },
+            onRefresh: _loadFavorites,
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [

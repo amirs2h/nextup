@@ -68,28 +68,29 @@ class SupabaseService {
   }
 
   Future<bool> deleteAccount(String userId) async {
+    final errors = <String>[];
     try {
       // Delete user data from all tables
-      final deleteOperations = [
-        _client.from('comment_likes').delete().eq('user_id', userId),
-        _client.from('comments').delete().eq('user_id', userId),
-        _client.from('reactions').delete().eq('user_id', userId),
-        _client.from('ratings').delete().eq('user_id', userId),
-        _client.from('notifications').delete().eq('user_id', userId),
-        _client.from('watch_history').delete().eq('user_id', userId),
-        _client.from('favorites').delete().eq('user_id', userId),
-        _client.from('watchlist').delete().eq('user_id', userId),
-        _client.from('follows').delete().or('follower_id.eq.$userId,following_id.eq.$userId'),
-        _client.from('shared_list_members').delete().eq('user_id', userId),
-        _client.from('character_votes').delete().eq('user_id', userId),
-        _client.from('favorite_actor_votes').delete().eq('user_id', userId),
-      ];
+      final deleteOperations = {
+        'comment_likes': _client.from('comment_likes').delete().eq('user_id', userId),
+        'comments': _client.from('comments').delete().eq('user_id', userId),
+        'reactions': _client.from('reactions').delete().eq('user_id', userId),
+        'ratings': _client.from('ratings').delete().eq('user_id', userId),
+        'notifications': _client.from('notifications').delete().eq('user_id', userId),
+        'watch_history': _client.from('watch_history').delete().eq('user_id', userId),
+        'favorites': _client.from('favorites').delete().eq('user_id', userId),
+        'watchlist': _client.from('watchlist').delete().eq('user_id', userId),
+        'follows': _client.from('follows').delete().or('follower_id.eq.$userId,following_id.eq.$userId'),
+        'shared_list_members': _client.from('shared_list_members').delete().eq('user_id', userId),
+        'character_votes': _client.from('character_votes').delete().eq('user_id', userId),
+        'favorite_actor_votes': _client.from('favorite_actor_votes').delete().eq('user_id', userId),
+      };
 
-      for (final op in deleteOperations) {
+      for (final entry in deleteOperations.entries) {
         try {
-          await op;
+          await entry.value;
         } catch (e) {
-          // Continue deletion
+          errors.add(entry.key);
         }
       }
 
@@ -101,40 +102,43 @@ class SupabaseService {
           await _client.from('custom_list_items').delete().inFilter('list_id', customListIds);
         }
       } catch (e) {
-        // Continue
+        errors.add('custom_list_items');
       }
 
       // Delete lists
       try {
         await _client.from('shared_lists').delete().eq('creator_id', userId);
       } catch (e) {
-        // Continue
+        errors.add('shared_lists');
       }
       try {
         await _client.from('custom_lists').delete().eq('user_id', userId);
       } catch (e) {
-        // Continue
+        errors.add('custom_lists');
       }
 
       // Delete profile
       try {
         await _client.from('profiles').delete().eq('id', userId);
       } catch (e) {
-        // Continue
+        errors.add('profiles');
       }
 
       // Delete auth user via Edge Function (BEFORE signOut - needs JWT)
       try {
         final response = await _client.functions.invoke('delete-user', body: {'user_id': userId});
         if (response.status == 200) {
-          // Auth user deleted successfully
+          if (errors.isNotEmpty) {
+            // Auth deleted but some data tables failed — log but don't block
+          }
           return true;
         }
+        errors.add('auth_user');
       } catch (e) {
-        // Edge Function may not be deployed
+        errors.add('auth_user');
       }
 
-      return false;
+      return errors.isEmpty;
     } catch (e) {
       return false;
     }
@@ -832,17 +836,7 @@ class SupabaseService {
           .maybeSingle();
       return response?['rating']?.toDouble();
     } catch (e) {
-      try {
-        final response = await _client.from('ratings')
-            .select('rating')
-            .eq('user_id', userId)
-            .eq('tmdb_id', tmdbId)
-            .eq('media_type', mediaType)
-            .maybeSingle();
-        return response?['rating']?.toDouble();
-      } catch (_) {
-        return null;
-      }
+      return null;
     }
   }
 

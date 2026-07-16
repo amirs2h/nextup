@@ -129,31 +129,43 @@ class FriendsActivityCubit extends Cubit<FriendsActivityState> {
           // Deduplicate by tmdb_id - keep the most recent entry per show/movie
           final Map<int, Map<String, dynamic>> uniqueByTmdbId = {};
           for (final item in history) {
-            final tmdbId = item['tmdb_id'] as int;
-            if (!uniqueByTmdbId.containsKey(tmdbId)) {
+            final tmdbId = item['tmdb_id'];
+            if (tmdbId is! int) continue;
+            final existing = uniqueByTmdbId[tmdbId];
+            final itemTime = DateTime.tryParse(item['watched_at'] ?? '') ?? DateTime(0);
+            final existingTime = existing != null ? DateTime.tryParse(existing['watched_at'] ?? '') ?? DateTime(0) : DateTime(0);
+            if (existing == null || itemTime.isAfter(existingTime)) {
               uniqueByTmdbId[tmdbId] = item;
             }
           }
           
           final uniqueItems = uniqueByTmdbId.values.take(3).toList();
           
+          // Batch fetch ratings for all items at once
+          final Map<int, double?> ratingsMap = {};
+          for (final item in uniqueItems) {
+            final tmdbId = item['tmdb_id'] as int;
+            final mediaType = item['media_type'] as String? ?? 'tv';
+            try {
+              ratingsMap[tmdbId] = await _supabaseService.getUserRating(
+                userId: friendId,
+                tmdbId: tmdbId,
+                mediaType: mediaType,
+              );
+            } catch (_) {
+              ratingsMap[tmdbId] = null;
+            }
+          }
+
           for (final item in uniqueItems) {
             final tmdbId = item['tmdb_id'] as int;
             
             final mediaType = item['media_type'] as String? ?? 'tv';
             final title = item['title'] as String? ?? 'Unknown';
             final posterPath = item['poster_path'] as String?;
-            final watchedAt = item['watched_at'] != null ? DateTime.tryParse(item['watched_at']) ?? DateTime.now() : DateTime.now();
+            final watchedAt = DateTime.tryParse(item['watched_at'] ?? '') ?? DateTime(0);
             
-            // Fetch user rating for this item
-            double? userRating;
-            try {
-              userRating = await _supabaseService.getUserRating(
-                userId: friendId,
-                tmdbId: tmdbId,
-                mediaType: mediaType,
-              );
-            } catch (_) {}
+            final userRating = ratingsMap[tmdbId];
 
             String activityType = 'watching';
             if (mediaType == 'movie') {
