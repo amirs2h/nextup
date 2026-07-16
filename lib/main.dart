@@ -9,6 +9,7 @@ import 'shared/services/supabase_service.dart';
 import 'shared/services/tmdb_service.dart';
 import 'shared/services/omdb_service.dart';
 import 'shared/widgets/pwa_install_prompt.dart';
+import 'shared/widgets/error_screen.dart';
 import 'features/auth/domain/auth_cubit.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'features/home/domain/recommendations_cubit.dart';
@@ -45,29 +46,8 @@ void main() async {
       omdbService: omdbService,
     ));
   } catch (e) {
-    runApp(MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                const Text('Failed to initialize app', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('Please check your internet connection and try again.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => main(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    runApp(ErrorScreen(
+      onRetry: () => main(),
     ));
   }
 }
