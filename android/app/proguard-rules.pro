@@ -1,22 +1,39 @@
-# Flutter
--keep class io.flutter.app.** { *; }
--keep class io.flutter.plugin.** { *; }
--keep class io.flutter.util.** { *; }
--keep class io.flutter.view.** { *; }
+# Flutter General
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 
 # Supabase
 -keep class io.supabase.** { *; }
+-keep class com.supabase.** { *; }
+-keepclassmembers class io.supabase.** { *; }
 
-# Dio
--keep class io.flutter.plugins.** { *; }
+# BLoC / Equatable (pure Dart, but keep for safety)
+-keep class bloc.** { *; }
 
-# Google Play Core
--keep class com.google.android.play.core.** { *; }
--dontwarn com.google.android.play.core.**
+# Cached Network Image / Glide / OkHttp
+-keep class com.bumptech.glide.** { *; }
+-keep class okhttp3.** { *; }
+-keep class okio.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
 
-# R8 missing classes
--dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
--dontwarn com.google.android.play.core.splitinstall.**
--dontwarn com.google.android.play.core.tasks.**
+# Image Picker
+-keep class io.flutter.plugins.imagepicker.** { *; }
+
+# Share Plus
+-keep class io.flutter.plugins.share.** { *; }
+
+# URL Launcher
+-keep class io.flutter.plugins.urllauncher.** { *; }
+
+# Shared Preferences
+-keep class io.flutter.plugins.sharedpreferences.** { *; }
+
+# App Links
+-keep class com.llfbandit.app_links.** { *; }
+
+# Keep enum values
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
