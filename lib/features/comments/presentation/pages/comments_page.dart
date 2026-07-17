@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/spoiler_widget.dart';
@@ -15,6 +17,7 @@ class CommentsPage extends StatefulWidget {
   final String mediaType;
   final int? seasonNumber;
   final int? episodeNumber;
+  final String? title;
 
   const CommentsPage({
     super.key,
@@ -22,6 +25,7 @@ class CommentsPage extends StatefulWidget {
     required this.mediaType,
     this.seasonNumber,
     this.episodeNumber,
+    this.title,
   });
 
   @override
@@ -53,6 +57,33 @@ class _CommentsPageState extends State<CommentsPage> {
     super.dispose();
   }
 
+  void _sendComment() {
+    if (_commentController.text.trim().isEmpty) return;
+    if (_commentController.text.trim().length > 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Comment is too long (max 500 characters)'), backgroundColor: AppColors.warning),
+      );
+      return;
+    }
+
+    final content = _isSpoiler
+        ? '[SPOILER] ${_commentController.text.trim()}'
+        : _commentController.text.trim();
+
+    context.read<CommentsCubit>().addComment(
+      tmdbId: widget.tmdbId,
+      mediaType: widget.mediaType,
+      seasonNumber: widget.seasonNumber,
+      episodeNumber: widget.episodeNumber,
+      content: content,
+      title: widget.title,
+    );
+
+    _commentController.clear();
+    setState(() => _isSpoiler = false);
+    FocusScope.of(context).unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,24 +103,33 @@ class _CommentsPageState extends State<CommentsPage> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => context.pop(),
             child: Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.cardBg(context),
                 border: Border.all(color: AppColors.border(context)),
               ),
-              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 20),
+              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 18),
             ),
           ),
-          const SizedBox(width: 16),
-          Text('Comments', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Comments', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                if (widget.title != null)
+                  Text(widget.title!, style: TextStyle(fontSize: 12, color: AppColors.textMuted(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -133,13 +173,17 @@ class _CommentsPageState extends State<CommentsPage> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: state.comments.length,
-            itemBuilder: (context, index) {
-              final comment = state.comments[index];
-              return _buildCommentCard(comment);
-            },
+          return RefreshIndicator(
+            onRefresh: () async => _loadComments(),
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              itemCount: state.comments.length,
+              itemBuilder: (context, index) {
+                final comment = state.comments[index];
+                final replies = state.replies[comment.id] ?? [];
+                return _buildCommentThread(comment, replies);
+              },
+            ),
           );
         }
 
@@ -148,31 +192,89 @@ class _CommentsPageState extends State<CommentsPage> {
     );
   }
 
-  Widget _buildCommentCard(CommentModel comment) {
+  Widget _buildCommentThread(CommentModel comment, List<CommentModel> replies) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildCommentCard(comment, isReply: false),
+        // Replies
+        if (replies.isNotEmpty)
+          ...replies.map((reply) => Padding(
+            padding: const EdgeInsets.only(left: 36),
+            child: _buildCommentCard(reply, isReply: true),
+          )),
+        // View replies button
+        if (comment.replyCount > 0 && replies.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 52, bottom: 8),
+            child: GestureDetector(
+              onTap: () => context.read<CommentsCubit>().loadReplies(comment.id),
+              child: Row(
+                children: [
+                  Container(width: 24, height: 1, color: AppColors.textMuted(context).withValues(alpha: 0.3)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'View ${comment.replyCount} ${comment.replyCount == 1 ? 'reply' : 'replies'}',
+                    style: TextStyle(color: AppColors.textMuted(context), fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCommentCard(CommentModel comment, {required bool isReply}) {
     final userId = context.read<AuthCubit>().state is AuthAuthenticated
         ? (context.read<AuthCubit>().state as AuthAuthenticated).user.id
         : null;
     final isOwnComment = userId == comment.userId;
+    final isSpoiler = comment.content.startsWith('[SPOILER]');
+    final displayContent = isSpoiler ? (comment.content.length > 10 ? comment.content.substring(10) : '') : comment.content;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 8),
       child: GlassContainer(
-        padding: const EdgeInsets.all(16),
-        borderRadius: BorderRadius.circular(16),
+        padding: const EdgeInsets.all(12),
+        borderRadius: BorderRadius.circular(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header: avatar + username + time + delete
             Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.cardBg(context),
-                  child: Text(
-                    (comment.username ?? 'U').isNotEmpty ? (comment.username ?? 'U')[0].toUpperCase() : 'U',
-                    style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold),
+                GestureDetector(
+                  onTap: () => context.push('/user/${comment.userId}'),
+                  child: Container(
+                    width: isReply ? 28 : 32,
+                    height: isReply ? 28 : 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border(context), width: 1),
+                    ),
+                    child: ClipOval(
+                      child: comment.userAvatar != null && comment.userAvatar!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: comment.userAvatar!,
+                              fit: BoxFit.cover,
+                              errorWidget: (c, u, e) => Center(
+                                child: Text(
+                                  (comment.username ?? 'U')[0].toUpperCase(),
+                                  style: TextStyle(fontSize: isReply ? 10 : 12, fontWeight: FontWeight.bold, color: AppColors.text(context)),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                (comment.username ?? 'U')[0].toUpperCase(),
+                                style: TextStyle(fontSize: isReply ? 10 : 12, fontWeight: FontWeight.bold, color: AppColors.text(context)),
+                              ),
+                            ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,80 +283,52 @@ class _CommentsPageState extends State<CommentsPage> {
                         children: [
                           Text(
                             comment.username ?? 'User',
-                            style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: AppColors.text(context),
+                              fontWeight: FontWeight.w600,
+                              fontSize: isReply ? 12 : 13,
+                            ),
                           ),
-                          if (comment.content.startsWith('[SPOILER]')) ...[
-                            const SizedBox(width: 8),
+                          if (isSpoiler) ...[
+                            const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFD93D).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text('Spoiler', style: TextStyle(color: Color(0xFFFFD93D), fontSize: 10, fontWeight: FontWeight.w600)),
+                              child: const Text('Spoiler', style: TextStyle(color: Color(0xFFFFD93D), fontSize: 9, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ],
                       ),
                       Text(
                         timeago.format(comment.createdAt),
-                        style: TextStyle(color: AppColors.textMuted(context), fontSize: 12),
+                        style: TextStyle(color: AppColors.textMuted(context), fontSize: isReply ? 10 : 11),
                       ),
                     ],
                   ),
                 ),
                 if (isOwnComment)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          backgroundColor: AppColors.surface(context),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          title: const Text('Delete Comment'),
-                          content: const Text('Are you sure you want to delete this comment?'),
-                          actions: [
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(dialogContext),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.surface(context),
-                                foregroundColor: AppColors.text(context),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              ),
-                              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pop(dialogContext);
-                                context.read<CommentsCubit>().deleteComment(
-                                  comment.id,
-                                  tmdbId: widget.tmdbId,
-                                  mediaType: widget.mediaType,
-                                  seasonNumber: widget.seasonNumber,
-                                  episodeNumber: widget.episodeNumber,
-                                );
-                              },
-                              child: const Text('Delete', style: TextStyle(color: AppColors.error)),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                  GestureDetector(
+                    onTap: () => _showDeleteDialog(comment),
+                    child: Icon(Icons.more_horiz, color: AppColors.textMuted(context), size: 18),
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            // Content
             SpoilerText(
-              text: comment.content.startsWith('[SPOILER] ') ? (comment.content.length > 10 ? comment.content.substring(10) : '') : comment.content,
-              isSpoiler: comment.content.startsWith('[SPOILER]'),
+              text: displayContent,
+              isSpoiler: isSpoiler,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            // Actions: like + reply
             Row(
               children: [
                 GestureDetector(
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     if (comment.isLikedByMe) {
                       context.read<CommentsCubit>().unlikeComment(
                         comment.id,
@@ -278,32 +352,81 @@ class _CommentsPageState extends State<CommentsPage> {
                       Icon(
                         comment.isLikedByMe ? Icons.favorite : Icons.favorite_outline,
                         color: comment.isLikedByMe ? AppColors.primary : AppColors.textMuted(context),
-                        size: 18,
+                        size: 16,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${comment.likesCount}',
-                        style: TextStyle(color: AppColors.textMuted(context), fontSize: 13),
-                      ),
+                      if (comment.likesCount > 0) ...[
+                        const SizedBox(width: 4),
+                        Text('${comment.likesCount}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                GestureDetector(
-                  onTap: () {
-                    _commentController.text = '@${comment.username ?? 'User'} ';
-                    FocusScope.of(context).requestFocus();
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.reply, color: AppColors.textMuted(context), size: 18),
-                      const SizedBox(width: 4),
-                      Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
-                    ],
+                const SizedBox(width: 20),
+                if (!isReply)
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.read<CommentsCubit>().setReplyingTo(comment.id, comment.username ?? 'User');
+                      FocusScope.of(context).requestFocus();
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.reply, color: AppColors.textMuted(context), size: 16),
+                        const SizedBox(width: 4),
+                        Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                      ],
+                    ),
                   ),
-                ),
+                if (isReply)
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.read<CommentsCubit>().setReplyingTo(comment.parentId ?? comment.id, comment.username ?? 'User');
+                      FocusScope.of(context).requestFocus();
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.reply, color: AppColors.textMuted(context), size: 16),
+                        const SizedBox(width: 4),
+                        Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                      ],
+                    ),
+                  ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(CommentModel comment) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted(ctx).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: AppColors.error),
+              title: const Text('Delete Comment', style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.read<CommentsCubit>().deleteComment(
+                  comment.id,
+                  tmdbId: widget.tmdbId,
+                  mediaType: widget.mediaType,
+                  seasonNumber: widget.seasonNumber,
+                  episodeNumber: widget.episodeNumber,
+                );
+              },
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -315,10 +438,10 @@ class _CommentsPageState extends State<CommentsPage> {
 
     if (!isLoggedIn) {
       return Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: GlassContainer(
-          padding: const EdgeInsets.all(16),
-          borderRadius: BorderRadius.circular(16),
+          padding: const EdgeInsets.all(14),
+          borderRadius: BorderRadius.circular(14),
           child: Center(
             child: Text('Login to comment', style: TextStyle(color: AppColors.textMuted(context))),
           ),
@@ -326,80 +449,107 @@ class _CommentsPageState extends State<CommentsPage> {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg(context),
-        border: Border(top: BorderSide(color: AppColors.border(context))),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Spoiler toggle
-          Row(
-            children: [
-              SpoilerToggle(
-                isSpoiler: _isSpoiler,
-                onChanged: (value) => setState(() => _isSpoiler = value),
-              ),
-            ],
+    return BlocBuilder<CommentsCubit, CommentsState>(
+      builder: (context, state) {
+        final isReplying = state is CommentsLoaded && state.replyingToId != null;
+        final replyingTo = state is CommentsLoaded ? state.replyingToUsername : null;
+
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: BoxDecoration(
+            color: AppColors.cardBg(context),
+            border: Border(top: BorderSide(color: AppColors.border(context))),
           ),
-          const SizedBox(height: 8),
-          // Input row
-          Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBg(context),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.border(context)),
+              // Replying to indicator
+              if (isReplying)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.reply, color: AppColors.electricPurple, size: 14),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Replying to @$replyingTo',
+                          style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.read<CommentsCubit>().clearReplyingTo(),
+                        child: Icon(Icons.close, color: AppColors.textMuted(context), size: 18),
+                      ),
+                    ],
                   ),
-                  child: TextField(
-                    controller: _commentController,
-                    style: TextStyle(color: AppColors.text(context)),
-                    decoration: InputDecoration(
-                      hintText: _isSpoiler ? 'Add a spoiler comment...' : 'Add a comment...',
-                      hintStyle: TextStyle(color: AppColors.textMuted(context)),
-                      border: InputBorder.none,
+                ),
+              // Spoiler toggle + character count
+              Row(
+                children: [
+                  SpoilerToggle(
+                    isSpoiler: _isSpoiler,
+                    onChanged: (value) => setState(() => _isSpoiler = value),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_commentController.text.length}/500',
+                    style: TextStyle(
+                      color: _commentController.text.length > 500 ? AppColors.error : AppColors.textMuted(context),
+                      fontSize: 11,
                     ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  if (_commentController.text.trim().isNotEmpty) {
-                    final content = _isSpoiler
-                        ? '[SPOILER] ${_commentController.text.trim()}'
-                        : _commentController.text.trim();
-                    context.read<CommentsCubit>().addComment(
-                      tmdbId: widget.tmdbId,
-                      mediaType: widget.mediaType,
-                      seasonNumber: widget.seasonNumber,
-                      episodeNumber: widget.episodeNumber,
-                      content: content,
-                    );
-                    _commentController.clear();
-                    setState(() => _isSpoiler = false);
-                  }
-                },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))],
+              const SizedBox(height: 8),
+              // Input row
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg(context),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.border(context)),
+                      ),
+                      child: TextField(
+                        controller: _commentController,
+                        style: TextStyle(color: AppColors.text(context), fontSize: 14),
+                        maxLength: 500,
+                        maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                        buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: _isSpoiler ? 'Add a spoiler comment...' : (isReplying ? 'Write a reply...' : 'Add a comment...'),
+                          hintStyle: TextStyle(color: AppColors.textMuted(context), fontSize: 14),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Icon(Icons.send, color: AppColors.text(context), size: 20),
-                ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: _sendComment,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
+                        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
+                      child: Icon(Icons.send, color: Colors.white, size: 18),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

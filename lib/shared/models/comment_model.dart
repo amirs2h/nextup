@@ -11,6 +11,10 @@ class CommentModel {
   final int likesCount;
   final bool isLikedByMe;
   final DateTime createdAt;
+  final String? parentId;
+  final String? title;
+  final int replyCount;
+  final bool isReply;
 
   CommentModel({
     required this.id,
@@ -25,9 +29,14 @@ class CommentModel {
     this.likesCount = 0,
     this.isLikedByMe = false,
     required this.createdAt,
+    this.parentId,
+    this.title,
+    this.replyCount = 0,
+    this.isReply = false,
   });
 
   factory CommentModel.fromJson(Map<String, dynamic> json) {
+    final parentId = json['parent_id'] as String?;
     return CommentModel(
       id: json['id'] ?? '',
       userId: json['user_id'] ?? '',
@@ -40,7 +49,11 @@ class CommentModel {
       content: json['content'] ?? '',
       likesCount: json['likes_count'] ?? 0,
       isLikedByMe: json['is_liked_by_me'] ?? false,
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      parentId: parentId,
+      title: json['title'],
+      replyCount: json['reply_count'] ?? 0,
+      isReply: parentId != null,
     );
   }
 
@@ -52,6 +65,8 @@ class CommentModel {
       'season_number': seasonNumber,
       'episode_number': episodeNumber,
       'content': content,
+      'title': title,
+      'parent_id': parentId,
     };
   }
 }

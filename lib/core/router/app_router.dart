@@ -137,6 +137,7 @@ class AppRouter {
             mediaType: extra['mediaType'] ?? 'tv',
             seasonNumber: extra['seasonNumber'],
             episodeNumber: extra['episodeNumber'],
+            title: extra['title'],
           );
         },
       ),

@@ -302,7 +302,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                                 text: 'Comments',
                                 icon: Icons.chat_bubble_outline,
                                 gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-                                onPressed: () => context.push('/comments', extra: {'tmdbId': widget.showId, 'mediaType': 'tv'}),
+                                onPressed: () => context.push('/comments', extra: {'tmdbId': widget.showId, 'mediaType': 'tv', 'title': state.show.name}),
                               ),
                             ),
                           ],

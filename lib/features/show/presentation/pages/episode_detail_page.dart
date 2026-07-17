@@ -565,6 +565,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                             'mediaType': 'tv',
                             'seasonNumber': widget.seasonNumber,
                             'episodeNumber': widget.episodeNumber,
+                            'title': _showName,
                           }),
                           child: const Text('See All'),
                         ),

@@ -485,6 +485,8 @@ class SupabaseService {
     int? seasonNumber,
     int? episodeNumber,
     required String content,
+    String? title,
+    String? parentId,
   }) async {
     await _client.from('comments').insert({
       'user_id': userId,
@@ -493,6 +495,8 @@ class SupabaseService {
       'season_number': seasonNumber,
       'episode_number': episodeNumber,
       'content': content,
+      'title': title,
+      'parent_id': parentId,
     });
   }
 
@@ -507,7 +511,8 @@ class SupabaseService {
       var query = _client.from('comments_with_likes')
           .select('*, profiles(username, avatar_url)')
           .eq('tmdb_id', tmdbId)
-          .eq('media_type', mediaType);
+          .eq('media_type', mediaType)
+          .isFilter('parent_id', null);
 
       if (seasonNumber != null) {
         query = query.eq('season_number', seasonNumber);
@@ -518,7 +523,7 @@ class SupabaseService {
 
       final result = await query.order('created_at', ascending: false);
       final comments = List<Map<String, dynamic>>.from(result);
-      
+
       // Add is_liked_by_me for each comment
       if (userId != null && comments.isNotEmpty) {
         final commentIds = comments.map((c) => c['id']).toList();
@@ -535,8 +540,41 @@ class SupabaseService {
           comment['is_liked_by_me'] = false;
         }
       }
-      
+
       return comments;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getReplies({
+    required String parentId,
+    String? userId,
+  }) async {
+    try {
+      final result = await _client.from('comments_with_likes')
+          .select('*, profiles(username, avatar_url)')
+          .eq('parent_id', parentId)
+          .order('created_at', ascending: true);
+      final replies = List<Map<String, dynamic>>.from(result);
+
+      if (userId != null && replies.isNotEmpty) {
+        final replyIds = replies.map((c) => c['id']).toList();
+        final userLikes = await _client.from('comment_likes')
+            .select('comment_id')
+            .eq('user_id', userId)
+            .inFilter('comment_id', replyIds);
+        final likedIds = Set<String>.from((userLikes as List).map((l) => l['comment_id']));
+        for (var reply in replies) {
+          reply['is_liked_by_me'] = likedIds.contains(reply['id']);
+        }
+      } else {
+        for (var reply in replies) {
+          reply['is_liked_by_me'] = false;
+        }
+      }
+
+      return replies;
     } catch (e) {
       return [];
     }
