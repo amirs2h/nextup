@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../auth/domain/auth_cubit.dart';
-import '../../../profile/domain/profile_cubit.dart';
 import '../../domain/notifications_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
 
@@ -143,48 +143,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final type = notification['type'] ?? '';
     final title = notification['title'] ?? '';
     final body = notification['body'] ?? '';
-    final createdAt = notification['created_at'] != null ? DateTime.parse(notification['created_at']) : DateTime.now();
+    final createdAt = notification['created_at'] != null ? DateTime.tryParse(notification['created_at']) ?? DateTime.now() : DateTime.now();
     final data = notification['data'] as Map<String, dynamic>? ?? {};
 
-    IconData icon;
-    Color iconColor;
-
-    switch (type) {
-      case 'new_episode':
-        icon = Icons.new_releases;
-        iconColor = AppColors.success;
-        break;
-      case 'new_movie':
-        icon = Icons.movie;
-        iconColor = AppColors.electricPurple;
-        break;
-      case 'follow':
-        icon = Icons.person_add;
-        iconColor = const Color(0xFF00D4FF);
-        break;
-      case 'new_follower':
-        icon = Icons.person_add;
-        iconColor = const Color(0xFF00D4FF);
-        break;
-      case 'new_comment':
-        icon = Icons.comment;
-        iconColor = const Color(0xFF6C63FF);
-        break;
-      case 'comment_like':
-        icon = Icons.favorite;
-        iconColor = AppColors.primary;
-        break;
-      default:
-        icon = Icons.notifications;
-        iconColor = AppColors.warning;
-    }
-
+    final avatarUrl = data['avatar_url'] as String?;
+    final parentAvatarUrl = data['parent_avatar_url'] as String?;
     final followerId = data['follower_id'] as String?;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassContainer(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         borderRadius: BorderRadius.circular(16),
         borderColor: isRead ? null : AppColors.electricPurple.withValues(alpha: 0.3),
         child: InkWell(
@@ -197,29 +166,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
           borderRadius: BorderRadius.circular(16),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
-              ),
+              _buildAvatar(context, type, avatarUrl, parentAvatarUrl),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: isRead ? FontWeight.normal : FontWeight.w600, fontSize: 14)),
+                    Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13)),
                     if (body.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 3),
+                      Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ],
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(timeago.format(createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                        Text(timeago.format(createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
                         if (type == 'follow' && followerId != null) ...[
                           const Spacer(),
                           _buildFollowButton(context, followerId),
@@ -231,8 +192,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ),
               if (!isRead)
                 Container(
-                  width: 8,
-                  height: 8,
+                  width: 7,
+                  height: 7,
                   decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.electricPurple),
                 ),
             ],
@@ -240,6 +201,126 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildAvatar(BuildContext context, String type, String? avatarUrl, String? parentAvatarUrl) {
+    final bool hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
+
+    // Reply notification: show stacked avatars (replier + parent owner)
+    if (type == 'comment_reply' && parentAvatarUrl != null && parentAvatarUrl.isNotEmpty) {
+      return SizedBox(
+        width: 48,
+        height: 48,
+        child: Stack(
+          children: [
+            // Parent owner avatar (back, bottom-right)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background(context), width: 2),
+                ),
+                child: ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: parentAvatarUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (c, u, e) => Container(
+                      color: AppColors.cardBg(context),
+                      child: Icon(Icons.person, size: 16, color: AppColors.textMuted(context)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Replier avatar (front, top-left)
+            Positioned(
+              left: 0,
+              top: 0,
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background(context), width: 2),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 1))],
+                ),
+                child: ClipOval(
+                  child: hasAvatar
+                      ? CachedNetworkImage(
+                          imageUrl: avatarUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (c, u, e) => _buildInitialAvatar(context, '?'),
+                        )
+                      : _buildInitialAvatar(context, '?'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Comment/Like/Follow: show single avatar or fallback to icon
+    final iconData = _getIconForType(type);
+    final iconColor = _getColorForType(type);
+
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: hasAvatar ? null : iconColor.withValues(alpha: 0.15),
+        border: hasAvatar ? Border.all(color: AppColors.border(context), width: 1) : null,
+      ),
+      child: hasAvatar
+          ? ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: avatarUrl,
+                fit: BoxFit.cover,
+                errorWidget: (c, u, e) => Icon(iconData, color: iconColor, size: 22),
+              ),
+            )
+          : Icon(iconData, color: iconColor, size: 22),
+    );
+  }
+
+  Widget _buildInitialAvatar(BuildContext context, String initial) {
+    return Container(
+      color: AppColors.cardBg(context),
+      child: Center(
+        child: Text(initial.toUpperCase(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+      ),
+    );
+  }
+
+  IconData _getIconForType(String type) {
+    switch (type) {
+      case 'new_episode': return Icons.new_releases;
+      case 'new_movie': return Icons.movie;
+      case 'follow':
+      case 'new_follower': return Icons.person_add;
+      case 'new_comment': return Icons.comment;
+      case 'comment_like': return Icons.favorite;
+      case 'comment_reply': return Icons.reply;
+      default: return Icons.notifications;
+    }
+  }
+
+  Color _getColorForType(String type) {
+    switch (type) {
+      case 'new_episode': return AppColors.success;
+      case 'new_movie': return AppColors.electricPurple;
+      case 'follow':
+      case 'new_follower': return const Color(0xFF00D4FF);
+      case 'new_comment': return const Color(0xFF6C63FF);
+      case 'comment_like': return AppColors.primary;
+      case 'comment_reply': return const Color(0xFF6C63FF);
+      default: return AppColors.warning;
+    }
   }
 
   Widget _buildFollowButton(BuildContext context, String followerId) {
