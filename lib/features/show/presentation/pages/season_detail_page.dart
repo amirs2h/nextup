@@ -307,6 +307,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                   'mediaType': 'tv',
                   'seasonNumber': widget.seasonNumber,
                     'episodeNumber': episode.episodeNumber,
+                    'title': episode.name,
                   }),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
