@@ -170,33 +170,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: GlassContainer(
-        padding: const EdgeInsets.all(12),
-        borderRadius: BorderRadius.circular(16),
-        borderColor: isRead ? null : AppColors.electricPurple.withValues(alpha: 0.3),
-        child: Row(
-          children: [
-            // Left: Avatar (clickable to user profile)
-            GestureDetector(
-              onTap: () {
-                if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                if (avatarUserId != null) context.push('/user/$avatarUserId');
-              },
-              child: _buildAvatar(context, type, avatarUrl, parentAvatarUrl),
-            ),
-            const SizedBox(width: 12),
-            // Middle: Text content (clickable to comments for comment types)
-            Expanded(
-              child: GestureDetector(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
+          _navigateToContent(context, notification);
+        },
+        child: GlassContainer(
+          padding: const EdgeInsets.all(12),
+          borderRadius: BorderRadius.circular(16),
+          borderColor: isRead ? null : AppColors.electricPurple.withValues(alpha: 0.3),
+          child: Row(
+            children: [
+              // Left: Avatar (clickable to user profile)
+              GestureDetector(
                 onTap: () {
                   if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                  if (isCommentType) {
-                    _navigateToContent(context, notification);
-                  } else if (type == 'follow' || type == 'new_follower') {
-                    final uid = followerId;
-                    if (uid != null) context.push('/user/$uid');
-                  }
+                  if (avatarUserId != null) context.push('/user/$avatarUserId');
                 },
+                child: _buildAvatar(context, type, avatarUrl, parentAvatarUrl),
+              ),
+              const SizedBox(width: 12),
+              // Middle: Text content
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -208,7 +204,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         children: _buildTitleSpans(context, title, contentTitle, isCommentType, tmdbId, mediaType),
                       ),
                     ),
-                    if (body != null && body.isNotEmpty) ...[
+                    if (body.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
@@ -225,35 +221,35 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ],
                 ),
               ),
-            ),
-            // Right: Poster (clickable to show/movie page)
-            if (hasPoster && isCommentType)
-              GestureDetector(
-                onTap: () {
-                  if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                  if (tmdbId != null) {
-                    context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
-                  }
-                },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: CachedNetworkImage(
-                    imageUrl: AppConfig.getImageUrl(posterPath, size: 'w92'),
-                    width: 36,
-                    height: 52,
-                    fit: BoxFit.cover,
-                    errorWidget: (c, u, e) => Container(width: 36, height: 52, color: AppColors.cardBg(context)),
+              // Right: Poster (clickable to show/movie page) + unread dot
+              if (hasPoster && isCommentType)
+                GestureDetector(
+                  onTap: () {
+                    if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
+                    if (tmdbId != null) {
+                      context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+                    }
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: CachedNetworkImage(
+                      imageUrl: AppConfig.getImageUrl(posterPath, size: 'w92'),
+                      width: 36,
+                      height: 52,
+                      fit: BoxFit.cover,
+                      errorWidget: (c, u, e) => Container(width: 36, height: 52, color: AppColors.cardBg(context)),
+                    ),
                   ),
                 ),
-              ),
-            if (!isRead && !hasPoster)
-              Container(
-                margin: const EdgeInsets.only(left: 8),
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.electricPurple),
-              ),
-          ],
+              if (!isRead)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.electricPurple),
+                ),
+            ],
+          ),
         ),
       ),
     );
