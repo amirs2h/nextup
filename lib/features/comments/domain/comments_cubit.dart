@@ -217,17 +217,17 @@ class CommentsCubit extends Cubit<CommentsState> {
     final user = _supabaseService.currentUser;
     if (user == null) return;
 
+    final currentState = state;
+    if (currentState is! CommentsLoaded) return;
+
+    // Optimistic update
+    _updateCommentLike(commentId, true);
+
     try {
       await _supabaseService.likeComment(user.id, commentId);
-      await loadComments(
-        tmdbId: tmdbId,
-        mediaType: mediaType,
-        seasonNumber: seasonNumber,
-        episodeNumber: episodeNumber,
-      );
     } catch (e) {
-      if (isClosed) return;
-      emit(CommentsError('Failed to like comment. Please try again.'));
+      // Revert on failure
+      _updateCommentLike(commentId, false);
     }
   }
 
@@ -240,17 +240,63 @@ class CommentsCubit extends Cubit<CommentsState> {
     final user = _supabaseService.currentUser;
     if (user == null) return;
 
+    final currentState = state;
+    if (currentState is! CommentsLoaded) return;
+
+    // Optimistic update
+    _updateCommentLike(commentId, false);
+
     try {
       await _supabaseService.unlikeComment(user.id, commentId);
-      await loadComments(
-        tmdbId: tmdbId,
-        mediaType: mediaType,
-        seasonNumber: seasonNumber,
-        episodeNumber: episodeNumber,
-      );
     } catch (e) {
-      if (isClosed) return;
-      emit(CommentsError('Failed to unlike comment. Please try again.'));
+      // Revert on failure
+      _updateCommentLike(commentId, true);
     }
+  }
+
+  void _updateCommentLike(String commentId, bool liked) {
+    final currentState = state;
+    if (currentState is! CommentsLoaded) return;
+    if (isClosed) return;
+
+    // Update in main comments list
+    final updatedComments = currentState.comments.map((c) {
+      if (c.id == commentId) {
+        return CommentModel(
+          id: c.id, userId: c.userId, username: c.username, userAvatar: c.userAvatar,
+          tmdbId: c.tmdbId, mediaType: c.mediaType, seasonNumber: c.seasonNumber,
+          episodeNumber: c.episodeNumber, content: c.content,
+          likesCount: liked ? c.likesCount + 1 : (c.likesCount > 0 ? c.likesCount - 1 : 0),
+          isLikedByMe: liked, createdAt: c.createdAt,
+          parentId: c.parentId, title: c.title, replyCount: c.replyCount, isReply: c.isReply,
+        );
+      }
+      return c;
+    }).toList();
+
+    // Update in replies map too
+    final updatedReplies = <String, List<CommentModel>>{};
+    for (final entry in currentState.replies.entries) {
+      updatedReplies[entry.key] = entry.value.map((c) {
+        if (c.id == commentId) {
+          return CommentModel(
+            id: c.id, userId: c.userId, username: c.username, userAvatar: c.userAvatar,
+            tmdbId: c.tmdbId, mediaType: c.mediaType, seasonNumber: c.seasonNumber,
+            episodeNumber: c.episodeNumber, content: c.content,
+            likesCount: liked ? c.likesCount + 1 : (c.likesCount > 0 ? c.likesCount - 1 : 0),
+            isLikedByMe: liked, createdAt: c.createdAt,
+            parentId: c.parentId, title: c.title, replyCount: c.replyCount, isReply: c.isReply,
+          );
+        }
+        return c;
+      }).toList();
+    }
+
+    emit(CommentsLoaded(
+      comments: updatedComments,
+      replies: updatedReplies,
+      replyingToId: currentState.replyingToId,
+      replyingToUsername: currentState.replyingToUsername,
+    ));
   }
 }

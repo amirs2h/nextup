@@ -393,8 +393,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final mediaType = data['media_type'] ?? 'tv';
     final seasonNumber = data['season_number'];
     final episodeNumber = data['episode_number'];
-    final commenterId = data['commenter_id'];
-    final likerId = data['liker_id'];
+    final title = data['title'] as String?;
 
     switch (type) {
       case 'new_episode':
@@ -404,24 +403,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
         }
         break;
       case 'new_comment':
-        // Navigate to the comments page for this show/movie
-        if (tmdbId != null) {
-          context.push('/comments', extra: {
-            'tmdbId': tmdbId,
-            'mediaType': mediaType,
-            'seasonNumber': seasonNumber,
-            'episodeNumber': episodeNumber,
-          });
-        }
-        break;
       case 'comment_like':
-        // Navigate to the comments page where the liked comment is
+      case 'comment_reply':
         if (tmdbId != null) {
           context.push('/comments', extra: {
             'tmdbId': tmdbId,
             'mediaType': mediaType,
             'seasonNumber': seasonNumber,
             'episodeNumber': episodeNumber,
+            'title': title,
           });
         }
         break;
