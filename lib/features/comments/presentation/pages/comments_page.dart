@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/spoiler_widget.dart';
 import '../../../../shared/models/comment_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/comments_cubit.dart';
 
@@ -18,6 +19,8 @@ class CommentsPage extends StatefulWidget {
   final int? seasonNumber;
   final int? episodeNumber;
   final String? title;
+  final String? posterPath;
+  final String? commentId;
 
   const CommentsPage({
     super.key,
@@ -26,6 +29,8 @@ class CommentsPage extends StatefulWidget {
     this.seasonNumber,
     this.episodeNumber,
     this.title,
+    this.posterPath,
+    this.commentId,
   });
 
   @override
@@ -34,6 +39,7 @@ class CommentsPage extends StatefulWidget {
 
 class _CommentsPageState extends State<CommentsPage> {
   final _commentController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _isSpoiler = false;
 
   @override
@@ -54,6 +60,7 @@ class _CommentsPageState extends State<CommentsPage> {
   @override
   void dispose() {
     _commentController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -77,11 +84,18 @@ class _CommentsPageState extends State<CommentsPage> {
       episodeNumber: widget.episodeNumber,
       content: content,
       title: widget.title,
+      posterPath: widget.posterPath,
     );
 
     _commentController.clear();
     setState(() => _isSpoiler = false);
     FocusScope.of(context).unfocus();
+  }
+
+  String _stripSpoilerPrefix(String content) {
+    if (content.startsWith('[SPOILER] ')) return content.substring(10);
+    if (content.startsWith('[SPOILER]')) return content.substring(9).trimLeft();
+    return content;
   }
 
   @override
@@ -120,23 +134,59 @@ class _CommentsPageState extends State<CommentsPage> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Comments', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                if (widget.title != null)
-                  Text(widget.title!, style: TextStyle(fontSize: 12, color: AppColors.textMuted(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
+          // Poster + title (clickable to navigate to show/movie)
+          if (widget.posterPath != null || widget.title != null)
+            GestureDetector(
+              onTap: () => context.push(widget.mediaType == 'movie' ? '/movie/${widget.tmdbId}' : '/show/${widget.tmdbId}'),
+              child: Row(
+                children: [
+                  if (widget.posterPath != null && widget.posterPath!.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: CachedNetworkImage(
+                        imageUrl: AppConfig.getImageUrl(widget.posterPath, size: 'w92'),
+                        width: 32,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorWidget: (c, u, e) => Container(width: 32, height: 48, color: AppColors.cardBg(context)),
+                      ),
+                    ),
+                  if (widget.posterPath != null && widget.posterPath!.isNotEmpty)
+                    const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Comments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                      if (widget.title != null)
+                        Row(
+                          children: [
+                            Icon(Icons.movie_outlined, size: 11, color: AppColors.textMuted(context)),
+                            const SizedBox(width: 4),
+                            Text(widget.title!, style: TextStyle(fontSize: 12, color: AppColors.electricPurple.withValues(alpha: 0.8)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          else
+            Text('Comments', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
   }
 
   Widget _buildCommentsList() {
-    return BlocBuilder<CommentsCubit, CommentsState>(
+    return BlocConsumer<CommentsCubit, CommentsState>(
+      listener: (context, state) {
+        if (state is CommentsLoaded && state.actionError != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.actionError!), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+          );
+          context.read<CommentsCubit>().clearActionError();
+        }
+      },
       builder: (context, state) {
         if (state is CommentsLoading) {
           return const Center(child: CircularProgressIndicator(color: AppColors.primary));
@@ -176,6 +226,7 @@ class _CommentsPageState extends State<CommentsPage> {
           return RefreshIndicator(
             onRefresh: () async => _loadComments(),
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               itemCount: state.comments.length,
               itemBuilder: (context, index) {
@@ -197,18 +248,23 @@ class _CommentsPageState extends State<CommentsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildCommentCard(comment, isReply: false),
-        // Replies
         if (replies.isNotEmpty)
           ...replies.map((reply) => Padding(
             padding: const EdgeInsets.only(left: 36),
             child: _buildCommentCard(reply, isReply: true),
           )),
-        // View replies button
         if (comment.replyCount > 0 && replies.isEmpty)
           Padding(
             padding: const EdgeInsets.only(left: 52, bottom: 8),
             child: GestureDetector(
-              onTap: () => context.read<CommentsCubit>().loadReplies(comment.id),
+              onTap: () async {
+                final success = await context.read<CommentsCubit>().loadReplies(comment.id);
+                if (!success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: const Text('Failed to load replies'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                  );
+                }
+              },
               child: Row(
                 children: [
                   Container(width: 24, height: 1, color: AppColors.textMuted(context).withValues(alpha: 0.3)),
@@ -231,7 +287,7 @@ class _CommentsPageState extends State<CommentsPage> {
         : null;
     final isOwnComment = userId == comment.userId;
     final isSpoiler = comment.content.startsWith('[SPOILER]');
-    final displayContent = isSpoiler ? (comment.content.length > 10 ? comment.content.substring(10) : '') : comment.content;
+    final displayContent = isSpoiler ? _stripSpoilerPrefix(comment.content) : comment.content;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -241,7 +297,6 @@ class _CommentsPageState extends State<CommentsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: avatar + username + time + delete
             Row(
               children: [
                 GestureDetector(
@@ -283,29 +338,19 @@ class _CommentsPageState extends State<CommentsPage> {
                         children: [
                           Text(
                             comment.username ?? 'User',
-                            style: TextStyle(
-                              color: AppColors.text(context),
-                              fontWeight: FontWeight.w600,
-                              fontSize: isReply ? 12 : 13,
-                            ),
+                            style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: isReply ? 12 : 13),
                           ),
                           if (isSpoiler) ...[
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFD93D).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                              decoration: BoxDecoration(color: const Color(0xFFFFD93D).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
                               child: const Text('Spoiler', style: TextStyle(color: Color(0xFFFFD93D), fontSize: 9, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ],
                       ),
-                      Text(
-                        timeago.format(comment.createdAt),
-                        style: TextStyle(color: AppColors.textMuted(context), fontSize: isReply ? 10 : 11),
-                      ),
+                      Text(timeago.format(comment.createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: isReply ? 10 : 11)),
                     ],
                   ),
                 ),
@@ -317,43 +362,22 @@ class _CommentsPageState extends State<CommentsPage> {
               ],
             ),
             const SizedBox(height: 8),
-            // Content
-            SpoilerText(
-              text: displayContent,
-              isSpoiler: isSpoiler,
-            ),
+            SpoilerText(text: displayContent, isSpoiler: isSpoiler),
             const SizedBox(height: 8),
-            // Actions: like + reply
             Row(
               children: [
                 GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
                     if (comment.isLikedByMe) {
-                      context.read<CommentsCubit>().unlikeComment(
-                        comment.id,
-                        tmdbId: widget.tmdbId,
-                        mediaType: widget.mediaType,
-                        seasonNumber: widget.seasonNumber,
-                        episodeNumber: widget.episodeNumber,
-                      );
+                      context.read<CommentsCubit>().unlikeComment(comment.id, tmdbId: widget.tmdbId, mediaType: widget.mediaType, seasonNumber: widget.seasonNumber, episodeNumber: widget.episodeNumber);
                     } else {
-                      context.read<CommentsCubit>().likeComment(
-                        comment.id,
-                        tmdbId: widget.tmdbId,
-                        mediaType: widget.mediaType,
-                        seasonNumber: widget.seasonNumber,
-                        episodeNumber: widget.episodeNumber,
-                      );
+                      context.read<CommentsCubit>().likeComment(comment.id, tmdbId: widget.tmdbId, mediaType: widget.mediaType, seasonNumber: widget.seasonNumber, episodeNumber: widget.episodeNumber);
                     }
                   },
                   child: Row(
                     children: [
-                      Icon(
-                        comment.isLikedByMe ? Icons.favorite : Icons.favorite_outline,
-                        color: comment.isLikedByMe ? AppColors.primary : AppColors.textMuted(context),
-                        size: 16,
-                      ),
+                      Icon(comment.isLikedByMe ? Icons.favorite : Icons.favorite_outline, color: comment.isLikedByMe ? AppColors.primary : AppColors.textMuted(context), size: 16),
                       if (comment.likesCount > 0) ...[
                         const SizedBox(width: 4),
                         Text('${comment.likesCount}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
@@ -362,36 +386,20 @@ class _CommentsPageState extends State<CommentsPage> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                if (!isReply)
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      context.read<CommentsCubit>().setReplyingTo(comment.id, comment.username ?? 'User');
-                      FocusScope.of(context).requestFocus();
-                    },
-                    child: Row(
-                      children: [
-                        Icon(Icons.reply, color: AppColors.textMuted(context), size: 16),
-                        const SizedBox(width: 4),
-                        Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
-                      ],
-                    ),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.read<CommentsCubit>().setReplyingTo(comment.parentId ?? comment.id, comment.username ?? 'User');
+                    FocusScope.of(context).requestFocus();
+                  },
+                  child: Row(
+                    children: [
+                      Icon(Icons.reply, color: AppColors.textMuted(context), size: 16),
+                      const SizedBox(width: 4),
+                      Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                    ],
                   ),
-                if (isReply)
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      context.read<CommentsCubit>().setReplyingTo(comment.parentId ?? comment.id, comment.username ?? 'User');
-                      FocusScope.of(context).requestFocus();
-                    },
-                    child: Row(
-                      children: [
-                        Icon(Icons.reply, color: AppColors.textMuted(context), size: 16),
-                        const SizedBox(width: 4),
-                        Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
-                      ],
-                    ),
-                  ),
+                ),
               ],
             ),
           ],
@@ -410,20 +418,14 @@ class _CommentsPageState extends State<CommentsPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted(ctx).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
               title: const Text('Delete Comment', style: TextStyle(color: AppColors.error)),
               onTap: () {
                 Navigator.pop(ctx);
-                context.read<CommentsCubit>().deleteComment(
-                  comment.id,
-                  tmdbId: widget.tmdbId,
-                  mediaType: widget.mediaType,
-                  seasonNumber: widget.seasonNumber,
-                  episodeNumber: widget.episodeNumber,
-                );
+                context.read<CommentsCubit>().deleteComment(comment.id, tmdbId: widget.tmdbId, mediaType: widget.mediaType, seasonNumber: widget.seasonNumber, episodeNumber: widget.episodeNumber);
               },
             ),
             const SizedBox(height: 8),
@@ -442,9 +444,7 @@ class _CommentsPageState extends State<CommentsPage> {
         child: GlassContainer(
           padding: const EdgeInsets.all(14),
           borderRadius: BorderRadius.circular(14),
-          child: Center(
-            child: Text('Login to comment', style: TextStyle(color: AppColors.textMuted(context))),
-          ),
+          child: Center(child: Text('Login to comment', style: TextStyle(color: AppColors.textMuted(context)))),
         ),
       );
     }
@@ -456,14 +456,10 @@ class _CommentsPageState extends State<CommentsPage> {
 
         return Container(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          decoration: BoxDecoration(
-            color: AppColors.cardBg(context),
-            border: Border(top: BorderSide(color: AppColors.border(context))),
-          ),
+          decoration: BoxDecoration(color: AppColors.cardBg(context), border: Border(top: BorderSide(color: AppColors.border(context)))),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Replying to indicator
               if (isReplying)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -471,50 +467,25 @@ class _CommentsPageState extends State<CommentsPage> {
                     children: [
                       Icon(Icons.reply, color: AppColors.electricPurple, size: 14),
                       const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'Replying to @$replyingTo',
-                          style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w500),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => context.read<CommentsCubit>().clearReplyingTo(),
-                        child: Icon(Icons.close, color: AppColors.textMuted(context), size: 18),
-                      ),
+                      Expanded(child: Text('Replying to @$replyingTo', style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      GestureDetector(onTap: () => context.read<CommentsCubit>().clearReplyingTo(), child: Icon(Icons.close, color: AppColors.textMuted(context), size: 18)),
                     ],
                   ),
                 ),
-              // Spoiler toggle + character count
               Row(
                 children: [
-                  SpoilerToggle(
-                    isSpoiler: _isSpoiler,
-                    onChanged: (value) => setState(() => _isSpoiler = value),
-                  ),
+                  SpoilerToggle(isSpoiler: _isSpoiler, onChanged: (value) => setState(() => _isSpoiler = value)),
                   const Spacer(),
-                  Text(
-                    '${_commentController.text.length}/500',
-                    style: TextStyle(
-                      color: _commentController.text.length > 500 ? AppColors.error : AppColors.textMuted(context),
-                      fontSize: 11,
-                    ),
-                  ),
+                  Text('${_commentController.text.length}/500', style: TextStyle(color: _commentController.text.length > 500 ? AppColors.error : AppColors.textMuted(context), fontSize: 11)),
                 ],
               ),
               const SizedBox(height: 8),
-              // Input row
               Row(
                 children: [
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBg(context),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.border(context)),
-                      ),
+                      decoration: BoxDecoration(color: AppColors.cardBg(context), borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.border(context))),
                       child: TextField(
                         controller: _commentController,
                         style: TextStyle(color: AppColors.text(context), fontSize: 14),
@@ -522,11 +493,7 @@ class _CommentsPageState extends State<CommentsPage> {
                         maxLengthEnforcement: MaxLengthEnforcement.enforced,
                         buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                         onChanged: (_) => setState(() {}),
-                        decoration: InputDecoration(
-                          hintText: _isSpoiler ? 'Add a spoiler comment...' : (isReplying ? 'Write a reply...' : 'Add a comment...'),
-                          hintStyle: TextStyle(color: AppColors.textMuted(context), fontSize: 14),
-                          border: InputBorder.none,
-                        ),
+                        decoration: InputDecoration(hintText: _isSpoiler ? 'Add a spoiler comment...' : (isReplying ? 'Write a reply...' : 'Add a comment...'), hintStyle: TextStyle(color: AppColors.textMuted(context), fontSize: 14), border: InputBorder.none),
                       ),
                     ),
                   ),
@@ -536,11 +503,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]),
-                        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))],
-                      ),
+                      decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.primary, AppColors.primaryLight]), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))]),
                       child: Icon(Icons.send, color: Colors.white, size: 18),
                     ),
                   ),

@@ -138,6 +138,8 @@ class AppRouter {
             seasonNumber: extra['seasonNumber'],
             episodeNumber: extra['episodeNumber'],
             title: extra['title'],
+            posterPath: extra['posterPath'],
+            commentId: extra['commentId'],
           );
         },
       ),

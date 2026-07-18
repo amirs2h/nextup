@@ -487,6 +487,7 @@ class SupabaseService {
     required String content,
     String? title,
     String? parentId,
+    String? posterPath,
   }) async {
     await _client.from('comments').insert({
       'user_id': userId,
@@ -497,6 +498,7 @@ class SupabaseService {
       'content': content,
       'title': title,
       'parent_id': parentId,
+      'poster_path': posterPath,
     });
   }
 
@@ -521,7 +523,7 @@ class SupabaseService {
         query = query.eq('episode_number', episodeNumber);
       }
 
-      final result = await query.order('created_at', ascending: false);
+      final result = await query.order('created_at', ascending: false).limit(20);
       final comments = List<Map<String, dynamic>>.from(result);
 
       // Add is_liked_by_me for each comment
@@ -580,8 +582,11 @@ class SupabaseService {
     }
   }
 
-  Future<void> deleteComment(String commentId) async {
-    await _client.from('comments').delete().eq('id', commentId);
+  Future<void> deleteComment(String commentId, String userId) async {
+    await _client.from('comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('user_id', userId);
   }
 
   // Comment Likes
@@ -703,7 +708,8 @@ class SupabaseService {
       final response = await _client.from('notifications')
           .select()
           .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .limit(50);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       return [];

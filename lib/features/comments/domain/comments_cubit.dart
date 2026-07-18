@@ -18,16 +18,34 @@ class CommentsLoaded extends CommentsState {
   final Map<String, List<CommentModel>> replies;
   final String? replyingToId;
   final String? replyingToUsername;
+  final String? actionError;
 
   CommentsLoaded({
     required this.comments,
     this.replies = const {},
     this.replyingToId,
     this.replyingToUsername,
+    this.actionError,
   });
 
+  CommentsLoaded copyWith({
+    List<CommentModel>? comments,
+    Map<String, List<CommentModel>>? replies,
+    String? replyingToId,
+    String? replyingToUsername,
+    String? actionError,
+  }) {
+    return CommentsLoaded(
+      comments: comments ?? this.comments,
+      replies: replies ?? this.replies,
+      replyingToId: replyingToId ?? this.replyingToId,
+      replyingToUsername: replyingToUsername ?? this.replyingToUsername,
+      actionError: actionError,
+    );
+  }
+
   @override
-  List<Object?> get props => [comments, replies, replyingToId, replyingToUsername];
+  List<Object?> get props => [comments, replies, replyingToId, replyingToUsername, actionError];
 }
 
 class CommentsError extends CommentsState {
@@ -65,20 +83,9 @@ class CommentsCubit extends Cubit<CommentsState> {
 
       final comments = data.map((json) => CommentModel.fromJson(json)).toList();
 
-      // Load replies for comments that have replies
-      final Map<String, List<CommentModel>> repliesMap = {};
-      for (final comment in comments) {
-        if (comment.replyCount > 0) {
-          final repliesData = await _supabaseService.getReplies(
-            parentId: comment.id,
-            userId: user?.id,
-          );
-          repliesMap[comment.id] = repliesData.map((json) => CommentModel.fromJson(json)).toList();
-        }
-      }
-
+      // Don't auto-load replies — lazy load on demand (fixes N+1 query problem)
       if (isClosed) return;
-      emit(CommentsLoaded(comments: comments, replies: repliesMap));
+      emit(CommentsLoaded(comments: comments, replies: {}));
     } catch (e) {
       if (isClosed) return;
       emit(CommentsError('Something went wrong. Please try again.'));
@@ -92,6 +99,7 @@ class CommentsCubit extends Cubit<CommentsState> {
     int? episodeNumber,
     required String content,
     String? title,
+    String? posterPath,
   }) async {
     final user = _supabaseService.currentUser;
     if (user == null) return;
@@ -109,20 +117,10 @@ class CommentsCubit extends Cubit<CommentsState> {
         content: content,
         title: title,
         parentId: parentId,
+        posterPath: posterPath,
       );
 
-      // Clear reply state
-      if (currentState is CommentsLoaded && currentState.replyingToId != null) {
-        if (!isClosed) {
-          emit(CommentsLoaded(
-            comments: currentState.comments,
-            replies: currentState.replies,
-            replyingToId: null,
-            replyingToUsername: null,
-          ));
-        }
-      }
-
+      // Directly reload — no intermediate emit (fixes flicker)
       await loadComments(
         tmdbId: tmdbId,
         mediaType: mediaType,
@@ -130,8 +128,13 @@ class CommentsCubit extends Cubit<CommentsState> {
         episodeNumber: episodeNumber,
       );
     } catch (e) {
+      // Keep current state, show error as actionError (fixes list disappearing)
       if (isClosed) return;
-      emit(CommentsError('Something went wrong. Please try again.'));
+      if (currentState is CommentsLoaded) {
+        emit(currentState.copyWith(actionError: 'Failed to post comment. Please try again.'));
+      } else {
+        emit(CommentsError('Something went wrong. Please try again.'));
+      }
     }
   }
 
@@ -139,12 +142,7 @@ class CommentsCubit extends Cubit<CommentsState> {
     final currentState = state;
     if (currentState is CommentsLoaded) {
       if (isClosed) return;
-      emit(CommentsLoaded(
-        comments: currentState.comments,
-        replies: currentState.replies,
-        replyingToId: commentId,
-        replyingToUsername: username,
-      ));
+      emit(currentState.copyWith(replyingToId: commentId, replyingToUsername: username));
     }
   }
 
@@ -152,19 +150,22 @@ class CommentsCubit extends Cubit<CommentsState> {
     final currentState = state;
     if (currentState is CommentsLoaded) {
       if (isClosed) return;
-      emit(CommentsLoaded(
-        comments: currentState.comments,
-        replies: currentState.replies,
-        replyingToId: null,
-        replyingToUsername: null,
-      ));
+      emit(currentState.copyWith(replyingToId: null, replyingToUsername: null));
     }
   }
 
-  Future<void> loadReplies(String parentId) async {
+  void clearActionError() {
+    final currentState = state;
+    if (currentState is CommentsLoaded && currentState.actionError != null) {
+      if (isClosed) return;
+      emit(currentState.copyWith());
+    }
+  }
+
+  Future<bool> loadReplies(String parentId) async {
     final user = _supabaseService.currentUser;
     final currentState = state;
-    if (currentState is! CommentsLoaded) return;
+    if (currentState is! CommentsLoaded) return false;
 
     try {
       final repliesData = await _supabaseService.getReplies(
@@ -176,15 +177,12 @@ class CommentsCubit extends Cubit<CommentsState> {
       final updatedReplies = Map<String, List<CommentModel>>.from(currentState.replies);
       updatedReplies[parentId] = replies;
 
-      if (isClosed) return;
-      emit(CommentsLoaded(
-        comments: currentState.comments,
-        replies: updatedReplies,
-        replyingToId: currentState.replyingToId,
-        replyingToUsername: currentState.replyingToUsername,
-      ));
+      if (isClosed) return false;
+      emit(currentState.copyWith(replies: updatedReplies));
+      return true;
     } catch (e) {
-      // Silent fail
+      // Return false so UI can show feedback (fixes silent fail)
+      return false;
     }
   }
 
@@ -194,8 +192,12 @@ class CommentsCubit extends Cubit<CommentsState> {
     int? seasonNumber,
     int? episodeNumber,
   }) async {
+    final user = _supabaseService.currentUser;
+    if (user == null) return;
+
+    final currentState = state;
     try {
-      await _supabaseService.deleteComment(commentId);
+      await _supabaseService.deleteComment(commentId, user.id);
       await loadComments(
         tmdbId: tmdbId,
         mediaType: mediaType,
@@ -204,7 +206,9 @@ class CommentsCubit extends Cubit<CommentsState> {
       );
     } catch (e) {
       if (isClosed) return;
-      emit(CommentsError('Something went wrong. Please try again.'));
+      if (currentState is CommentsLoaded) {
+        emit(currentState.copyWith(actionError: 'Failed to delete comment.'));
+      }
     }
   }
 
@@ -220,13 +224,11 @@ class CommentsCubit extends Cubit<CommentsState> {
     final currentState = state;
     if (currentState is! CommentsLoaded) return;
 
-    // Optimistic update
     _updateCommentLike(commentId, true);
 
     try {
       await _supabaseService.likeComment(user.id, commentId);
     } catch (e) {
-      // Revert on failure
       _updateCommentLike(commentId, false);
     }
   }
@@ -243,13 +245,11 @@ class CommentsCubit extends Cubit<CommentsState> {
     final currentState = state;
     if (currentState is! CommentsLoaded) return;
 
-    // Optimistic update
     _updateCommentLike(commentId, false);
 
     try {
       await _supabaseService.unlikeComment(user.id, commentId);
     } catch (e) {
-      // Revert on failure
       _updateCommentLike(commentId, true);
     }
   }
@@ -259,7 +259,6 @@ class CommentsCubit extends Cubit<CommentsState> {
     if (currentState is! CommentsLoaded) return;
     if (isClosed) return;
 
-    // Update in main comments list
     final updatedComments = currentState.comments.map((c) {
       if (c.id == commentId) {
         return CommentModel(
@@ -274,7 +273,6 @@ class CommentsCubit extends Cubit<CommentsState> {
       return c;
     }).toList();
 
-    // Update in replies map too
     final updatedReplies = <String, List<CommentModel>>{};
     for (final entry in currentState.replies.entries) {
       updatedReplies[entry.key] = entry.value.map((c) {
@@ -292,11 +290,6 @@ class CommentsCubit extends Cubit<CommentsState> {
       }).toList();
     }
 
-    emit(CommentsLoaded(
-      comments: updatedComments,
-      replies: updatedReplies,
-      replyingToId: currentState.replyingToId,
-      replyingToUsername: currentState.replyingToUsername,
-    ));
+    emit(currentState.copyWith(comments: updatedComments, replies: updatedReplies));
   }
 }

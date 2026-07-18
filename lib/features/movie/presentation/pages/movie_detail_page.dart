@@ -264,7 +264,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                             text: 'Comments',
                             icon: Icons.chat_bubble_outline,
                             gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-                            onPressed: () => context.push('/comments', extra: {'tmdbId': widget.movieId, 'mediaType': 'movie', 'title': state.movie.title}),
+                            onPressed: () => context.push('/comments', extra: {'tmdbId': widget.movieId, 'mediaType': 'movie', 'title': state.movie.title, 'posterPath': state.movie.posterPath}),
                           ),
                         ),
                         const SizedBox(height: 12),
