@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -150,6 +151,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final avatarUrl = data['avatar_url'] as String?;
     final parentAvatarUrl = data['parent_avatar_url'] as String?;
     final posterPath = data['poster_path'] as String?;
+    final contentTitle = data['title'] as String?;
     final tmdbId = data['tmdb_id'];
     final mediaType = data['media_type'] ?? 'tv';
     final followerId = data['follower_id'] as String?;
@@ -157,76 +159,58 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final likerId = data['liker_id'] as String?;
     final replierId = data['replier_id'] as String?;
 
-    // Determine who to navigate to when avatar is clicked
     String? avatarUserId;
     if (type == 'follow') avatarUserId = followerId;
     else if (type == 'new_comment') avatarUserId = commenterId;
     else if (type == 'comment_like') avatarUserId = likerId;
     else if (type == 'comment_reply') avatarUserId = replierId;
 
+    final isCommentType = type == 'new_comment' || type == 'comment_like' || type == 'comment_reply';
+    final hasPoster = posterPath != null && posterPath.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassContainer(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         borderRadius: BorderRadius.circular(16),
         borderColor: isRead ? null : AppColors.electricPurple.withValues(alpha: 0.3),
         child: Row(
           children: [
-            // Poster (clickable to show/movie page)
-            if (posterPath != null && posterPath.isNotEmpty)
-              GestureDetector(
-                onTap: () {
-                  if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                  if (tmdbId != null) {
-                    context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
-                  }
-                },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: CachedNetworkImage(
-                    imageUrl: AppConfig.getImageUrl(posterPath, size: 'w92'),
-                    width: 34,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorWidget: (c, u, e) => Container(width: 34, height: 50, color: AppColors.cardBg(context)),
-                  ),
-                ),
-              )
-            else
-              _buildAvatar(context, type, avatarUrl, parentAvatarUrl),
-            const SizedBox(width: 10),
-            // Avatar (clickable to user profile)
-            if (posterPath != null && posterPath.isNotEmpty)
-              GestureDetector(
-                onTap: () {
-                  if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                  if (avatarUserId != null) context.push('/user/$avatarUserId');
-                },
-                child: _buildAvatar(context, type, avatarUrl, parentAvatarUrl, small: true),
-              )
-            else
-              GestureDetector(
-                onTap: () {
-                  if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                  if (avatarUserId != null) context.push('/user/$avatarUserId');
-                },
-                child: _buildAvatar(context, type, avatarUrl, parentAvatarUrl),
-              ),
+            // Left: Avatar (clickable to user profile)
+            GestureDetector(
+              onTap: () {
+                if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
+                if (avatarUserId != null) context.push('/user/$avatarUserId');
+              },
+              child: _buildAvatar(context, type, avatarUrl, parentAvatarUrl),
+            ),
             const SizedBox(width: 12),
-            // Content (clickable to comments/detail)
+            // Middle: Text content (clickable to comments for comment types)
             Expanded(
               child: GestureDetector(
                 onTap: () {
                   if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                  _navigateToContent(context, notification);
+                  if (isCommentType) {
+                    _navigateToContent(context, notification);
+                  } else if (type == 'follow' || type == 'new_follower') {
+                    final uid = followerId;
+                    if (uid != null) context.push('/user/$uid');
+                  }
                 },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13)),
-                    if (body.isNotEmpty) ...[
+                    RichText(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      text: TextSpan(
+                        style: TextStyle(color: AppColors.textMuted(context), fontSize: 13, height: 1.3),
+                        children: _buildTitleSpans(context, title, contentTitle, isCommentType, tmdbId, mediaType),
+                      ),
+                    ),
+                    if (body != null && body.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
                     const SizedBox(height: 4),
                     Row(
@@ -242,8 +226,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ),
             ),
-            if (!isRead)
+            // Right: Poster (clickable to show/movie page)
+            if (hasPoster && isCommentType)
+              GestureDetector(
+                onTap: () {
+                  if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
+                  if (tmdbId != null) {
+                    context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+                  }
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: CachedNetworkImage(
+                    imageUrl: AppConfig.getImageUrl(posterPath, size: 'w92'),
+                    width: 36,
+                    height: 52,
+                    fit: BoxFit.cover,
+                    errorWidget: (c, u, e) => Container(width: 36, height: 52, color: AppColors.cardBg(context)),
+                  ),
+                ),
+              ),
+            if (!isRead && !hasPoster)
               Container(
+                margin: const EdgeInsets.only(left: 8),
                 width: 7,
                 height: 7,
                 decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.electricPurple),
@@ -254,25 +259,52 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _buildAvatar(BuildContext context, String type, String? avatarUrl, String? parentAvatarUrl, {bool small = false}) {
-    final bool hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
-    final avatarSize = small ? 28.0 : 46.0;
-    final replyBackSize = small ? 18.0 : 32.0;
-    final replyFrontSize = small ? 20.0 : 34.0;
+  List<InlineSpan> _buildTitleSpans(BuildContext context, String fullTitle, String? contentTitle, bool isCommentType, dynamic tmdbId, String mediaType) {
+    if (!isCommentType || contentTitle == null || contentTitle.isEmpty) {
+      return [TextSpan(text: fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13))];
+    }
 
-    // Reply notification: show stacked avatars (replier + parent owner)
+    final idx = fullTitle.indexOf(' on ');
+    if (idx == -1) {
+      return [TextSpan(text: fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13))];
+    }
+
+    final beforeOn = fullTitle.substring(0, idx);
+    final afterOn = fullTitle.substring(idx + 4);
+
+    return [
+      TextSpan(text: beforeOn, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
+      TextSpan(text: ' on ', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+      TextSpan(
+        text: afterOn,
+        style: TextStyle(color: AppColors.electricPurple, fontWeight: FontWeight.w600, fontSize: 13),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () {
+            if (tmdbId != null) {
+              context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+            }
+          },
+      ),
+    ];
+  }
+
+  Widget _buildAvatar(BuildContext context, String type, String? avatarUrl, String? parentAvatarUrl) {
+    final bool hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
+
+    // Reply notification: show stacked avatars (replier front + parent owner back)
     if (type == 'comment_reply' && parentAvatarUrl != null && parentAvatarUrl.isNotEmpty) {
       return SizedBox(
-        width: small ? 36 : 48,
-        height: small ? 36 : 48,
+        width: 46,
+        height: 46,
         child: Stack(
           children: [
+            // Parent owner avatar (back, bottom-right) = "you"
             Positioned(
               right: 0,
               bottom: 0,
               child: Container(
-                width: replyBackSize,
-                height: replyBackSize,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.background(context), width: 2),
@@ -281,17 +313,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   child: CachedNetworkImage(
                     imageUrl: parentAvatarUrl,
                     fit: BoxFit.cover,
-                    errorWidget: (c, u, e) => Container(color: AppColors.cardBg(context), child: Icon(Icons.person, size: small ? 10 : 16, color: AppColors.textMuted(context))),
+                    errorWidget: (c, u, e) => Container(color: AppColors.cardBg(context), child: Icon(Icons.person, size: 14, color: AppColors.textMuted(context))),
                   ),
                 ),
               ),
             ),
+            // Replier avatar (front, top-left) = the person who replied
             Positioned(
               left: 0,
               top: 0,
               child: Container(
-                width: replyFrontSize,
-                height: replyFrontSize,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.background(context), width: 2),
@@ -299,8 +332,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
                 child: ClipOval(
                   child: hasAvatar
-                      ? CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => _buildInitialAvatar(context, '?', small))
-                      : _buildInitialAvatar(context, '?', small),
+                      ? CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => _buildInitialAvatar(context, '?'))
+                      : _buildInitialAvatar(context, '?'),
                 ),
               ),
             ),
@@ -309,28 +342,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
       );
     }
 
+    // Single avatar for all other types
     final iconData = _getIconForType(type);
     final iconColor = _getColorForType(type);
 
     return Container(
-      width: avatarSize,
-      height: avatarSize,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: hasAvatar ? null : iconColor.withValues(alpha: 0.15),
         border: hasAvatar ? Border.all(color: AppColors.border(context), width: 1) : null,
       ),
       child: hasAvatar
-          ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Icon(iconData, color: iconColor, size: small ? 14 : 22)))
-          : Icon(iconData, color: iconColor, size: small ? 14 : 22),
+          ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Icon(iconData, color: iconColor, size: 22)))
+          : Icon(iconData, color: iconColor, size: 22),
     );
   }
 
-  Widget _buildInitialAvatar(BuildContext context, String initial, bool small) {
+  Widget _buildInitialAvatar(BuildContext context, String initial) {
     return Container(
       color: AppColors.cardBg(context),
       child: Center(
-        child: Text(initial.toUpperCase(), style: TextStyle(fontSize: small ? 9 : 13, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        child: Text(initial.toUpperCase(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.text(context))),
       ),
     );
   }
