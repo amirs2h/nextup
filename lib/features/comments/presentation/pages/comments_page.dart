@@ -243,17 +243,59 @@ class _CommentsPageState extends State<CommentsPage> {
     );
   }
 
-  Widget _buildCommentThread(CommentModel comment, List<CommentModel> replies) {
+  Widget _buildCommentThread(CommentModel comment, List<CommentModel> replies, {int depth = 0}) {
+    final maxDepth = 3;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCommentCard(comment, isReply: false),
+        _buildCommentCard(comment, depth: depth),
+        // Show replies recursively
         if (replies.isNotEmpty)
-          ...replies.map((reply) => Padding(
-            padding: const EdgeInsets.only(left: 36),
-            child: _buildCommentCard(reply, isReply: true),
-          )),
-        if (comment.replyCount > 0 && replies.isEmpty)
+          ...replies.map((reply) {
+            return Padding(
+              padding: EdgeInsets.only(left: depth < maxDepth ? 36.0 : 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCommentCard(reply, depth: depth + 1),
+                  // Load and show child replies if they exist
+                  if (reply.replyCount > 0 && !_hasLoadedReplies(reply.id))
+                    Padding(
+                      padding: EdgeInsets.only(left: depth + 1 < maxDepth ? 36.0 : 0, bottom: 8),
+                      child: GestureDetector(
+                        onTap: () async {
+                          final success = await context.read<CommentsCubit>().loadReplies(reply.id);
+                          if (!success && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: const Text('Failed to load replies'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                            );
+                          }
+                        },
+                        child: Row(
+                          children: [
+                            Container(width: 24, height: 1, color: AppColors.textMuted(context).withValues(alpha: 0.3)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'View ${reply.replyCount} ${reply.replyCount == 1 ? 'reply' : 'replies'}',
+                              style: TextStyle(color: AppColors.textMuted(context), fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  // Show loaded child replies recursively
+                  if (_hasLoadedReplies(reply.id))
+                    ...(_getLoadedReplies(reply.id)).map((childReply) => Padding(
+                      padding: EdgeInsets.only(left: depth + 1 < maxDepth ? 36.0 : 0),
+                      child: _buildCommentCard(childReply, depth: depth + 2),
+                    )),
+                ],
+              ),
+            );
+          }),
+        // "View N replies" button for top-level comments
+        if (depth == 0 && comment.replyCount > 0 && !_hasLoadedReplies(comment.id))
           Padding(
             padding: const EdgeInsets.only(left: 52, bottom: 8),
             child: GestureDetector(
@@ -281,12 +323,31 @@ class _CommentsPageState extends State<CommentsPage> {
     );
   }
 
-  Widget _buildCommentCard(CommentModel comment, {required bool isReply}) {
+  bool _hasLoadedReplies(String commentId) {
+    final state = context.read<CommentsCubit>().state;
+    if (state is CommentsLoaded) {
+      return state.replies.containsKey(commentId) && state.replies[commentId]!.isNotEmpty;
+    }
+    return false;
+  }
+
+  List<CommentModel> _getLoadedReplies(String commentId) {
+    final state = context.read<CommentsCubit>().state;
+    if (state is CommentsLoaded) {
+      return state.replies[commentId] ?? [];
+    }
+    return [];
+  }
+
+  Widget _buildCommentCard(CommentModel comment, {int depth = 0}) {
     final userId = context.read<AuthCubit>().state is AuthAuthenticated
         ? (context.read<AuthCubit>().state as AuthAuthenticated).user.id
         : null;
     final isOwnComment = userId == comment.userId;
     final isSpoiler = comment.content.startsWith('[SPOILER]');
+    final avatarSize = depth == 0 ? 32.0 : (depth == 1 ? 28.0 : 24.0);
+    final fontSize = depth == 0 ? 13.0 : (depth == 1 ? 12.0 : 11.0);
+    final timeFontSize = depth == 0 ? 11.0 : (depth == 1 ? 10.0 : 9.0);
     final displayContent = isSpoiler ? _stripSpoilerPrefix(comment.content) : comment.content;
 
     return Padding(
@@ -302,8 +363,8 @@ class _CommentsPageState extends State<CommentsPage> {
                 GestureDetector(
                   onTap: () => context.push('/user/${comment.userId}'),
                   child: Container(
-                    width: isReply ? 28 : 32,
-                    height: isReply ? 28 : 32,
+                    width: avatarSize,
+                    height: avatarSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.border(context), width: 1),
@@ -316,14 +377,14 @@ class _CommentsPageState extends State<CommentsPage> {
                               errorWidget: (c, u, e) => Center(
                                 child: Text(
                                   (comment.username ?? 'U')[0].toUpperCase(),
-                                  style: TextStyle(fontSize: isReply ? 10 : 12, fontWeight: FontWeight.bold, color: AppColors.text(context)),
+                                  style: TextStyle(fontSize: fontSize - 1, fontWeight: FontWeight.bold, color: AppColors.text(context)),
                                 ),
                               ),
                             )
                           : Center(
                               child: Text(
                                 (comment.username ?? 'U')[0].toUpperCase(),
-                                style: TextStyle(fontSize: isReply ? 10 : 12, fontWeight: FontWeight.bold, color: AppColors.text(context)),
+                                style: TextStyle(fontSize: fontSize - 1, fontWeight: FontWeight.bold, color: AppColors.text(context)),
                               ),
                             ),
                     ),
@@ -338,7 +399,7 @@ class _CommentsPageState extends State<CommentsPage> {
                         children: [
                           Text(
                             comment.username ?? 'User',
-                            style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: isReply ? 12 : 13),
+                            style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: fontSize),
                           ),
                           if (isSpoiler) ...[
                             const SizedBox(width: 6),
@@ -350,7 +411,7 @@ class _CommentsPageState extends State<CommentsPage> {
                           ],
                         ],
                       ),
-                      Text(timeago.format(comment.createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: isReply ? 10 : 11)),
+                      Text(timeago.format(comment.createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: timeFontSize)),
                     ],
                   ),
                 ),

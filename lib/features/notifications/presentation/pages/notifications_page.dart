@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +8,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/notifications_cubit.dart';
-import '../../../../shared/services/supabase_service.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -29,10 +26,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: AppBackground(
-        child: SafeArea(
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               _buildHeader(context),
@@ -63,14 +60,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Notifications', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-          const Spacer(),
+          Expanded(child: Text('Notifications', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context)))),
           BlocBuilder<NotificationsCubit, NotificationsState>(
             builder: (context, state) {
               if (state is NotificationsLoaded && state.unreadCount > 0) {
-                return TextButton(
-                  onPressed: () => context.read<NotificationsCubit>().markAllAsRead(),
-                  child: const Text('Mark all read', style: TextStyle(color: AppColors.electricPurple)),
+                return GestureDetector(
+                  onTap: () => context.read<NotificationsCubit>().markAllAsRead(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: AppColors.electricPurple.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
+                    child: Text('Mark all read', style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
                 );
               }
               return const SizedBox();
@@ -107,7 +107,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         }
 
         if (state is NotificationsLoaded) {
-          if (state.notifications.isEmpty) {
+          if (state.grouped.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -121,15 +121,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
           }
 
           return RefreshIndicator(
-            onRefresh: () async {
-              context.read<NotificationsCubit>().loadNotifications();
-            },
+            onRefresh: () async => context.read<NotificationsCubit>().loadNotifications(),
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: state.notifications.length,
+              itemCount: state.grouped.length,
               itemBuilder: (context, index) {
-                final notification = state.notifications[index];
-                return _buildNotificationCard(context, notification);
+                final group = state.grouped[index];
+                return _buildGroupedCard(context, group);
               },
             ),
           );
@@ -140,100 +138,53 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _buildNotificationCard(BuildContext context, Map<String, dynamic> notification) {
-    final isRead = notification['is_read'] ?? false;
-    final type = notification['type'] ?? '';
-    final title = notification['title'] ?? '';
-    final body = notification['body'] ?? '';
-    final createdAt = notification['created_at'] != null ? DateTime.tryParse(notification['created_at']) ?? DateTime.now() : DateTime.now();
-    final data = notification['data'] as Map<String, dynamic>? ?? {};
-
-    final avatarUrl = data['avatar_url'] as String?;
-    final parentAvatarUrl = data['parent_avatar_url'] as String?;
-    final posterPath = data['poster_path'] as String?;
-    final contentTitle = data['title'] as String?;
-    final tmdbId = data['tmdb_id'];
-    final mediaType = data['media_type'] ?? 'tv';
-    final followerId = data['follower_id'] as String?;
-    final commenterId = data['commenter_id'] as String?;
-    final likerId = data['liker_id'] as String?;
-    final replierId = data['replier_id'] as String?;
-
-    String? avatarUserId;
-    if (type == 'follow') avatarUserId = followerId;
-    else if (type == 'new_comment') avatarUserId = commenterId;
-    else if (type == 'comment_like') avatarUserId = likerId;
-    else if (type == 'comment_reply') avatarUserId = replierId;
-
-    final isCommentType = type == 'new_comment' || type == 'comment_like' || type == 'comment_reply';
-    final hasPoster = posterPath != null && posterPath.isNotEmpty;
+  Widget _buildGroupedCard(BuildContext context, GroupedNotification group) {
+    final hasPoster = group.posterPath != null && group.posterPath!.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-          _navigateToContent(context, notification);
-        },
+        onTap: () => _navigateGrouped(context, group),
         child: GlassContainer(
           padding: const EdgeInsets.all(12),
           borderRadius: BorderRadius.circular(16),
-          borderColor: isRead ? null : AppColors.electricPurple.withValues(alpha: 0.3),
+          borderColor: group.isRead ? null : _getAccentColor(group.type).withValues(alpha: 0.3),
           child: Row(
             children: [
-              // Left: Avatar (clickable to user profile)
-              GestureDetector(
-                onTap: () {
-                  if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                  if (avatarUserId != null) context.push('/user/$avatarUserId');
-                },
-                child: _buildAvatar(context, type, avatarUrl, parentAvatarUrl),
-              ),
+              // Left: Avatar(s)
+              _buildGroupedAvatar(context, group),
               const SizedBox(width: 12),
               // Middle: Text content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RichText(
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        style: TextStyle(color: AppColors.textMuted(context), fontSize: 13, height: 1.3),
-                        children: _buildTitleSpans(context, title, contentTitle, isCommentType, tmdbId, mediaType),
-                      ),
-                    ),
-                    if (body.isNotEmpty) ...[
+                    _buildGroupedTitle(context, group),
+                    if (group.type == 'comment_like' && group.notifications.isNotEmpty)
+                      _buildLikeCommentPreview(context, group),
+                    if (group.type != 'comment_like' && group.notifications.first['body'] != null && (group.notifications.first['body'] as String).isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(group.notifications.first['body'], style: TextStyle(color: AppColors.textMuted(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(timeago.format(createdAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
-                        if (type == 'follow' && followerId != null) ...[
-                          const Spacer(),
-                          _buildFollowButton(context, followerId),
-                        ],
-                      ],
-                    ),
+                    Text(timeago.format(group.latestAt), style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
                   ],
                 ),
               ),
-              // Right: Poster (clickable to show/movie page) + unread dot
-              if (hasPoster && isCommentType)
+              // Right: Poster + unread dot
+              if (hasPoster && _isContentType(group.type))
                 GestureDetector(
                   onTap: () {
-                    if (!isRead) context.read<NotificationsCubit>().markAsRead(notification['id']);
-                    if (tmdbId != null) {
-                      context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+                    _markGroupAsRead(context, group);
+                    if (group.tmdbId != null) {
+                      context.push(group.mediaType == 'movie' ? '/movie/${group.tmdbId}' : '/show/${group.tmdbId}');
                     }
                   },
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: CachedNetworkImage(
-                      imageUrl: AppConfig.getImageUrl(posterPath, size: 'w92'),
+                      imageUrl: AppConfig.getImageUrl(group.posterPath, size: 'w92'),
                       width: 36,
                       height: 52,
                       fit: BoxFit.cover,
@@ -241,12 +192,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ),
                   ),
                 ),
-              if (!isRead)
+              if (!group.isRead)
                 Container(
                   margin: const EdgeInsets.only(left: 8),
                   width: 7,
                   height: 7,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.electricPurple),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: _getAccentColor(group.type)),
                 ),
             ],
           ),
@@ -255,68 +206,40 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  List<InlineSpan> _buildTitleSpans(BuildContext context, String fullTitle, String? contentTitle, bool isCommentType, dynamic tmdbId, String mediaType) {
-    if (!isCommentType || contentTitle == null || contentTitle.isEmpty) {
-      return [TextSpan(text: fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13))];
-    }
-
-    final idx = fullTitle.indexOf(' on ');
-    if (idx == -1) {
-      return [TextSpan(text: fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13))];
-    }
-
-    final beforeOn = fullTitle.substring(0, idx);
-    final afterOn = fullTitle.substring(idx + 4);
-
-    return [
-      TextSpan(text: beforeOn, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
-      TextSpan(text: ' on ', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
-      TextSpan(
-        text: afterOn,
-        style: TextStyle(color: AppColors.electricPurple, fontWeight: FontWeight.w600, fontSize: 13),
-        recognizer: TapGestureRecognizer()
-          ..onTap = () {
-            if (tmdbId != null) {
-              context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
-            }
-          },
-      ),
-    ];
-  }
-
-  Widget _buildAvatar(BuildContext context, String type, String? avatarUrl, String? parentAvatarUrl) {
-    final bool hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
-
-    // Reply notification: show stacked avatars (replier front + parent owner back)
-    if (type == 'comment_reply' && parentAvatarUrl != null && parentAvatarUrl.isNotEmpty) {
+  Widget _buildGroupedAvatar(BuildContext context, GroupedNotification group) {
+    // Stacked avatars for grouped notifications (max 3)
+    if (group.avatarUrls.length >= 2) {
       return SizedBox(
-        width: 46,
-        height: 46,
+        width: 48,
+        height: 48,
         child: Stack(
           children: [
-            // Parent owner avatar (back, bottom-right) = "you"
+            // Third avatar (back, bottom-left)
+            if (group.avatarUrls.length >= 3)
+              Positioned(
+                left: 0,
+                bottom: 0,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.background(context), width: 2)),
+                  child: ClipOval(child: CachedNetworkImage(imageUrl: group.avatarUrls[2], fit: BoxFit.cover, errorWidget: (c, u, e) => _buildInitial(context, group.usernames.length > 2 ? group.usernames[2] : '?'))),
+                ),
+              ),
+            // Second avatar (back, bottom-right)
             Positioned(
               right: 0,
               bottom: 0,
               child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.background(context), width: 2),
-                ),
-                child: ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: parentAvatarUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (c, u, e) => Container(color: AppColors.cardBg(context), child: Icon(Icons.person, size: 14, color: AppColors.textMuted(context))),
-                  ),
-                ),
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.background(context), width: 2)),
+                child: ClipOval(child: CachedNetworkImage(imageUrl: group.avatarUrls[1], fit: BoxFit.cover, errorWidget: (c, u, e) => _buildInitial(context, group.usernames.length > 1 ? group.usernames[1] : '?'))),
               ),
             ),
-            // Replier avatar (front, top-left) = the person who replied
+            // First avatar (front, top-center)
             Positioned(
-              left: 0,
+              left: 8,
               top: 0,
               child: Container(
                 width: 32,
@@ -326,11 +249,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   border: Border.all(color: AppColors.background(context), width: 2),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 1))],
                 ),
-                child: ClipOval(
-                  child: hasAvatar
-                      ? CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => _buildInitialAvatar(context, '?'))
-                      : _buildInitialAvatar(context, '?'),
-                ),
+                child: ClipOval(child: CachedNetworkImage(imageUrl: group.avatarUrls[0], fit: BoxFit.cover, errorWidget: (c, u, e) => _buildInitial(context, group.usernames.isNotEmpty ? group.usernames[0] : '?'))),
               ),
             ),
           ],
@@ -338,9 +257,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
       );
     }
 
-    // Single avatar for all other types
-    final iconData = _getIconForType(type);
-    final iconColor = _getColorForType(type);
+    // Single avatar
+    final avatarUrl = group.avatarUrls.isNotEmpty ? group.avatarUrls[0] : null;
+    final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
+    final iconData = _getIconForType(group.type);
+    final iconColor = _getAccentColor(group.type);
 
     return Container(
       width: 44,
@@ -356,13 +277,146 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _buildInitialAvatar(BuildContext context, String initial) {
+  Widget _buildGroupedTitle(BuildContext context, GroupedNotification group) {
+    final count = group.notifications.length;
+    final accentColor = _getAccentColor(group.type);
+
+    if (count == 1) {
+      // Single notification - show full title
+      final title = group.notifications.first['title'] ?? '';
+      return _buildRichTitle(context, title, group);
+    }
+
+    // Grouped - show "X, Y and N others"
+    final names = group.usernames.take(2).toList();
+    final remaining = count - names.length;
+
+    String namesText;
+    if (names.length == 2) {
+      namesText = '${names[0]}، ${names[1]} و $remaining نفر دیگه';
+    } else if (names.length == 1) {
+      namesText = '${names[0]} و ${count - 1} نفر دیگه';
+    } else {
+      namesText = '$count نفر';
+    }
+
+    String action;
+    switch (group.type) {
+      case 'comment_like':
+        action = 'کامنت شما رو لایک کردن';
+        break;
+      case 'new_comment':
+        action = 'کامنت گذاشتن';
+        break;
+      case 'comment_reply':
+        action = 'جواب کامنت شما رو دادن';
+        break;
+      case 'follow':
+        action = 'شما رو فالو کردن';
+        break;
+      default:
+        action = 'فعالیت داشتن';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(namesText, style: TextStyle(color: AppColors.text(context), fontWeight: group.isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13)),
+        Text(action, style: TextStyle(color: accentColor, fontSize: 12, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _buildRichTitle(BuildContext context, String fullTitle, GroupedNotification group) {
+    final isCommentType = _isContentType(group.type);
+    final contentTitle = group.contentTitle;
+
+    if (!isCommentType || contentTitle == null || contentTitle.isEmpty) {
+      return Text(fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: group.isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13));
+    }
+
+    final idx = fullTitle.indexOf(' on ');
+    if (idx == -1) {
+      return Text(fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: group.isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13));
+    }
+
+    final beforeOn = fullTitle.substring(0, idx);
+    final afterOn = fullTitle.substring(idx + 4);
+
+    return RichText(
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: TextStyle(color: AppColors.textMuted(context), fontSize: 13, height: 1.3),
+        children: [
+          TextSpan(text: beforeOn, style: TextStyle(color: AppColors.text(context), fontWeight: group.isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13)),
+          TextSpan(text: ' on ', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+          TextSpan(
+            text: afterOn,
+            style: TextStyle(color: _getAccentColor(group.type), fontWeight: FontWeight.w600, fontSize: 13),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                _markGroupAsRead(context, group);
+                if (group.tmdbId != null) {
+                  context.push(group.mediaType == 'movie' ? '/movie/${group.tmdbId}' : '/show/${group.tmdbId}');
+                }
+              },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLikeCommentPreview(BuildContext context, GroupedNotification group) {
+    final body = group.notifications.first['body'] as String? ?? '';
+    if (body.isEmpty) return const SizedBox();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFD93D).withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFFFD93D).withValues(alpha: 0.15), width: 0.5),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.format_quote_rounded, color: Color(0xFFFFD93D), size: 14),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(body, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInitial(BuildContext context, String initial) {
     return Container(
       color: AppColors.cardBg(context),
       child: Center(
-        child: Text(initial.toUpperCase(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        child: Text(initial.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.text(context))),
       ),
     );
+  }
+
+  bool _isContentType(String type) {
+    return type == 'new_comment' || type == 'comment_like' || type == 'comment_reply';
+  }
+
+  Color _getAccentColor(String type) {
+    switch (type) {
+      case 'new_episode': return AppColors.success;
+      case 'new_movie': return AppColors.electricPurple;
+      case 'follow':
+      case 'new_follower': return const Color(0xFF00D4FF);
+      case 'new_comment': return const Color(0xFF6C63FF);
+      case 'comment_like': return const Color(0xFFFFD93D);
+      case 'comment_reply': return const Color(0xFF6C63FF);
+      default: return AppColors.warning;
+    }
   }
 
   IconData _getIconForType(String type) {
@@ -378,118 +432,45 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  Color _getColorForType(String type) {
-    switch (type) {
-      case 'new_episode': return AppColors.success;
-      case 'new_movie': return AppColors.electricPurple;
-      case 'follow':
-      case 'new_follower': return const Color(0xFF00D4FF);
-      case 'new_comment': return const Color(0xFF6C63FF);
-      case 'comment_like': return AppColors.primary;
-      case 'comment_reply': return const Color(0xFF6C63FF);
-      default: return AppColors.warning;
-    }
-  }
-
-  Widget _buildFollowButton(BuildContext context, String followerId) {
-    return FutureBuilder<bool>(
-      future: _checkIfFollowing(followerId),
-      builder: (context, snapshot) {
-        final isFollowing = snapshot.data ?? false;
-        if (isFollowing) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg(context),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text('Following', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
-          );
+  void _markGroupAsRead(BuildContext context, GroupedNotification group) {
+    if (!group.isRead) {
+      for (final n in group.notifications) {
+        if (n['is_read'] != true) {
+          context.read<NotificationsCubit>().markAsRead(n['id']);
         }
-        return GestureDetector(
-          onTap: () => _followBack(context, followerId),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.electricPurple.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text('Follow Back', style: TextStyle(color: AppColors.electricPurple, fontSize: 11, fontWeight: FontWeight.w600)),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<bool> _checkIfFollowing(String followerId) async {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return false;
-    final supabase = context.read<SupabaseService>();
-    return await supabase.isFollowing(authState.user.id, followerId);
-  }
-
-  Future<void> _followBack(BuildContext context, String followerId) async {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return;
-
-    HapticFeedback.lightImpact();
-    try {
-      final supabase = context.read<SupabaseService>();
-      await supabase.followUser(authState.user.id, followerId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Followed back!'), backgroundColor: AppColors.success),
-        );
-        // Refresh the notification to update the button
-        setState(() {});
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to follow'), backgroundColor: AppColors.error),
-        );
       }
     }
   }
 
-  void _navigateToContent(BuildContext context, Map<String, dynamic> notification) {
-    final type = notification['type'] ?? '';
-    final data = notification['data'] as Map<String, dynamic>? ?? {};
-    final tmdbId = data['tmdb_id'];
-    final followerId = data['follower_id'];
-    final userId = data['user_id'];
-    final mediaType = data['media_type'] ?? 'tv';
-    final seasonNumber = data['season_number'];
-    final episodeNumber = data['episode_number'];
-    final title = data['title'] as String?;
-    final posterPath = data['poster_path'] as String?;
-    final commentId = data['comment_id'] as String?;
+  void _navigateGrouped(BuildContext context, GroupedNotification group) {
+    _markGroupAsRead(context, group);
 
-    switch (type) {
+    switch (group.type) {
       case 'new_episode':
       case 'new_movie':
-        if (tmdbId != null) {
-          context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+        if (group.tmdbId != null) {
+          context.push(group.mediaType == 'movie' ? '/movie/${group.tmdbId}' : '/show/${group.tmdbId}');
         }
         break;
       case 'new_comment':
       case 'comment_like':
       case 'comment_reply':
-        if (tmdbId != null) {
+        if (group.tmdbId != null) {
           context.push('/comments', extra: {
-            'tmdbId': tmdbId,
-            'mediaType': mediaType,
-            'seasonNumber': seasonNumber,
-            'episodeNumber': episodeNumber,
-            'title': title,
-            'posterPath': posterPath,
-            'commentId': commentId,
+            'tmdbId': group.tmdbId,
+            'mediaType': group.mediaType ?? 'tv',
+            'seasonNumber': group.notifications.first['data']?['season_number'],
+            'episodeNumber': group.notifications.first['data']?['episode_number'],
+            'title': group.contentTitle,
+            'posterPath': group.posterPath,
+            'commentId': group.commentId,
           });
         }
         break;
       case 'follow':
       case 'new_follower':
-        final uid = followerId ?? userId;
+        final data = group.notifications.first['data'] as Map<String, dynamic>? ?? {};
+        final uid = data['follower_id'] ?? data['user_id'];
         if (uid != null) {
           context.push('/user/$uid');
         }
