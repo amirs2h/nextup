@@ -9,6 +9,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 
+import '../../../achievements/domain/achievements_cubit.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/profile_cubit.dart';
 import '../../domain/favorites_cubit.dart';
@@ -45,6 +46,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
       context.read<FavoritesCubit>().loadFavorites();
       context.read<WatchlistCubit>().loadWatchlist();
       context.read<WatchHistoryCubit>().loadHistory();
+      context.read<AchievementsCubit>().loadAchievements();
     }
   }
 
@@ -261,6 +263,105 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                         child: Text(bio, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
                       ),
                     ],
+                    // Level + Badges
+                    BlocBuilder<AchievementsCubit, AchievementsState>(
+                      builder: (context, achState) {
+                        if (achState is! AchievementsLoaded) return const SizedBox();
+                        final level = achState.level;
+                        final currentXp = achState.currentXp;
+                        final xpToNext = achState.xpToNextLevel;
+                        final topBadges = achState.achievements.where((a) => a.isUnlocked).toList()
+                          ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
+                        final displayBadges = topBadges.take(3).toList();
+
+                        if (displayBadges.isEmpty) return const SizedBox();
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Column(
+                            children: [
+                              // Level + XP
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBg(context),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.border(context)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: AppColors.primaryGradient,
+                                      ),
+                                      child: Center(child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w600)),
+                                        SizedBox(
+                                          width: 100,
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: LinearProgressIndicator(
+                                              value: xpToNext > 0 ? currentXp / xpToNext : 0,
+                                              minHeight: 4,
+                                              backgroundColor: AppColors.cardBg(context),
+                                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Top 3 Badges
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: displayBadges.map((badge) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                                    child: GestureDetector(
+                                      onTap: () => context.push('/achievements'),
+                                      child: Container(
+                                        width: 52,
+                                        height: 52,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: badge.color.withValues(alpha: 0.15),
+                                          border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
+                                          boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(badge.icon, color: badge.color, size: 18),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
+                                              style: const TextStyle(fontSize: 8),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

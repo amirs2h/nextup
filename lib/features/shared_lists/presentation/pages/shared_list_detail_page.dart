@@ -7,6 +7,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/services/tmdb_service.dart';
+import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/shared_lists_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
 
@@ -82,6 +83,15 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               padding: const EdgeInsets.all(10),
               borderRadius: BorderRadius.circular(14),
               child: Icon(Icons.people_outline, color: AppColors.text(context), size: 22),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => _showMenuSheet(context),
+            child: GlassContainer(
+              padding: const EdgeInsets.all(10),
+              borderRadius: BorderRadius.circular(14),
+              child: Icon(Icons.more_vert, color: AppColors.text(context), size: 22),
             ),
           ),
         ],
@@ -584,6 +594,111 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showMenuSheet(BuildContext context) {
+    final authState = context.read<AuthCubit>().state;
+    final userId = authState is AuthAuthenticated ? authState.user.id : null;
+    final isCreator = userId != null; // We'll check against creator_id from state
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        final cubitState = context.read<SharedListsCubit>().state;
+        bool isOwner = false;
+        if (cubitState is SharedListDetailLoaded) {
+          isOwner = cubitState.list['creator_id'] == userId;
+        }
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted(ctx).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              if (isOwner)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                  title: const Text('Delete List', style: TextStyle(color: AppColors.error)),
+                  subtitle: Text('This will permanently delete the list and all items', style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _confirmDeleteList(context);
+                  },
+                )
+              else
+                ListTile(
+                  leading: Icon(Icons.exit_to_app, color: AppColors.textMuted(context)),
+                  title: Text('Leave List', style: TextStyle(color: AppColors.text(context))),
+                  subtitle: Text('You will no longer have access to this list', style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _confirmLeaveList(context);
+                  },
+                ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteList(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete List'),
+        content: const Text('Are you sure? This will permanently delete the list and all its items.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<SharedListsCubit>().deleteList(widget.listId);
+              context.pop();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLeaveList(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Leave List'),
+        content: const Text('You will no longer have access to this list.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<SharedListsCubit>().leaveList(widget.listId);
+              context.pop();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Leave'),
+          ),
+        ],
       ),
     );
   }

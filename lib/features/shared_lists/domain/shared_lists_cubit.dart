@@ -213,4 +213,27 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       emit(SharedListsError('Something went wrong. Please try again.'));
     }
   }
+
+  Future<void> deleteList(String listId) async {
+    try {
+      await _supabaseService.deleteSharedList(listId);
+      await loadSharedLists();
+    } catch (e) {
+      if (isClosed) return;
+      emit(SharedListsError('Failed to delete list. Please try again.'));
+    }
+  }
+
+  Future<void> leaveList(String listId) async {
+    final user = _supabaseService.currentUser;
+    if (user == null) return;
+
+    try {
+      await _supabaseService.leaveSharedList(listId, user.id);
+      await loadSharedLists();
+    } catch (e) {
+      if (isClosed) return;
+      emit(SharedListsError('Failed to leave list. Please try again.'));
+    }
+  }
 }

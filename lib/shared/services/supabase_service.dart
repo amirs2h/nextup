@@ -1109,6 +1109,46 @@ class SupabaseService {
         .eq('media_type', mediaType);
   }
 
+  Future<void> deleteSharedList(String listId) async {
+    // Delete items first, then members, then the list
+    await _client.from('shared_list_items').delete().eq('list_id', listId);
+    await _client.from('shared_list_members').delete().eq('list_id', listId);
+    await _client.from('shared_lists').delete().eq('id', listId);
+  }
+
+  Future<void> leaveSharedList(String listId, String userId) async {
+    await _client.from('shared_list_members')
+        .delete()
+        .eq('list_id', listId)
+        .eq('user_id', userId);
+  }
+
+  Future<List<Map<String, dynamic>>> getCommonContent(String userA, String userB) async {
+    try {
+      final response = await _client.rpc('get_common_content', params: {
+        'user_a': userA,
+        'user_b': userB,
+      });
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserStats(String userId) async {
+    try {
+      final response = await _client.rpc('get_user_stats', params: {
+        'target_user_id': userId,
+      });
+      if (response is List && response.isNotEmpty) {
+        return Map<String, dynamic>.from(response.first);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getSharedLists(String userId) async {
     try {
       final response = await _client.from('shared_list_members')

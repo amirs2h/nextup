@@ -28,6 +28,7 @@ import '../../features/comments/presentation/pages/comments_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/statistics/presentation/pages/stats_page.dart';
 import '../../features/achievements/presentation/pages/achievements_page.dart';
+import '../../features/compare/presentation/pages/compare_page.dart';
 import '../../features/activity/presentation/pages/activity_page.dart';
 import '../../features/calendar/presentation/pages/calendar_page.dart';
 import '../../features/coming_soon/presentation/pages/coming_soon_page.dart';
@@ -147,6 +148,13 @@ class AppRouter {
       GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
       GoRoute(path: '/achievements', builder: (context, state) => const AchievementsPage()),
       GoRoute(path: '/activity', builder: (context, state) => const ActivityPage()),
+      GoRoute(
+        path: '/compare/:userId',
+        builder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          return ComparePage(userId: userId);
+        },
+      ),
       GoRoute(path: '/calendar', builder: (context, state) => const CalendarPage()),
       GoRoute(path: '/coming-soon', builder: (context, state) => const ComingSoonPage()),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingPage()),
