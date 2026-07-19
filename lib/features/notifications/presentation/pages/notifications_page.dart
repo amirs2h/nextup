@@ -293,29 +293,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     String namesText;
     if (names.length == 2) {
-      namesText = '${names[0]}، ${names[1]} و $remaining نفر دیگه';
+      namesText = '${names[0]}, ${names[1]} and $remaining others';
     } else if (names.length == 1) {
-      namesText = '${names[0]} و ${count - 1} نفر دیگه';
+      namesText = '${names[0]} and ${count - 1} others';
     } else {
-      namesText = '$count نفر';
+      namesText = '$count people';
     }
 
     String action;
     switch (group.type) {
       case 'comment_like':
-        action = 'کامنت شما رو لایک کردن';
+        action = 'liked your comment';
         break;
       case 'new_comment':
-        action = 'کامنت گذاشتن';
+        action = 'commented';
         break;
       case 'comment_reply':
-        action = 'جواب کامنت شما رو دادن';
+        action = 'replied to your comment';
         break;
       case 'follow':
-        action = 'شما رو فالو کردن';
+        action = 'started following you';
         break;
       default:
-        action = 'فعالیت داشتن';
+        action = 'was active';
     }
 
     return Column(
