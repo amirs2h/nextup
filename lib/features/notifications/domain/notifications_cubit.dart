@@ -253,6 +253,16 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     }
   }
 
+  Future<void> markGroupAsRead(List<String> notificationIds) async {
+    if (notificationIds.isEmpty) return;
+    try {
+      await _supabaseService.markNotificationsAsRead(notificationIds);
+      await loadNotifications();
+    } catch (e) {
+      // Error handled silently
+    }
+  }
+
   Future<void> markAllAsRead() async {
     final user = _supabaseService.currentUser;
     if (user == null) return;

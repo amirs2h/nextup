@@ -729,6 +729,13 @@ class SupabaseService {
         .eq('is_read', false);
   }
 
+  Future<void> markNotificationsAsRead(List<String> notificationIds) async {
+    if (notificationIds.isEmpty) return;
+    await _client.from('notifications')
+        .update({'is_read': true})
+        .inFilter('id', notificationIds);
+  }
+
   Future<void> createNotification({
     required String userId,
     required String type,

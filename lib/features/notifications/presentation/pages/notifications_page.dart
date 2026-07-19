@@ -434,10 +434,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void _markGroupAsRead(BuildContext context, GroupedNotification group) {
     if (!group.isRead) {
-      for (final n in group.notifications) {
-        if (n['is_read'] != true) {
-          context.read<NotificationsCubit>().markAsRead(n['id']);
-        }
+      final unreadIds = group.notifications
+          .where((n) => n['is_read'] != true)
+          .map((n) => n['id'] as String)
+          .toList();
+      if (unreadIds.isNotEmpty) {
+        context.read<NotificationsCubit>().markGroupAsRead(unreadIds);
       }
     }
   }
