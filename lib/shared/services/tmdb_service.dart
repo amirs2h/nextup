@@ -164,6 +164,7 @@ class TmdbService {
     int? year,
     double? minRating,
     int? showStatus,
+    int? voteCountMin,
   }) async {
     final params = <String, dynamic>{
       'page': page,
@@ -178,6 +179,9 @@ class TmdbService {
     if (minRating != null && minRating > 0) {
       params['vote_average.gte'] = minRating;
     }
+    if (voteCountMin != null && voteCountMin > 0) {
+      params['vote_count.gte'] = voteCountMin;
+    }
     if (showStatus != null) {
       params['with_status'] = showStatus;
     }
@@ -190,6 +194,7 @@ class TmdbService {
     List<int>? genreIds,
     int? year,
     double? minRating,
+    int? voteCountMin,
   }) async {
     final params = <String, dynamic>{
       'page': page,
@@ -203,6 +208,9 @@ class TmdbService {
     }
     if (minRating != null && minRating > 0) {
       params['vote_average.gte'] = minRating;
+    }
+    if (voteCountMin != null && voteCountMin > 0) {
+      params['vote_count.gte'] = voteCountMin;
     }
     return _get('/discover/movie', params);
   }

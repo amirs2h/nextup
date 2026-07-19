@@ -134,7 +134,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
     final tmdb = context.read<TmdbService>();
     final itemsNeedingFetch = items.where((item) =>
-        item['title'] == null || (item['title'] as String).isEmpty).take(10).toList();
+        item['title'] == null || (item['title'] as String).isEmpty).toList();
 
     if (itemsNeedingFetch.isEmpty) return;
 

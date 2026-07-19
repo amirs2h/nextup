@@ -53,7 +53,7 @@ class HomeCubit extends Cubit<HomeState> {
       final results = await Future.wait([
         _tmdbService.getTrendingShows().catchError((e) => <String, dynamic>{}),
         _tmdbService.getTrendingMovies().catchError((e) => <String, dynamic>{}),
-        _tmdbService.discoverShows(sortBy: 'vote_average.desc').catchError((e) => <String, dynamic>{}),
+        _tmdbService.discoverShows(sortBy: 'vote_average.desc', voteCountMin: 200).catchError((e) => <String, dynamic>{}),
       ]);
 
       final trendingShows = (results[0]['results'] as List?)

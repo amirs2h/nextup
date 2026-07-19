@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
@@ -36,6 +37,7 @@ class _HomePageViewState extends State<_HomePageView> {
   late PageController _heroPageController;
   Timer? _heroTimer;
   int _heroIndex = 0;
+  int _forYouTabIndex = 0; // 0 = Shows, 1 = Movies
 
   @override
   void initState() {
@@ -114,56 +116,58 @@ class _HomePageViewState extends State<_HomePageView> {
                       return const SizedBox();
                     },
                   )),
-                  // For You Section (Shows)
+                  // For You Section (Shows + Movies with tabs)
                   SliverToBoxAdapter(child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
                     builder: (context, recState) {
-                      if (recState is RecommendationsLoaded && recState.shows.isNotEmpty) {
+                      if (recState is RecommendationsLoaded && (recState.shows.isNotEmpty || recState.movies.isNotEmpty)) {
                         return _buildSection(
                           context: context,
-                          title: 'For You — Shows',
+                          title: 'For You',
                           subtitle: 'Based on your watch history',
-                          child: SizedBox(
-                            height: 260,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              itemCount: recState.shows.length,
-                              itemBuilder: (context, index) {
-                                final show = recState.shows[index];
-                                return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () async {
-                                  await context.push('/show/${show.id}');
-                                  if (mounted) _reloadData();
-                                });
-                              },
-                            ),
-                          ),
-                        );
-                      }
-                      return const SizedBox();
-                    },
-                  )),
-                  // For You Section (Movies)
-                  SliverToBoxAdapter(child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
-                    builder: (context, recState) {
-                      if (recState is RecommendationsLoaded && recState.movies.isNotEmpty) {
-                        return _buildSection(
-                          context: context,
-                          title: 'For You — Movies',
-                          subtitle: 'Based on your watch history',
-                          child: SizedBox(
-                            height: 260,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              itemCount: recState.movies.length,
-                              itemBuilder: (context, index) {
-                                final movie = recState.movies[index];
-                                return ModernShowCard(id: movie.id, title: movie.title, posterPath: movie.posterPath, rating: movie.voteAverage, isMovie: true, onTap: () async {
-                                  await context.push('/movie/${movie.id}');
-                                  if (mounted) _reloadData();
-                                });
-                              },
-                            ),
+                          child: Column(
+                            children: [
+                              // Tab bar
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: Row(
+                                  children: [
+                                    _buildForYouTab(context, 'Shows', 0),
+                                    const SizedBox(width: 8),
+                                    _buildForYouTab(context, 'Movies', 1),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Content
+                              SizedBox(
+                                height: 260,
+                                child: _forYouTabIndex == 0
+                                    ? ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                                        itemCount: recState.shows.length,
+                                        itemBuilder: (context, index) {
+                                          final show = recState.shows[index];
+                                          return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () async {
+                                            await context.push('/show/${show.id}');
+                                            if (mounted) _reloadData();
+                                          });
+                                        },
+                                      )
+                                    : ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                                        itemCount: recState.movies.length,
+                                        itemBuilder: (context, index) {
+                                          final movie = recState.movies[index];
+                                          return ModernShowCard(id: movie.id, title: movie.title, posterPath: movie.posterPath, rating: movie.voteAverage, isMovie: true, onTap: () async {
+                                            await context.push('/movie/${movie.id}');
+                                            if (mounted) _reloadData();
+                                          });
+                                        },
+                                      ),
+                              ),
+                            ],
                           ),
                         );
                       }
@@ -465,6 +469,33 @@ class _HomePageViewState extends State<_HomePageView> {
             }),
           ),
       ],
+    );
+  }
+
+  Widget _buildForYouTab(BuildContext context, String label, int index) {
+    final isActive = _forYouTabIndex == index;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() => _forYouTabIndex = index);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isActive ? AppColors.primaryGradient : null,
+          color: isActive ? null : AppColors.cardBg(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isActive ? Colors.transparent : AppColors.border(context)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : AppColors.textSecondary(context),
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
+      ),
     );
   }
 
