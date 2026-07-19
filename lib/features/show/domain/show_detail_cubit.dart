@@ -298,6 +298,8 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             tmdbId: showId,
             mediaType: 'tv',
             status: status,
+            title: currentState.show.name,
+            posterPath: currentState.show.posterPath,
           );
           try {
             final showDetails = await _tmdbService.getShowDetails(showId);

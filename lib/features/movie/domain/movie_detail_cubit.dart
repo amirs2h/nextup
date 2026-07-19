@@ -283,6 +283,8 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             tmdbId: movieId,
             mediaType: 'movie',
             status: status,
+            title: currentState.movie.title,
+            posterPath: currentState.movie.posterPath,
           );
           try {
             await _supabaseService.computeAndSetMovieStatus(
