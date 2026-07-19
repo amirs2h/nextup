@@ -114,13 +114,13 @@ class _HomePageViewState extends State<_HomePageView> {
                       return const SizedBox();
                     },
                   )),
-                  // For You Section
+                  // For You Section (Shows)
                   SliverToBoxAdapter(child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
                     builder: (context, recState) {
                       if (recState is RecommendationsLoaded && recState.shows.isNotEmpty) {
                         return _buildSection(
                           context: context,
-                          title: 'For You',
+                          title: 'For You — Shows',
                           subtitle: 'Based on your watch history',
                           child: SizedBox(
                             height: 260,
@@ -132,6 +132,34 @@ class _HomePageViewState extends State<_HomePageView> {
                                 final show = recState.shows[index];
                                 return ModernShowCard(id: show.id, title: show.name, posterPath: show.posterPath, rating: show.voteAverage, onTap: () async {
                                   await context.push('/show/${show.id}');
+                                  if (mounted) _reloadData();
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox();
+                    },
+                  )),
+                  // For You Section (Movies)
+                  SliverToBoxAdapter(child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
+                    builder: (context, recState) {
+                      if (recState is RecommendationsLoaded && recState.movies.isNotEmpty) {
+                        return _buildSection(
+                          context: context,
+                          title: 'For You — Movies',
+                          subtitle: 'Based on your watch history',
+                          child: SizedBox(
+                            height: 260,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              itemCount: recState.movies.length,
+                              itemBuilder: (context, index) {
+                                final movie = recState.movies[index];
+                                return ModernShowCard(id: movie.id, title: movie.title, posterPath: movie.posterPath, rating: movie.voteAverage, isMovie: true, onTap: () async {
+                                  await context.push('/movie/${movie.id}');
                                   if (mounted) _reloadData();
                                 });
                               },

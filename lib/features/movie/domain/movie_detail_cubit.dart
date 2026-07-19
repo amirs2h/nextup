@@ -141,23 +141,35 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
           .map((json) => PersonModel.fromJson(json))
           .toList();
       
-      // Merge similar + recommendations, remove duplicates
+      // Merge similar + recommendations, filter quality + sort by popularity
       final similarMoviesSet = <int>{};
-      final similarMovies = <MovieModel>[];
-      for (final json in (similarData['results'] as List)) {
-        final m = MovieModel.fromJson(json);
-        if (!similarMoviesSet.contains(m.id) && m.id != movieId) {
-          similarMoviesSet.add(m.id);
-          similarMovies.add(m);
+      final similarMoviesRaw = <Map<String, dynamic>>[];
+      for (final json in (similarData['results'] as List? ?? [])) {
+        final m = json as Map<String, dynamic>;
+        final id = m['id'] as int?;
+        final voteCount = (m['vote_count'] ?? 0) as int;
+        final posterPath = m['poster_path'] as String?;
+        if (id != null && !similarMoviesSet.contains(id) && id != movieId && voteCount >= 50 && posterPath != null && posterPath.isNotEmpty) {
+          similarMoviesSet.add(id);
+          similarMoviesRaw.add(m);
         }
       }
-      for (final json in (recommendationsData['results'] as List)) {
-        final m = MovieModel.fromJson(json);
-        if (!similarMoviesSet.contains(m.id) && m.id != movieId) {
-          similarMoviesSet.add(m.id);
-          similarMovies.add(m);
+      for (final json in (recommendationsData['results'] as List? ?? [])) {
+        final m = json as Map<String, dynamic>;
+        final id = m['id'] as int?;
+        final voteCount = (m['vote_count'] ?? 0) as int;
+        final posterPath = m['poster_path'] as String?;
+        if (id != null && !similarMoviesSet.contains(id) && id != movieId && voteCount >= 50 && posterPath != null && posterPath.isNotEmpty) {
+          similarMoviesSet.add(id);
+          similarMoviesRaw.add(m);
         }
       }
+      similarMoviesRaw.sort((a, b) {
+        final aVotes = (a['vote_count'] ?? 0) as int;
+        final bVotes = (b['vote_count'] ?? 0) as int;
+        return bVotes.compareTo(aVotes);
+      });
+      final similarMovies = similarMoviesRaw.take(20).map((json) => MovieModel.fromJson(json)).toList();
       
       final videos = videosData;
       final watchProviders = providersData;

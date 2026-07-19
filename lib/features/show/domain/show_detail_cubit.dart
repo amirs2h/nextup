@@ -115,7 +115,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
     if (isClosed) return;
     emit(ShowDetailLoading());
     try {
-      // Parallel TMDB calls (7 calls in parallel)
+      // Parallel TMDB calls (8 calls in parallel)
       final tmdbResults = await Future.wait([
         _tmdbService.getShowDetails(showId),
         _tmdbService.getShowCredits(showId),
@@ -124,6 +124,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         _tmdbService.getShowWatchProviders(showId),
         _tmdbService.getShowExternalIds(showId),
         _tmdbService.getShowContentRatings(showId),
+        _tmdbService.getShowRecommendations(showId),
       ]);
 
       final detailsData = tmdbResults[0] as Map<String, dynamic>;
@@ -133,15 +134,46 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
       final providersData = tmdbResults[4] as Map<String, dynamic>;
       final externalIdsData = tmdbResults[5] as Map<String, dynamic>;
       final contentRatingsData = tmdbResults[6] as Map<String, dynamic>;
+      final recommendationsData = tmdbResults[7] as Map<String, dynamic>;
 
       final show = ShowModel.fromJson(detailsData);
       final cast = (creditsData['cast'] as List)
           .take(20)
           .map((json) => PersonModel.fromJson(json))
           .toList();
-      final similarShows = (similarData['results'] as List)
-          .map((json) => ShowModel.fromJson(json))
-          .toList();
+
+      // Merge + filter + sort similar shows and recommendations
+      final allSimilarRaw = <Map<String, dynamic>>[];
+      final seenIds = <int>{};
+      for (final json in (similarData['results'] as List? ?? [])) {
+        final id = (json as Map<String, dynamic>)['id'] as int?;
+        if (id != null && !seenIds.contains(id) && id != showId) {
+          final voteCount = (json['vote_count'] ?? 0) as int;
+          final posterPath = json['poster_path'] as String?;
+          if (voteCount >= 50 && posterPath != null && posterPath.isNotEmpty) {
+            allSimilarRaw.add(json);
+            seenIds.add(id);
+          }
+        }
+      }
+      for (final json in (recommendationsData['results'] as List? ?? [])) {
+        final id = (json as Map<String, dynamic>)['id'] as int?;
+        if (id != null && !seenIds.contains(id) && id != showId) {
+          final voteCount = (json['vote_count'] ?? 0) as int;
+          final posterPath = json['poster_path'] as String?;
+          if (voteCount >= 50 && posterPath != null && posterPath.isNotEmpty) {
+            allSimilarRaw.add(json);
+            seenIds.add(id);
+          }
+        }
+      }
+      // Sort by vote_count descending (most popular first)
+      allSimilarRaw.sort((a, b) {
+        final aVotes = (a['vote_count'] ?? 0) as int;
+        final bVotes = (b['vote_count'] ?? 0) as int;
+        return bVotes.compareTo(aVotes);
+      });
+      final similarShows = allSimilarRaw.take(20).map((json) => ShowModel.fromJson(json)).toList();
       final videos = videosData;
       final watchProviders = providersData;
       final imdbId = externalIdsData['imdb_id'] as String?;

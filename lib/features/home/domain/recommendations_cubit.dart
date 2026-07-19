@@ -75,44 +75,54 @@ class RecommendationsCubit extends Cubit<RecommendationsState> {
 
       // If user has watched shows, get recommendations based on them
       if (watchedShowIds.isNotEmpty) {
-        // Get recommendations for the first few watched shows
-        final showIdsToRecommend = watchedShowIds.take(3).toList();
+        // Get recommendations for the first 5 watched shows (increased from 3)
+        final showIdsToRecommend = watchedShowIds.take(5).toList();
         final recommendationFutures = showIdsToRecommend.map((id) async {
           try {
             final data = await _tmdbService.getShowRecommendations(id);
-            return (data['results'] as List).map((json) => ShowModel.fromJson(json)).toList();
+            return (data['results'] as List).map((json) => json as Map<String, dynamic>).toList();
           } catch (e) {
-            return <ShowModel>[];
+            return <Map<String, dynamic>>[];
           }
         }).toList();
         
         final recommendationResults = await Future.wait(recommendationFutures);
+        final seenIds = <int>{};
         for (final shows in recommendationResults) {
-          for (final show in shows) {
-            if (!watchedShowIds.contains(show.id) && !recommendedShows.any((s) => s.id == show.id)) {
-              recommendedShows.add(show);
+          for (final json in shows) {
+            final id = json['id'] as int?;
+            final voteCount = (json['vote_count'] ?? 0) as int;
+            final posterPath = json['poster_path'] as String?;
+            if (id != null && !seenIds.contains(id) && !watchedShowIds.contains(id) && voteCount >= 50 && posterPath != null && posterPath.isNotEmpty) {
+              seenIds.add(id);
+              recommendedShows.add(ShowModel.fromJson(json));
             }
           }
         }
       }
 
-      // If user has watched movies, get recommendations based on them
       if (watchedMovieIds.isNotEmpty) {
-        final movieIdsToRecommend = watchedMovieIds.take(3).toList();
+        // Get recommendations for the first 5 watched movies (increased from 3)
+        final movieIdsToRecommend = watchedMovieIds.take(5).toList();
         final recommendationFutures = movieIdsToRecommend.map((id) async {
           try {
             final data = await _tmdbService.getMovieRecommendations(id);
-            return (data['results'] as List).map((json) => MovieModel.fromJson(json)).toList();
+            return (data['results'] as List).map((json) => json as Map<String, dynamic>).toList();
           } catch (e) {
-            return <MovieModel>[];
+            return <Map<String, dynamic>>[];
           }
         }).toList();
         
         final recommendationResults = await Future.wait(recommendationFutures);
+        final seenIds = <int>{};
         for (final movies in recommendationResults) {
-          for (final movie in movies) {
-            if (!watchedMovieIds.contains(movie.id) && !recommendedMovies.any((m) => m.id == movie.id)) {
-              recommendedMovies.add(movie);
+          for (final json in movies) {
+            final id = json['id'] as int?;
+            final voteCount = (json['vote_count'] ?? 0) as int;
+            final posterPath = json['poster_path'] as String?;
+            if (id != null && !seenIds.contains(id) && !watchedMovieIds.contains(id) && voteCount >= 50 && posterPath != null && posterPath.isNotEmpty) {
+              seenIds.add(id);
+              recommendedMovies.add(MovieModel.fromJson(json));
             }
           }
         }
