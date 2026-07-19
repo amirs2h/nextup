@@ -114,16 +114,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
         }
       }
 
-      // Fetch missing titles in background, then update UI
+      // Fetch missing titles in background, update UI after each list
       await _fetchMissingTitles(watchlist);
-      await _fetchMissingTitles(favorites);
-      await _fetchMissingTitles(watchHistory);
+      if (mounted) setState(() {}); // Refresh watchlist carousel
 
-      // Re-group history with fetched titles and refresh UI
-      final updatedGroupedHistory = _groupWatchHistory(watchHistory);
+      await _fetchMissingTitles(favorites);
+      if (mounted) setState(() {}); // Refresh favorites carousel
+
+      await _fetchMissingTitles(watchHistory);
       if (mounted) {
         setState(() {
-          _groupedWatchHistory = updatedGroupedHistory;
+          _groupedWatchHistory = _groupWatchHistory(watchHistory);
         });
       }
     } catch (e) {
@@ -134,25 +135,26 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
     final tmdb = context.read<TmdbService>();
     final itemsNeedingFetch = items.where((item) =>
-        item['title'] == null || (item['title'] as String).isEmpty).toList();
+        item['title'] == null || (item['title'] as String? ?? '').isEmpty).toList();
 
     if (itemsNeedingFetch.isEmpty) return;
 
     final futures = itemsNeedingFetch.map((item) async {
       try {
-        final tmdbId = item['tmdb_id'] as int;
+        final tmdbId = item['tmdb_id'] as int?;
+        if (tmdbId == null) return;
         final mediaType = item['media_type'] as String? ?? 'tv';
         if (mediaType == 'tv') {
-          final data = await tmdb.getShowDetails(tmdbId).timeout(const Duration(seconds: 5));
-          item['title'] = data['name'] ?? 'Unknown';
+          final data = await tmdb.getShowDetails(tmdbId).timeout(const Duration(seconds: 8));
+          item['title'] = data['name'];
           item['poster_path'] = item['poster_path'] ?? data['poster_path'];
         } else {
-          final data = await tmdb.getMovieDetails(tmdbId).timeout(const Duration(seconds: 5));
-          item['title'] = data['title'] ?? 'Unknown';
+          final data = await tmdb.getMovieDetails(tmdbId).timeout(const Duration(seconds: 8));
+          item['title'] = data['title'];
           item['poster_path'] = item['poster_path'] ?? data['poster_path'];
         }
       } catch (e) {
-        item['title'] = 'Unknown';
+        // Don't set 'Unknown' — leave as null so it can be retried on next load
       }
     }).toList();
 
