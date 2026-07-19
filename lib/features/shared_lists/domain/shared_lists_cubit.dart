@@ -69,7 +69,7 @@ class SharedListsCubit extends Cubit<SharedListsState> {
     if (isClosed) return;
     emit(SharedListsLoading());
     try {
-      final items = await _supabaseService.getSharedListItems(listId);
+      final items = await _supabaseService.getSharedListItemsWithWatchStatus(listId);
       final members = await _supabaseService.getSharedListMembers(listId);
       final listData = await _supabaseService.client.from('shared_lists').select().eq('id', listId).maybeSingle();
       

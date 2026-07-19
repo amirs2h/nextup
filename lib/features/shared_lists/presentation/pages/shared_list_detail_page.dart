@@ -149,12 +149,16 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               final mediaType = item['media_type'] ?? 'tv';
               final title = item['title'] ?? 'Unknown';
               final posterPath = item['poster_path'];
+              final watchedBy = item['watched_by'] as List<dynamic>? ?? [];
+              final watchProgress = (item['watch_progress'] as num?)?.toDouble() ?? 0.0;
+              final allWatched = watchProgress >= 1.0;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: GlassContainer(
                   padding: const EdgeInsets.all(12),
                   borderRadius: BorderRadius.circular(16),
+                  borderColor: allWatched ? AppColors.success.withValues(alpha: 0.3) : null,
                   child: InkWell(
                     onTap: () => context.push(mediaType == 'tv' ? '/show/$tmdbId' : '/movie/$tmdbId'),
                     borderRadius: BorderRadius.circular(16),
@@ -188,7 +192,71 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                             children: [
                               Text(title, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
                               const SizedBox(height: 4),
-                              Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                              Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                              const SizedBox(height: 6),
+                              // Progress bar
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: LinearProgressIndicator(
+                                  value: watchProgress,
+                                  minHeight: 5,
+                                  backgroundColor: AppColors.cardBg(context),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    allWatched ? AppColors.success : AppColors.electricPurple,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              // Stacked avatars + text
+                              Row(
+                                children: [
+                                  if (watchedBy.isNotEmpty)
+                                    SizedBox(
+                                      width: (watchedBy.length.clamp(0, 3) * 16.0) + 16,
+                                      height: 22,
+                                      child: Stack(
+                                        children: [
+                                          for (int i = 0; i < watchedBy.length.clamp(0, 3); i++)
+                                            Positioned(
+                                              left: i * 16.0,
+                                              child: Container(
+                                                width: 22,
+                                                height: 22,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: AppColors.background(context), width: 1.5),
+                                                ),
+                                                child: ClipOval(
+                                                  child: (watchedBy[i]['avatar_url'] as String?)?.isNotEmpty == true
+                                                      ? CachedNetworkImage(
+                                                          imageUrl: watchedBy[i]['avatar_url'],
+                                                          fit: BoxFit.cover,
+                                                          errorWidget: (c, u, e) => Container(
+                                                            color: AppColors.cardBg(context),
+                                                            child: Text((watchedBy[i]['username'] ?? 'U')[0].toUpperCase(), style: TextStyle(fontSize: 8, color: AppColors.text(context))),
+                                                          ),
+                                                        )
+                                                      : Container(
+                                                          color: AppColors.cardBg(context),
+                                                          child: Text((watchedBy[i]['username'] ?? 'U')[0].toUpperCase(), style: TextStyle(fontSize: 8, color: AppColors.text(context))),
+                                                        ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    allWatched ? 'All watched' : '${watchedBy.length}/${state.members.length} watched',
+                                    style: TextStyle(
+                                      color: allWatched ? AppColors.success : AppColors.textMuted(context),
+                                      fontSize: 11,
+                                      fontWeight: allWatched ? FontWeight.w600 : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),

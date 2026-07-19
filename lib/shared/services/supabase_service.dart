@@ -1235,6 +1235,19 @@ class SupabaseService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getPublicCustomLists(String userId) async {
+    try {
+      final response = await _client.from('custom_lists')
+          .select()
+          .eq('user_id', userId)
+          .eq('is_public', true)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getCustomListItems(String listId) async {
     try {
       final response = await _client.from('custom_list_items')
@@ -1242,6 +1255,51 @@ class SupabaseService {
           .eq('list_id', listId)
           .order('added_at', ascending: false);
       return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSharedListItemsWithWatchStatus(String listId) async {
+    try {
+      // Get items
+      final items = await getSharedListItems(listId);
+      // Get members
+      final members = await getSharedListMembers(listId);
+      
+      // For each item, check which members have watched it
+      for (final item in items) {
+        final tmdbId = item['tmdb_id'] as int?;
+        final mediaType = item['media_type'] as String? ?? 'tv';
+        if (tmdbId == null) continue;
+
+        final watchedBy = <Map<String, dynamic>>[];
+        for (final member in members) {
+          final memberId = member['user_id'] as String?;
+          if (memberId == null) continue;
+          
+          try {
+            final history = await _client.from('watch_history')
+                .select('id')
+                .eq('user_id', memberId)
+                .eq('tmdb_id', tmdbId)
+                .eq('media_type', mediaType)
+                .limit(1);
+            if ((history as List).isNotEmpty) {
+              watchedBy.add({
+                'user_id': memberId,
+                'username': member['profiles']?['username'] ?? 'User',
+                'avatar_url': member['profiles']?['avatar_url'],
+              });
+            }
+          } catch (_) {}
+        }
+        
+        item['watched_by'] = watchedBy;
+        item['watch_progress'] = members.isEmpty ? 0.0 : watchedBy.length / members.length;
+      }
+
+      return items;
     } catch (e) {
       return [];
     }

@@ -38,6 +38,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool _isPublic = true;
   bool _isTogglingFollow = false;
   bool _isFollowingMe = false;
+  List<Map<String, dynamic>> _publicCustomLists = [];
 
   @override
   void initState() {
@@ -103,6 +104,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _isFollowingMe = isFollowingMe;
           _isLoading = false;
         });
+      }
+
+      // Load public custom lists in background (non-blocking)
+      if (!_isOwnProfile && (_isPublic || _isFollowing)) {
+        final publicLists = await supabase.getPublicCustomLists(widget.userId);
+        if (mounted && publicLists.isNotEmpty) {
+          setState(() => _publicCustomLists = publicLists);
+        }
       }
 
       // Fetch missing titles in background, then update UI
@@ -591,6 +600,51 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         onSeeAll: () => context.push('/user/${widget.userId}/list/history')),
                       const SizedBox(height: 12),
                       _buildGroupedHistoryCarousel(_groupedWatchHistory),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_publicCustomLists.isNotEmpty) ...[
+                      _buildSectionHeader('Public Lists', Icons.list_rounded, const Color(0xFFFFD93D)),
+                      const SizedBox(height: 12),
+                      ..._publicCustomLists.map((list) {
+                        final listId = list['id'] as String?;
+                        final name = list['name'] ?? 'Untitled';
+                        final desc = list['description'] ?? '';
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: GestureDetector(
+                            onTap: () => context.push('/custom-list/$listId'),
+                            child: GlassContainer(
+                              padding: const EdgeInsets.all(12),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFD93D).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(Icons.list_rounded, color: const Color(0xFFFFD93D), size: 18),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
+                                        if (desc.isNotEmpty)
+                                          Text(desc, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.chevron_right, color: AppColors.textMuted(context), size: 18),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
                       const SizedBox(height: 24),
                     ],
                     if (_watchlist.isEmpty && _favorites.isEmpty && _groupedWatchHistory.isEmpty)
