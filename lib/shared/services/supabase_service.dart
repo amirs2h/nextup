@@ -1089,12 +1089,12 @@ class SupabaseService {
     required String mediaType,
     required String addedBy,
   }) async {
-    await _client.from('shared_list_items').insert({
+    await _client.from('shared_list_items').upsert({
       'list_id': listId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
       'added_by': addedBy,
-    });
+    }, onConflict: 'list_id,tmdb_id,media_type');
   }
 
   Future<void> removeSharedListItem({

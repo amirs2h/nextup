@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/widgets/dialog_helper.dart';
 import '../../domain/custom_lists_cubit.dart';
 import '../../../../shared/services/tmdb_service.dart';
 
@@ -170,27 +171,17 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                 builder: (dialogContext) => AlertDialog(
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  title: const Text('Remove Item'),
-                                  content: Text('Remove "${show.name}" from this list?'),
-                                  actions: [
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(dialogContext),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.surface(context),
-                                        foregroundColor: AppColors.text(context),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                      ),
-                                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(dialogContext);
-                                        context.read<CustomListsCubit>().removeItemFromList(widget.listId, show.id, 'tv');
-                                      },
-                                      child: const Text('Remove', style: TextStyle(color: AppColors.error)),
-                                    ),
-                                  ],
+                                  title: DialogHelper.titleWithIcon(Icons.delete_outline, AppColors.error, 'Remove Item'),
+                                  content: Text('Remove "${show.name}" from this list?', style: TextStyle(color: AppColors.text(context))),
+                                  actions: DialogHelper.cancelDangerActions(
+                                    dialogContext,
+                                    dangerLabel: 'Remove',
+                                    dangerIcon: Icons.delete_outline,
+                                    onDanger: () {
+                                      Navigator.pop(dialogContext);
+                                      context.read<CustomListsCubit>().removeItemFromList(widget.listId, show.id, 'tv');
+                                    },
+                                  ),
                                 ),
                               );
                             },
@@ -245,27 +236,17 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                 builder: (dialogContext) => AlertDialog(
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  title: const Text('Remove Item'),
-                                  content: Text('Remove "${movie.title}" from this list?'),
-                                  actions: [
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(dialogContext),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.surface(context),
-                                        foregroundColor: AppColors.text(context),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                      ),
-                                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(dialogContext);
-                                        context.read<CustomListsCubit>().removeItemFromList(widget.listId, movie.id, 'movie');
-                                      },
-                                      child: const Text('Remove', style: TextStyle(color: AppColors.error)),
-                                    ),
-                                  ],
+                                  title: DialogHelper.titleWithIcon(Icons.delete_outline, AppColors.error, 'Remove Item'),
+                                  content: Text('Remove "${movie.title}" from this list?', style: TextStyle(color: AppColors.text(context))),
+                                  actions: DialogHelper.cancelDangerActions(
+                                    dialogContext,
+                                    dangerLabel: 'Remove',
+                                    dangerIcon: Icons.delete_outline,
+                                    onDanger: () {
+                                      Navigator.pop(dialogContext);
+                                      context.read<CustomListsCubit>().removeItemFromList(widget.listId, movie.id, 'movie');
+                                    },
+                                  ),
                                 ),
                               );
                             },
@@ -298,13 +279,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.surface(context),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.add_circle_outline, color: AppColors.electricPurple),
-              const SizedBox(width: 8),
-              Text('Add Item', style: TextStyle(color: AppColors.text(context))),
-            ],
-          ),
+          title: DialogHelper.titleWithIcon(Icons.add_circle_outline, AppColors.electricPurple, 'Add Item'),
           content: SizedBox(
             width: double.maxFinite,
             child: Column(
@@ -423,12 +398,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
-            ),
-          ],
+          actions: [DialogHelper.cancelButton(dialogContext)],
         ),
       ),
     );
