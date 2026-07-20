@@ -7,6 +7,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/widgets/dialog_helper.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
 import '../../domain/shared_lists_cubit.dart';
@@ -226,13 +227,7 @@ class _SharedListsPageState extends State<SharedListsPage> {
           return AlertDialog(
             backgroundColor: AppColors.surface(context),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              children: [
-                const Icon(Icons.people_alt_rounded, color: AppColors.electricPurple),
-                const SizedBox(width: 8),
-                Text('Create Shared List', style: TextStyle(color: AppColors.text(context))),
-              ],
-            ),
+            title: DialogHelper.titleWithIcon(Icons.people_alt_rounded, AppColors.electricPurple, 'Create Shared List'),
             content: SizedBox(
               width: double.maxFinite,
               child: SingleChildScrollView(
@@ -241,28 +236,10 @@ class _SharedListsPageState extends State<SharedListsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name field
-                    TextField(
-                      controller: nameController,
-                      style: TextStyle(color: AppColors.text(context)),
-                      decoration: InputDecoration(
-                        hintText: 'List name',
-                        hintStyle: TextStyle(color: AppColors.textMuted(context)),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
-                        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
-                      ),
-                    ),
+                    DialogHelper.dialogTextField(controller: nameController, hintText: 'List name', context: context),
                     const SizedBox(height: 12),
                     // Description field
-                    TextField(
-                      controller: descController,
-                      style: TextStyle(color: AppColors.text(context)),
-                      decoration: InputDecoration(
-                        hintText: 'Description (optional)',
-                        hintStyle: TextStyle(color: AppColors.textMuted(context)),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
-                        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
-                      ),
-                    ),
+                    DialogHelper.dialogTextField(controller: descController, hintText: 'Description (optional)', context: context),
                     const SizedBox(height: 20),
                     // Add Members section
                     Text('Add Members', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 14)),
@@ -419,23 +396,20 @@ class _SharedListsPageState extends State<SharedListsPage> {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (nameController.text.isNotEmpty) {
+              Row(
+                children: DialogHelper.cancelConfirmActions(
+                  context,
+                  confirmLabel: 'Create',
+                  confirmIcon: Icons.add_rounded,
+                  onConfirm: nameController.text.isNotEmpty ? () {
                     Navigator.pop(dialogContext);
                     context.read<SharedListsCubit>().createSharedList(
                       name: nameController.text,
                       description: descController.text.isNotEmpty ? descController.text : null,
                       memberIds: _selectedMembers.map((m) => m['id'] as String).toList(),
                     );
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.electricPurple),
-                child: const Text('Create'),
+                  } : null,
+                ),
               ),
             ],
           );

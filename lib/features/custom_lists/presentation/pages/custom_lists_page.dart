@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/widgets/dialog_helper.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/custom_lists_cubit.dart';
 
@@ -215,38 +216,14 @@ class _CustomListsPageState extends State<CustomListsPage> {
         builder: (context, setState) => AlertDialog(
           backgroundColor: AppColors.surface(context),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.playlist_play_rounded, color: AppColors.electricPurple),
-              const SizedBox(width: 8),
-              Text('Create List', style: TextStyle(color: AppColors.text(context))),
-            ],
-          ),
+          title: DialogHelper.titleWithIcon(Icons.playlist_play_rounded, AppColors.electricPurple, 'Create List'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameController,
-                style: TextStyle(color: AppColors.text(context)),
-                decoration: InputDecoration(
-                  hintText: 'List name',
-                  hintStyle: TextStyle(color: AppColors.textMuted(context)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
-                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descController,
-                style: TextStyle(color: AppColors.text(context)),
-                decoration: InputDecoration(
-                  hintText: 'Description (optional)',
-                  hintStyle: TextStyle(color: AppColors.textMuted(context)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
-                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
-                ),
-              ),
-              const SizedBox(height: 16),
+              DialogHelper.dialogTextField(controller: nameController, hintText: 'List name', context: context),
+              const SizedBox(height: 12),
+              DialogHelper.dialogTextField(controller: descController, hintText: 'Description (optional)', context: context),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Icon(isPublic ? Icons.public : Icons.lock_outline, color: AppColors.textMuted(context), size: 20),
@@ -262,23 +239,20 @@ class _CustomListsPageState extends State<CustomListsPage> {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
+            Row(
+              children: DialogHelper.cancelConfirmActions(
+                context,
+                confirmLabel: 'Create',
+                confirmIcon: Icons.add_rounded,
+                onConfirm: nameController.text.isNotEmpty ? () {
                   Navigator.pop(dialogContext);
                   context.read<CustomListsCubit>().createCustomList(
                     name: nameController.text,
                     description: descController.text.isNotEmpty ? descController.text : null,
                     isPublic: isPublic,
                   );
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.electricPurple),
-              child: const Text('Create'),
+                } : null,
+              ),
             ),
           ],
         ),

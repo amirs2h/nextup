@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
+import '../../../../shared/widgets/dialog_helper.dart';
 import '../../../../shared/services/tmdb_service.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/shared_lists_cubit.dart';
@@ -267,25 +268,19 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                               builder: (dialogContext) => AlertDialog(
                                 backgroundColor: AppColors.surface(context),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                title: const Text('Remove Item'),
-                                content: const Text('Remove this item from the list?'),
+                                title: DialogHelper.titleWithIcon(Icons.remove_circle_outline, AppColors.error, 'Remove Item'),
+                                content: Text('Remove "$title" from this list?', style: TextStyle(color: AppColors.textSecondary(context))),
                                 actions: [
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(dialogContext),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.surface(context),
-                                      foregroundColor: AppColors.text(context),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  Row(
+                                    children: DialogHelper.cancelDangerActions(
+                                      context,
+                                      dangerLabel: 'Remove',
+                                      dangerIcon: Icons.delete_outline,
+                                      onDanger: () {
+                                        Navigator.pop(dialogContext);
+                                        context.read<SharedListsCubit>().removeItemFromList(widget.listId, tmdbId, mediaType);
+                                      },
                                     ),
-                                    child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(dialogContext);
-                                      context.read<SharedListsCubit>().removeItemFromList(widget.listId, tmdbId, mediaType);
-                                    },
-                                    child: const Text('Remove', style: TextStyle(color: AppColors.error)),
                                   ),
                                 ],
                               ),
@@ -723,21 +718,20 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete List'),
-        content: const Text('Are you sure? This will permanently delete the list and all its items.'),
+        title: DialogHelper.titleWithIcon(Icons.delete_forever, AppColors.error, 'Delete List'),
+        content: Text('Are you sure? This will permanently delete the list and all its items.', style: TextStyle(color: AppColors.textSecondary(context))),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<SharedListsCubit>().deleteList(widget.listId);
-              context.pop();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete'),
+          Row(
+            children: DialogHelper.cancelDangerActions(
+              context,
+              dangerLabel: 'Delete',
+              dangerIcon: Icons.delete_forever,
+              onDanger: () {
+                Navigator.pop(ctx);
+                context.read<SharedListsCubit>().deleteList(widget.listId);
+                context.pop();
+              },
+            ),
           ),
         ],
       ),
@@ -750,21 +744,20 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Leave List'),
-        content: const Text('You will no longer have access to this list.'),
+        title: DialogHelper.titleWithIcon(Icons.exit_to_app, AppColors.warning, 'Leave List'),
+        content: Text('You will no longer have access to this list.', style: TextStyle(color: AppColors.textSecondary(context))),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<SharedListsCubit>().leaveList(widget.listId);
-              context.pop();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Leave'),
+          Row(
+            children: DialogHelper.cancelDangerActions(
+              context,
+              dangerLabel: 'Leave',
+              dangerIcon: Icons.exit_to_app,
+              onDanger: () {
+                Navigator.pop(ctx);
+                context.read<SharedListsCubit>().leaveList(widget.listId);
+                context.pop();
+              },
+            ),
           ),
         ],
       ),
