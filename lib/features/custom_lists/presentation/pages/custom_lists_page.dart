@@ -199,8 +199,6 @@ class _CustomListsPageState extends State<CustomListsPage> {
               },
             ),
           );
-
-        return const SizedBox();
       },
     );
   }

@@ -365,27 +365,17 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                                 builder: (dialogContext) => AlertDialog(
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  title: const Text('Remove Member'),
-                                  content: const Text('Remove this member from the list?'),
-                                  actions: [
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(dialogContext),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.surface(context),
-                                        foregroundColor: AppColors.text(context),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                      ),
-                                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(dialogContext);
-                                        context.read<SharedListsCubit>().removeMember(widget.listId, userId);
-                                      },
-                                      child: const Text('Remove', style: TextStyle(color: AppColors.error)),
-                                    ),
-                                  ],
+                                  title: DialogHelper.titleWithIcon(Icons.person_remove, AppColors.error, 'Remove Member'),
+                                  content: Text('Remove $username from the list?', style: TextStyle(color: AppColors.text(context))),
+                                  actions: DialogHelper.cancelDangerActions(
+                                    dialogContext,
+                                    dangerLabel: 'Remove',
+                                    dangerIcon: Icons.delete_outline,
+                                    onDanger: () {
+                                      Navigator.pop(dialogContext);
+                                      context.read<SharedListsCubit>().removeMember(widget.listId, userId);
+                                    },
+                                  ),
                                 ),
                               );
                             },
@@ -413,13 +403,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.surface(context),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.person_add, color: AppColors.electricPurple),
-              const SizedBox(width: 8),
-              Text('Add Member', style: TextStyle(color: AppColors.text(context))),
-            ],
-          ),
+          title: DialogHelper.titleWithIcon(Icons.person_add, AppColors.electricPurple, 'Add Member'),
           content: SizedBox(
             width: double.maxFinite,
             child: Column(
@@ -509,12 +493,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
-            ),
-          ],
+          actions: [DialogHelper.cancelButton(dialogContext)],
         ),
       ),
     );
@@ -531,13 +510,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.surface(context),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.add_circle_outline, color: AppColors.electricPurple),
-              const SizedBox(width: 8),
-              Text('Add Item', style: TextStyle(color: AppColors.text(context))),
-            ],
-          ),
+          title: DialogHelper.titleWithIcon(Icons.add_circle_outline, AppColors.electricPurple, 'Add Item'),
           content: SizedBox(
             width: double.maxFinite,
             child: Column(
@@ -650,12 +623,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
-            ),
-          ],
+          actions: [DialogHelper.cancelButton(dialogContext)],
         ),
       ),
     );

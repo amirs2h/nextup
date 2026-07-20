@@ -189,8 +189,6 @@ class _SharedListsPageState extends State<SharedListsPage> {
                           },
                         ),
                       );
-
-                    return const SizedBox();
                   },
                 ),
               ),
