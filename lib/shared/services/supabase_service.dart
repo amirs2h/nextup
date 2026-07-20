@@ -1223,6 +1223,10 @@ class SupabaseService {
         .eq('media_type', mediaType);
   }
 
+  Future<void> deleteCustomList(String listId) async {
+    await _client.from('custom_lists').delete().eq('id', listId);
+  }
+
   Future<List<Map<String, dynamic>>> getCustomLists(String userId) async {
     try {
       final response = await _client.from('custom_lists')

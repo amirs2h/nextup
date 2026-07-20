@@ -49,35 +49,84 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.cardBg(context),
-                border: Border.all(color: AppColors.border(context)),
+    return BlocBuilder<CustomListsCubit, CustomListsState>(
+      builder: (context, state) {
+        String description = '';
+        bool isPublic = false;
+        if (state is CustomListDetailLoaded) {
+          description = state.list['description'] ?? '';
+          isPublic = state.list['is_public'] ?? false;
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => context.pop(),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.cardBg(context),
+                    border: Border.all(color: AppColors.border(context)),
+                  ),
+                  child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 20),
+                ),
               ),
-              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 20),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(widget.listName, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.text(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (isPublic ? AppColors.success : AppColors.electricPurple).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(isPublic ? Icons.public : Icons.lock_outline, size: 12, color: isPublic ? AppColors.success : AppColors.electricPurple),
+                              const SizedBox(width: 4),
+                              Text(isPublic ? 'Public' : 'Private', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isPublic ? AppColors.success : AppColors.electricPurple)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (description.isNotEmpty)
+                      Text(description, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)
+                    else
+                      Text('Custom List', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _showMenuSheet(context),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.cardBg(context),
+                    border: Border.all(color: AppColors.border(context)),
+                  ),
+                  child: Icon(Icons.more_horiz_rounded, color: AppColors.text(context), size: 22),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.listName, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                Text('Custom List', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -106,7 +155,13 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
           );
         }
 
-        if (state is CustomListDetailLoaded) {
+        // Back from show/movie page — state might be CustomListsLoaded, reload
+        if (state is! CustomListDetailLoaded) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.read<CustomListsCubit>().loadCustomListDetail(widget.listId);
+          });
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
           final shows = state.shows;
           final movies = state.movies;
           final totalItems = shows.length + movies.length;
@@ -261,9 +316,6 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
               const SizedBox(height: 100),
             ],
           );
-        }
-
-        return const SizedBox();
       },
     );
   }
@@ -398,7 +450,59 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
               ],
             ),
           ),
-          actions: [DialogHelper.cancelButton(dialogContext)],
+           actions: [DialogHelper.cancelButton(dialogContext)],
+        ),
+      ),
+    );
+  }
+
+  void _showMenuSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted(ctx).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                title: const Text('Delete List', style: TextStyle(color: AppColors.error)),
+                subtitle: Text('This will permanently delete the list and all items', style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteList(context);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteList(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: DialogHelper.titleWithIcon(Icons.delete_forever, AppColors.error, 'Delete List'),
+        content: Text('Are you sure you want to delete "${widget.listName}"? This cannot be undone.', style: TextStyle(color: AppColors.text(context))),
+        actions: DialogHelper.cancelDangerActions(
+          dialogContext,
+          dangerLabel: 'Delete',
+          dangerIcon: Icons.delete_forever,
+          onDanger: () {
+            Navigator.pop(dialogContext);
+            context.read<CustomListsCubit>().deleteList(widget.listId);
+            context.pop();
+          },
         ),
       ),
     );

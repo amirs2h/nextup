@@ -169,4 +169,14 @@ class CustomListsCubit extends Cubit<CustomListsState> {
       emit(CustomListsError('Something went wrong. Please try again.'));
     }
   }
+
+  Future<void> deleteList(String listId) async {
+    try {
+      await _supabaseService.deleteCustomList(listId);
+      await loadCustomLists();
+    } catch (e) {
+      if (isClosed) return;
+      emit(CustomListsError('Failed to delete list. Please try again.'));
+    }
+  }
 }
