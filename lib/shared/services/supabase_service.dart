@@ -1162,6 +1162,17 @@ class SupabaseService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getCommonSharedLists(String targetUserId) async {
+    try {
+      final response = await _client.rpc('get_common_shared_lists', params: {
+        'p_target_user_id': targetUserId,
+      });
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getSharedListItems(String listId) async {
     try {
       final response = await _client.from('shared_list_items')

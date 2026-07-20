@@ -297,7 +297,11 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
           );
         }
 
-        return const SizedBox();
+        // State is SharedListsLoaded (from list page) — reload detail
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.read<SharedListsCubit>().loadSharedListDetail(widget.listId);
+        });
+        return const Center(child: CircularProgressIndicator(color: AppColors.primary));
       },
     );
   }

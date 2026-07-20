@@ -120,12 +120,14 @@ class DialogHelper {
     required BuildContext context,
     int maxLines = 1,
     TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
   }) {
     return TextField(
       controller: controller,
       style: TextStyle(color: AppColors.text(context)),
       maxLines: maxLines,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: AppColors.textMuted(context)),

@@ -218,7 +218,7 @@ class _CustomListsPageState extends State<CustomListsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DialogHelper.dialogTextField(controller: nameController, hintText: 'List name', context: context),
+              DialogHelper.dialogTextField(controller: nameController, hintText: 'List name', context: context, onChanged: (v) => setState(() {})),
               const SizedBox(height: 12),
               DialogHelper.dialogTextField(controller: descController, hintText: 'Description (optional)', context: context),
               const SizedBox(height: 12),

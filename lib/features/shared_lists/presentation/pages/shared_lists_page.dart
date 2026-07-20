@@ -234,7 +234,7 @@ class _SharedListsPageState extends State<SharedListsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name field
-                    DialogHelper.dialogTextField(controller: nameController, hintText: 'List name', context: context),
+                    DialogHelper.dialogTextField(controller: nameController, hintText: 'List name', context: context, onChanged: (v) => setDialogState(() {})),
                     const SizedBox(height: 12),
                     // Description field
                     DialogHelper.dialogTextField(controller: descController, hintText: 'Description (optional)', context: context),
