@@ -15,6 +15,8 @@ import '../../domain/profile_cubit.dart';
 import '../../domain/favorites_cubit.dart';
 import '../../../watchlist/domain/watchlist_cubit.dart';
 import '../../domain/watch_history_cubit.dart';
+import '../../../shared_lists/domain/shared_lists_cubit.dart';
+import '../../../custom_lists/domain/custom_lists_cubit.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -47,6 +49,8 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
       context.read<WatchlistCubit>().loadWatchlist();
       context.read<WatchHistoryCubit>().loadHistory();
       context.read<AchievementsCubit>().loadAchievements();
+      context.read<CustomListsCubit>().loadCustomLists();
+      context.read<SharedListsCubit>().loadSharedLists();
     }
   }
 
@@ -119,6 +123,10 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                             _buildWatchlistCarousel(context),
                             const SizedBox(height: 20),
                             _buildHistoryCarousel(context),
+                            const SizedBox(height: 20),
+                            _buildCustomListsCarousel(context),
+                            const SizedBox(height: 20),
+                            _buildSharedListsCarousel(context),
                             const SizedBox(height: 20),
                             _buildActionButtons(context),
                             const SizedBox(height: 20),
@@ -491,6 +499,130 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildCustomListsCarousel(BuildContext context) {
+    return BlocBuilder<CustomListsCubit, CustomListsState>(
+      builder: (context, state) {
+        if (state is! CustomListsLoaded) return const SizedBox();
+        final lists = state.lists;
+        if (lists.isEmpty) return const SizedBox();
+        return _buildCarouselSection(
+          context,
+          title: 'My Lists',
+          icon: Icons.playlist_play_rounded,
+          color: const Color(0xFF9D4EDD),
+          onSeeAll: () => context.push('/custom-lists'),
+          itemCount: lists.length > 10 ? 10 : lists.length,
+          itemBuilder: (context, index) {
+            final list = lists[index];
+            final name = list['name'] ?? 'Untitled';
+            final description = list['description'] ?? '';
+            final isPublic = list['is_public'] ?? false;
+            final listId = list['id'];
+            return _buildListItem(
+              context,
+              name: name,
+              description: description,
+              icon: isPublic ? Icons.public : Icons.lock_outline,
+              color: const Color(0xFF9D4EDD),
+              onTap: () {
+                if (listId != null) context.push('/custom-list/$listId', extra: name);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSharedListsCarousel(BuildContext context) {
+    return BlocBuilder<SharedListsCubit, SharedListsState>(
+      builder: (context, state) {
+        if (state is! SharedListsLoaded) return const SizedBox();
+        final lists = state.lists;
+        if (lists.isEmpty) return const SizedBox();
+        return _buildCarouselSection(
+          context,
+          title: 'Shared Lists',
+          icon: Icons.people_alt_rounded,
+          color: const Color(0xFF00B4D8),
+          onSeeAll: () => context.push('/shared-lists'),
+          itemCount: lists.length > 10 ? 10 : lists.length,
+          itemBuilder: (context, index) {
+            final listData = lists[index];
+            final list = listData['shared_lists'] ?? listData;
+            final name = list['name'] ?? 'Untitled';
+            final description = list['description'] ?? '';
+            final listId = list['id'];
+            return _buildListItem(
+              context,
+              name: name,
+              description: description,
+              icon: Icons.people_rounded,
+              color: const Color(0xFF00B4D8),
+              onTap: () {
+                if (listId != null) context.push('/shared-list/$listId');
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildListItem(BuildContext context, {required String name, required String description, required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withValues(alpha: 0.15),
+              color.withValues(alpha: 0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              name,
+              style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: TextStyle(color: AppColors.textMuted(context), fontSize: 11),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
