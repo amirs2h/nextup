@@ -106,8 +106,15 @@ class _CustomListsPageState extends State<CustomListsPage> {
           );
         }
 
-        if (state is CustomListsLoaded) {
-          if (state.lists.isEmpty) {
+        // Back from detail page — state is CustomListDetailLoaded, reload list
+        if (state is! CustomListsLoaded) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.read<CustomListsCubit>().loadCustomLists();
+          });
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
+
+        if (state.lists.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -191,7 +198,6 @@ class _CustomListsPageState extends State<CustomListsPage> {
               },
             ),
           );
-        }
 
         return const SizedBox();
       },

@@ -103,8 +103,15 @@ class _SharedListsPageState extends State<SharedListsPage> {
                       );
                     }
 
-                    if (state is SharedListsLoaded) {
-                      if (state.lists.isEmpty) {
+                    // Back from detail page — state is SharedListDetailLoaded, reload list
+                    if (state is! SharedListsLoaded) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _loadLists();
+                      });
+                      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                    }
+
+                    if (state.lists.isEmpty) {
                         return Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -181,7 +188,6 @@ class _SharedListsPageState extends State<SharedListsPage> {
                           },
                         ),
                       );
-                    }
 
                     return const SizedBox();
                   },
