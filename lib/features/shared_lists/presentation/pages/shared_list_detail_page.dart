@@ -297,10 +297,12 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
           );
         }
 
-        // State is SharedListsLoaded (from list page) — reload detail
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) context.read<SharedListsCubit>().loadSharedListDetail(widget.listId);
-        });
+        // State is SharedListsLoaded (from list page) — reload detail only if current route
+        if (ModalRoute.of(context)?.isCurrent ?? false) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.read<SharedListsCubit>().loadSharedListDetail(widget.listId);
+          });
+        }
         return const Center(child: CircularProgressIndicator(color: AppColors.primary));
       },
     );

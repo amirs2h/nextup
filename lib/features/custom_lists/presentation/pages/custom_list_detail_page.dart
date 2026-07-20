@@ -157,9 +157,11 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
 
         // Back from show/movie page — state might be CustomListsLoaded, reload
         if (state is! CustomListDetailLoaded) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) context.read<CustomListsCubit>().loadCustomListDetail(widget.listId);
-          });
+          if (ModalRoute.of(context)?.isCurrent ?? false) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) context.read<CustomListsCubit>().loadCustomListDetail(widget.listId);
+            });
+          }
           return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
           final shows = state.shows;

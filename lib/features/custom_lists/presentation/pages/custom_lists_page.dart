@@ -109,9 +109,11 @@ class _CustomListsPageState extends State<CustomListsPage> {
 
         // Back from detail page — state is CustomListDetailLoaded, reload list
         if (state is! CustomListsLoaded) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) context.read<CustomListsCubit>().loadCustomLists();
-          });
+          if (ModalRoute.of(context)?.isCurrent ?? false) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) context.read<CustomListsCubit>().loadCustomLists();
+            });
+          }
           return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
