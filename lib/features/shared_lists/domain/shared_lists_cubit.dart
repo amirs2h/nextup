@@ -72,35 +72,42 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       final items = await _supabaseService.getSharedListItemsWithWatchStatus(listId);
       final members = await _supabaseService.getSharedListMembers(listId);
       final listData = await _supabaseService.client.from('shared_lists').select().eq('id', listId).maybeSingle();
-      
-      // Fetch TMDB titles for items in parallel
+
+      // Only fetch TMDB data for items missing stored title/poster_path
       final itemsWithTitles = await Future.wait(items.map((item) async {
+        final storedTitle = item['title'] as String?;
+        final storedPoster = item['poster_path'] as String?;
+
+        if (storedTitle != null && storedTitle.isNotEmpty) {
+          return item;
+        }
+
         final tmdbId = item['tmdb_id'] as int;
         final mediaType = item['media_type'] as String;
-        String title = 'Unknown';
-        String? posterPath;
-        
+        String title = storedTitle ?? 'Unknown';
+        String? posterPath = storedPoster;
+
         try {
           if (mediaType == 'tv') {
             final details = await _tmdbService.getShowDetails(tmdbId);
-            title = details['name'] ?? 'Unknown Show';
-            posterPath = details['poster_path'];
+            title = details['name'] ?? title;
+            posterPath = details['poster_path'] ?? posterPath;
           } else {
             final details = await _tmdbService.getMovieDetails(tmdbId);
-            title = details['title'] ?? 'Unknown Movie';
-            posterPath = details['poster_path'];
+            title = details['title'] ?? title;
+            posterPath = details['poster_path'] ?? posterPath;
           }
         } catch (e) {
-          // Keep default title
+          // Keep stored/default values
         }
-        
+
         return {
           ...item,
           'title': title,
           'poster_path': posterPath,
         };
       }));
-      
+
       if (isClosed) return;
       emit(SharedListDetailLoaded(
         list: listData ?? {'id': listId},
@@ -153,7 +160,7 @@ class SharedListsCubit extends Cubit<SharedListsState> {
     }
   }
 
-  Future<void> addItemToList(String listId, int tmdbId, String mediaType) async {
+  Future<void> addItemToList(String listId, int tmdbId, String mediaType, {String? title, String? posterPath}) async {
     final user = _supabaseService.currentUser;
     if (user == null) {
       if (isClosed) return;
@@ -167,6 +174,8 @@ class SharedListsCubit extends Cubit<SharedListsState> {
         tmdbId: tmdbId,
         mediaType: mediaType,
         addedBy: user.id,
+        title: title,
+        posterPath: posterPath,
       );
       await loadSharedListDetail(listId);
     } catch (e) {

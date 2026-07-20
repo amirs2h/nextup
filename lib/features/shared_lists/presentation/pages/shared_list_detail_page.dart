@@ -614,7 +614,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                           subtitle: Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<SharedListsCubit>().addItemToList(widget.listId, tmdbId, mediaType);
+                            context.read<SharedListsCubit>().addItemToList(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
                           },
                         );
                       },

@@ -1088,12 +1088,16 @@ class SupabaseService {
     required int tmdbId,
     required String mediaType,
     required String addedBy,
+    String? title,
+    String? posterPath,
   }) async {
     await _client.from('shared_list_items').upsert({
       'list_id': listId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
       'added_by': addedBy,
+      'title': title,
+      'poster_path': posterPath,
     }, onConflict: 'list_id,tmdb_id,media_type');
   }
 
@@ -1110,9 +1114,7 @@ class SupabaseService {
   }
 
   Future<void> deleteSharedList(String listId) async {
-    // Delete items first, then members, then the list
-    await _client.from('shared_list_items').delete().eq('list_id', listId);
-    await _client.from('shared_list_members').delete().eq('list_id', listId);
+    // ON DELETE CASCADE on shared_list_items and shared_list_members handles cleanup
     await _client.from('shared_lists').delete().eq('id', listId);
   }
 
@@ -1203,11 +1205,15 @@ class SupabaseService {
     required String listId,
     required int tmdbId,
     required String mediaType,
+    String? title,
+    String? posterPath,
   }) async {
     await _client.from('custom_list_items').upsert({
       'list_id': listId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
+      'title': title,
+      'poster_path': posterPath,
     }, onConflict: 'list_id,tmdb_id,media_type');
   }
 
@@ -1266,12 +1272,39 @@ class SupabaseService {
 
   Future<List<Map<String, dynamic>>> getSharedListItemsWithWatchStatus(String listId) async {
     try {
-      // Get items
-      final items = await getSharedListItems(listId);
-      // Get members
-      final members = await getSharedListMembers(listId);
-      
-      // For each item, check which members have watched it
+      // Get items and members in parallel
+      final results = await Future.wait([
+        getSharedListItems(listId),
+        getSharedListMembers(listId),
+      ]);
+      final items = results[0];
+      final members = results[1];
+
+      if (items.isEmpty || members.isEmpty) {
+        for (final item in items) {
+          item['watched_by'] = <Map<String, dynamic>>[];
+          item['watch_progress'] = 0.0;
+        }
+        return items;
+      }
+
+      // Batch query: get all watch_history records for all members × all items in ONE query
+      final memberIds = members.map((m) => m['user_id'] as String).toList();
+      final tmdbIds = items.map((i) => i['tmdb_id'] as int).toList();
+
+      final historyResponse = await _client.from('watch_history')
+          .select('user_id, tmdb_id, media_type')
+          .inFilter('user_id', memberIds)
+          .inFilter('tmdb_id', tmdbIds);
+
+      // Build a set for O(1) lookup: "userId|tmdbId|mediaType"
+      final watchedSet = <String>{};
+      for (final record in historyResponse as List) {
+        final key = '${record['user_id']}|${record['tmdb_id']}|${record['media_type']}';
+        watchedSet.add(key);
+      }
+
+      // Match results in-memory
       for (final item in items) {
         final tmdbId = item['tmdb_id'] as int?;
         final mediaType = item['media_type'] as String? ?? 'tv';
@@ -1281,24 +1314,17 @@ class SupabaseService {
         for (final member in members) {
           final memberId = member['user_id'] as String?;
           if (memberId == null) continue;
-          
-          try {
-            final history = await _client.from('watch_history')
-                .select('id')
-                .eq('user_id', memberId)
-                .eq('tmdb_id', tmdbId)
-                .eq('media_type', mediaType)
-                .limit(1);
-            if ((history as List).isNotEmpty) {
-              watchedBy.add({
-                'user_id': memberId,
-                'username': member['profiles']?['username'] ?? 'User',
-                'avatar_url': member['profiles']?['avatar_url'],
-              });
-            }
-          } catch (_) {}
+
+          final key = '$memberId|$tmdbId|$mediaType';
+          if (watchedSet.contains(key)) {
+            watchedBy.add({
+              'user_id': memberId,
+              'username': member['profiles']?['username'] ?? 'User',
+              'avatar_url': member['profiles']?['avatar_url'],
+            });
+          }
         }
-        
+
         item['watched_by'] = watchedBy;
         item['watch_progress'] = members.isEmpty ? 0.0 : watchedBy.length / members.length;
       }

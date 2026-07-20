@@ -73,19 +73,34 @@ class CustomListsCubit extends Cubit<CustomListsState> {
     try {
       final items = await _supabaseService.getCustomListItems(listId);
       final listData = await _supabaseService.client.from('custom_lists').select().eq('id', listId).maybeSingle();
-      
+
       List<ShowModel> shows = [];
       List<MovieModel> movies = [];
 
       if (items.isNotEmpty) {
         final futures = items.map((item) async {
-          try {
-            if (item['media_type'] == 'tv') {
-              final data = await _tmdbService.getShowDetails(item['tmdb_id']);
-              return {'type': 'tv', 'data': data};
+          final storedTitle = item['title'] as String?;
+          final storedPoster = item['poster_path'] as String?;
+          final tmdbId = item['tmdb_id'] as int;
+          final mediaType = item['media_type'] as String?;
+
+          // Use stored title/poster if available (no API call needed)
+          if (storedTitle != null && storedTitle.isNotEmpty) {
+            if (mediaType == 'tv') {
+              return {'type': 'tv', 'model': ShowModel(id: tmdbId, name: storedTitle, posterPath: storedPoster)};
             } else {
-              final data = await _tmdbService.getMovieDetails(item['tmdb_id']);
-              return {'type': 'movie', 'data': data};
+              return {'type': 'movie', 'model': MovieModel(id: tmdbId, title: storedTitle, posterPath: storedPoster)};
+            }
+          }
+
+          // Fallback: fetch from TMDB for old items without stored data
+          try {
+            if (mediaType == 'tv') {
+              final data = await _tmdbService.getShowDetails(tmdbId);
+              return {'type': 'tv', 'model': ShowModel.fromJson(data)};
+            } else {
+              final data = await _tmdbService.getMovieDetails(tmdbId);
+              return {'type': 'movie', 'model': MovieModel.fromJson(data)};
             }
           } catch (e) {
             return null;
@@ -96,9 +111,9 @@ class CustomListsCubit extends Cubit<CustomListsState> {
         for (final result in results) {
           if (result == null) continue;
           if (result['type'] == 'tv') {
-            shows.add(ShowModel.fromJson(result['data'] as Map<String, dynamic>));
+            shows.add(result['model'] as ShowModel);
           } else {
-            movies.add(MovieModel.fromJson(result['data'] as Map<String, dynamic>));
+            movies.add(result['model'] as MovieModel);
           }
         }
       }
@@ -142,12 +157,14 @@ class CustomListsCubit extends Cubit<CustomListsState> {
     }
   }
 
-  Future<void> addItemToList(String listId, int tmdbId, String mediaType) async {
+  Future<void> addItemToList(String listId, int tmdbId, String mediaType, {String? title, String? posterPath}) async {
     try {
       await _supabaseService.addCustomListItem(
         listId: listId,
         tmdbId: tmdbId,
         mediaType: mediaType,
+        title: title,
+        posterPath: posterPath,
       );
       await loadCustomListDetail(listId);
     } catch (e) {

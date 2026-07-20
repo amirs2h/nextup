@@ -441,7 +441,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                           subtitle: Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<CustomListsCubit>().addItemToList(widget.listId, tmdbId, mediaType);
+                            context.read<CustomListsCubit>().addItemToList(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
                           },
                         );
                       },
