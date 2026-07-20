@@ -114,19 +114,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
         }
       }
 
-      // Fetch missing titles in background, update UI after each list
-      await _fetchMissingTitles(watchlist);
-      if (mounted) setState(() {}); // Refresh watchlist carousel
-
-      await _fetchMissingTitles(favorites);
-      if (mounted) setState(() {}); // Refresh favorites carousel
-
-      await _fetchMissingTitles(watchHistory);
-      if (mounted) {
-        setState(() {
-          _groupedWatchHistory = _groupWatchHistory(watchHistory);
-        });
-      }
+      // Fetch missing titles in parallel, update UI as each completes
+      await Future.wait([
+        _fetchMissingTitles(watchlist).then((_) {
+          if (mounted) setState(() {});
+        }),
+        _fetchMissingTitles(favorites).then((_) {
+          if (mounted) setState(() {});
+        }),
+        _fetchMissingTitles(watchHistory).then((_) {
+          if (mounted) {
+            setState(() {
+              _groupedWatchHistory = _groupWatchHistory(watchHistory);
+            });
+          }
+        }),
+      ]);
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }

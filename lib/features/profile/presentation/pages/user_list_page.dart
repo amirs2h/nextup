@@ -163,7 +163,7 @@ class _UserListPageState extends State<UserListPage> {
 
   Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
     final tmdb = context.read<TmdbService>();
-    final needFetch = items.where((i) => i['title'] == null || (i['title'] as String).isEmpty).take(15).toList();
+    final needFetch = items.where((i) => i['title'] == null || (i['title'] as String).isEmpty).toList();
     if (needFetch.isEmpty) return;
 
     final futures = needFetch.map((item) async {
@@ -173,17 +173,17 @@ class _UserListPageState extends State<UserListPage> {
         final mediaType = item['media_type'] as String? ?? 'tv';
         if (mediaType == 'tv') {
           final data = await tmdb.getShowDetails(tmdbId).timeout(const Duration(seconds: 5));
-          item['title'] = data['name'] ?? 'Unknown';
+          item['title'] = data['name'];
           item['poster_path'] = item['poster_path'] ?? data['poster_path'];
           item['vote_average'] = data['vote_average'];
         } else {
           final data = await tmdb.getMovieDetails(tmdbId).timeout(const Duration(seconds: 5));
-          item['title'] = data['title'] ?? 'Unknown';
+          item['title'] = data['title'];
           item['poster_path'] = item['poster_path'] ?? data['poster_path'];
           item['vote_average'] = data['vote_average'];
         }
       } catch (e) {
-        item['title'] = 'Unknown';
+        // Don't set 'Unknown' — leave null so it can be retried next load
       }
     }).toList();
 
