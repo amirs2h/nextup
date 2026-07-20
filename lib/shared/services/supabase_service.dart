@@ -1066,11 +1066,11 @@ class SupabaseService {
     required String userId,
     String role = 'member',
   }) async {
-    await _client.from('shared_list_members').insert({
+    await _client.from('shared_list_members').upsert({
       'list_id': listId,
       'user_id': userId,
       'role': role,
-    });
+    }, onConflict: 'list_id,user_id');
   }
 
   Future<void> removeSharedListMember({
@@ -1204,11 +1204,11 @@ class SupabaseService {
     required int tmdbId,
     required String mediaType,
   }) async {
-    await _client.from('custom_list_items').insert({
+    await _client.from('custom_list_items').upsert({
       'list_id': listId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
-    });
+    }, onConflict: 'list_id,tmdb_id,media_type');
   }
 
   Future<void> removeCustomListItem({

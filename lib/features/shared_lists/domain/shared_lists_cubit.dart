@@ -139,6 +139,7 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       );
 
       for (final memberId in memberIds) {
+        if (memberId == user.id) continue;
         await _supabaseService.addSharedListMember(
           listId: listId,
           userId: memberId,
