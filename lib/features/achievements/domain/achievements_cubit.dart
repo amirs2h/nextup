@@ -267,6 +267,139 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     }
   }
 
+  Future<AchievementsLoaded> calculateForUser(String userId) async {
+    final results = await Future.wait([
+      _supabaseService.getWatchHistory(userId: userId),
+      _supabaseService.getWatchlist(userId: userId),
+      _supabaseService.getFavorites(userId: userId),
+    ]);
+
+    final history = results[0] as List<Map<String, dynamic>>;
+    final watchlist = results[1] as List<Map<String, dynamic>>;
+    final favorites = results[2] as List<Map<String, dynamic>>;
+
+    int totalShows = 0;
+    int totalMovies = 0;
+    int totalEpisodes = 0;
+    Set<String> showIds = {};
+    Set<String> movieIds = {};
+    Set<String> activeDays = {};
+    Map<String, int> genreCounts = {};
+    Map<String, int> countryCounts = {};
+
+    for (final item in history) {
+      if (item['media_type'] == 'tv') {
+        showIds.add(item['tmdb_id'].toString());
+        if (item['episode_number'] != null) totalEpisodes++;
+      } else {
+        movieIds.add(item['tmdb_id'].toString());
+      }
+      if (item['watched_at'] != null) {
+        final date = DateTime.tryParse(item['watched_at']);
+        if (date != null) {
+          activeDays.add('${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}');
+        }
+      }
+    }
+
+    totalShows = showIds.length;
+    totalMovies = movieIds.length;
+    final totalHours = (totalEpisodes * 45 + totalMovies * 120) ~/ 60;
+
+    final sortedDays = activeDays.toList()..sort();
+    int longestStreak = 0;
+    int tempStreak = 1;
+    for (int i = 1; i < sortedDays.length; i++) {
+      final prev = DateTime.parse(sortedDays[i - 1]);
+      final curr = DateTime.parse(sortedDays[i]);
+      if (curr.difference(prev).inDays == 1) {
+        tempStreak++;
+      } else {
+        if (tempStreak > longestStreak) longestStreak = tempStreak;
+        tempStreak = 1;
+      }
+    }
+    if (tempStreak > longestStreak) longestStreak = tempStreak;
+
+    final now = DateTime.now();
+    int currentStreak = 0;
+    for (int i = 0; i < 365; i++) {
+      final checkDate = now.subtract(Duration(days: i));
+      final checkKey = '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
+      if (activeDays.contains(checkKey)) {
+        currentStreak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    final recentItems = history.take(20).toList();
+    for (final item in recentItems) {
+      try {
+        final tmdbId = item['tmdb_id'] as int;
+        final mediaType = item['media_type'] as String;
+        Map<String, dynamic> data;
+        if (mediaType == 'tv') {
+          data = await _tmdbService.getShowDetails(tmdbId);
+        } else {
+          data = await _tmdbService.getMovieDetails(tmdbId);
+        }
+        final genres = (data['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? [];
+        for (final genre in genres) {
+          genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+        }
+        final originCountries = (data['origin_country'] as List?)?.map((c) => c.toString()).toList() ?? [];
+        for (final country in originCountries) {
+          countryCounts[country] = (countryCounts[country] ?? 0) + 1;
+        }
+      } catch (e) {}
+    }
+
+    bool isNightOwl = false;
+    bool isEarlyBird = false;
+    for (final item in history) {
+      if (item['watched_at'] != null) {
+        final date = DateTime.tryParse(item['watched_at']);
+        if (date != null) {
+          if (date.hour >= 0 && date.hour < 4) isNightOwl = true;
+          if (date.hour >= 5 && date.hour < 7) isEarlyBird = true;
+        }
+      }
+    }
+
+    final achievements = _getAchievements(
+      shows: totalShows,
+      movies: totalMovies,
+      episodes: totalEpisodes,
+      hours: totalHours,
+      currentStreak: currentStreak,
+      longestStreak: longestStreak,
+      isNightOwl: isNightOwl,
+      isEarlyBird: isEarlyBird,
+      genreCounts: genreCounts,
+      countryCounts: countryCounts,
+      watchlistCount: watchlist.length,
+      favoriteCount: favorites.length,
+    );
+
+    final totalXp = achievements.where((a) => a.isUnlocked).fold(0, (sum, a) => sum + a.xpReward);
+    final level = (totalXp / 100).floor() + 1;
+    final currentXp = totalXp % 100;
+
+    return AchievementsLoaded(
+      achievements: achievements,
+      totalShows: totalShows,
+      totalMovies: totalMovies,
+      totalEpisodes: totalEpisodes,
+      totalHours: totalHours,
+      level: level,
+      currentXp: currentXp,
+      xpToNextLevel: 100,
+      longestStreak: longestStreak,
+      currentStreak: currentStreak,
+    );
+  }
+
   List<Achievement> _getAchievements({
     required int shows,
     required int movies,

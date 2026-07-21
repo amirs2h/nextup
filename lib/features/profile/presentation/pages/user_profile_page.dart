@@ -9,8 +9,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
-import '../../../auth/domain/auth_cubit.dart';
-import '../../../../shared/services/supabase_service.dart';
+import '../../../auth/domain/auth_cubit.dart';import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/services/tmdb_service.dart';
 
 class UserProfilePage extends StatefulWidget {
@@ -39,9 +38,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool _isFollowingMe = false;
   List<Map<String, dynamic>> _publicCustomLists = [];
   List<Map<String, dynamic>> _commonSharedLists = [];
-  int _userLevel = 1;
-  int _userCurrentXp = 0;
-  int _userXpToNext = 100;
+  AchievementsLoaded? _otherUserAchievements;
 
   @override
   void initState() {
@@ -89,22 +86,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
       // Group watch history by tmdb_id
       final groupedHistory = _groupWatchHistory(watchHistory);
 
-      // Calculate simplified level/XP from activity
-      int totalShows = 0;
-      int totalMovies = 0;
-      int totalEpisodes = 0;
-      for (final item in watchHistory) {
-        if (item['media_type'] == 'tv') {
-          totalShows++;
-          if (item['episode_number'] != null) totalEpisodes++;
-        } else {
-          totalMovies++;
-        }
-      }
-      final totalXp = (totalShows * 50) + (totalMovies * 30) + (totalEpisodes * 10) + (watchlist.length * 5) + (favorites.length * 5);
-      final level = (totalXp / 100).floor() + 1;
-      final currentXp = totalXp % 100;
-
       // Show profile immediately — don't wait for missing titles
       if (mounted) {
         setState(() {
@@ -121,23 +102,24 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _isFollowing = isFollowing;
           _isFollowingMe = isFollowingMe;
           _isLoading = false;
-          _userLevel = level;
-          _userCurrentXp = currentXp;
-          _userXpToNext = 100;
         });
       }
 
-      // Load public custom lists + common shared lists in parallel (non-blocking)
+      // Load public custom lists + common shared lists + achievements in parallel (non-blocking)
       if (!_isOwnProfile && (_isPublic || _isFollowing)) {
+        final achievementsCubit = context.read<AchievementsCubit>();
         final listResults = await Future.wait([
           supabase.getPublicCustomLists(widget.userId),
           supabase.getCommonSharedLists(widget.userId),
+          achievementsCubit.calculateForUser(widget.userId),
         ]);
         if (mounted) {
           final publicLists = listResults[0] as List<Map<String, dynamic>>;
           final sharedLists = listResults[1] as List<Map<String, dynamic>>;
+          final achievements = listResults[2] as AchievementsLoaded;
           if (publicLists.isNotEmpty) setState(() => _publicCustomLists = publicLists);
           if (sharedLists.isNotEmpty) setState(() => _commonSharedLists = sharedLists);
+          setState(() => _otherUserAchievements = achievements);
         }
       }
 
@@ -435,8 +417,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         return _buildLevelBadgesCard(level, currentXp, xpToNext, displayBadges);
                       },
                     )
-                  else
-                    _buildLevelBadgesCard(_userLevel, _userCurrentXp, _userXpToNext, []),
+                  else if (_otherUserAchievements != null) ...[
+                    () {
+                      final ach = _otherUserAchievements!;
+                      final topBadges = ach.achievements.where((a) => a.isUnlocked).toList()
+                        ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
+                      final displayBadges = topBadges.take(3).toList();
+                      return _buildLevelBadgesCard(ach.level, ach.currentXp, ach.xpToNextLevel, displayBadges);
+                    }(),
+                  ],
                 ],
               ),
             ),
@@ -756,7 +745,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Widget _buildLevelBadgesCard(int level, int currentXp, int xpToNext, List<Achievement> displayBadges) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: GlassContainer(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         borderRadius: BorderRadius.circular(20),
