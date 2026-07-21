@@ -408,22 +408,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         final level = achState.level;
                         final currentXp = achState.currentXp;
                         final xpToNext = achState.xpToNextLevel;
-                        final topBadges = achState.achievements.where((a) => a.isUnlocked).toList()
+                        final allBadges = achState.achievements.where((a) => a.isUnlocked).toList()
                           ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
-                        final displayBadges = topBadges.take(3).toList();
 
-                        if (displayBadges.isEmpty) return const SizedBox();
+                        if (allBadges.isEmpty) return const SizedBox();
 
-                        return _buildLevelBadgesCard(level, currentXp, xpToNext, displayBadges);
+                        return _buildLevelBadgesCard(level, currentXp, xpToNext, allBadges);
                       },
                     )
                   else if (_otherUserAchievements != null) ...[
                     () {
                       final ach = _otherUserAchievements!;
-                      final topBadges = ach.achievements.where((a) => a.isUnlocked).toList()
+                      final allBadges = ach.achievements.where((a) => a.isUnlocked).toList()
                         ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
-                      final displayBadges = topBadges.take(3).toList();
-                      return _buildLevelBadgesCard(ach.level, ach.currentXp, ach.xpToNextLevel, displayBadges);
+                      return _buildLevelBadgesCard(ach.level, ach.currentXp, ach.xpToNextLevel, allBadges);
                     }(),
                   ],
                 ],
@@ -792,30 +790,35 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ),
             if (displayBadges.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: displayBadges.map((badge) {
-                  return GestureDetector(
-                    onTap: _isOwnProfile ? () => context.push('/achievements') : null,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: badge.color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: badge.color.withValues(alpha: 0.3), width: 1),
+              SizedBox(
+                height: 32,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: displayBadges.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final badge = displayBadges[index];
+                    return GestureDetector(
+                      onTap: _isOwnProfile ? () => context.push('/achievements') : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: badge.color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: badge.color.withValues(alpha: 0.3), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(badge.icon, color: badge.color, size: 13),
+                            const SizedBox(width: 5),
+                            Text(badge.title, style: TextStyle(color: badge.color, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(badge.icon, color: badge.color, size: 13),
-                          const SizedBox(width: 5),
-                          Text(badge.title, style: TextStyle(color: badge.color, fontSize: 11, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  },
+                ),
               ),
             ],
           ],
