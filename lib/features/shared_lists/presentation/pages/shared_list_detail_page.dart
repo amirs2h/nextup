@@ -334,13 +334,16 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                   final username = member['profiles']?['username'] ?? 'User';
                   final role = member['role'] ?? 'member';
                   final userId = member['user_id'];
+                  final avatarUrl = member['profiles']?['avatar_url'] as String?;
                   return SimpleDialogOption(
                     child: Row(
                       children: [
                         CircleAvatar(
-                          radius: 16,
+                          radius: 18,
                           backgroundColor: role == 'admin' ? AppColors.electricPurple : AppColors.cardBg(context),
-                          child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                          child: avatarUrl != null && avatarUrl.isNotEmpty
+                              ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, width: 36, height: 36, errorWidget: (c, u, e) => Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)))))
+                              : Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: TextStyle(color: role == 'admin' ? Colors.white : AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold))),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

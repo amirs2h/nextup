@@ -792,29 +792,25 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ),
             if (displayBadges.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: displayBadges.map((badge) {
                   return GestureDetector(
                     onTap: _isOwnProfile ? () => context.push('/achievements') : null,
                     child: Container(
-                      width: 56,
-                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: badge.color.withValues(alpha: 0.15),
-                        border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
-                        boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 3))],
+                        color: badge.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: badge.color.withValues(alpha: 0.3), width: 1),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(badge.icon, color: badge.color, size: 20),
-                          const SizedBox(height: 2),
-                          Text(
-                            badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
-                            style: const TextStyle(fontSize: 9),
-                          ),
+                          Icon(badge.icon, color: badge.color, size: 13),
+                          const SizedBox(width: 5),
+                          Text(badge.title, style: TextStyle(color: badge.color, fontSize: 11, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),

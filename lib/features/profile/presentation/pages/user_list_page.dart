@@ -563,26 +563,25 @@ class _UserListPageState extends State<UserListPage> {
                       ),
                     ),
                   ),
-                // Status badge (bottom)
+                // Status tag (bottom)
                 if (status != null && widget.listType == 'watchlist')
                   Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
+                    bottom: 6,
+                    left: 6,
+                    right: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, _getStatusColor(status).withValues(alpha: 0.9)],
-                        ),
-                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(12), bottomRight: Radius.circular(12)),
+                        color: _getStatusColor(status).withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [BoxShadow(color: _getStatusColor(status).withValues(alpha: 0.4), blurRadius: 6, offset: const Offset(0, 2))],
                       ),
                       child: Text(
                         _getStatusLabel(status),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -593,7 +592,7 @@ class _UserListPageState extends State<UserListPage> {
           Text(
             title,
             style: TextStyle(color: AppColors.text(context), fontSize: 12, fontWeight: FontWeight.w500),
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           if (addedAt != null)
