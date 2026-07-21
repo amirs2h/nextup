@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
-import '../../../shared/services/tmdb_service.dart';
 
 // States
 abstract class SharedListsState extends Equatable {
@@ -21,16 +20,6 @@ class SharedListsLoaded extends SharedListsState {
   List<Object?> get props => [lists];
 }
 
-class SharedListDetailLoaded extends SharedListsState {
-  final Map<String, dynamic> list;
-  final List<Map<String, dynamic>> items;
-  final List<Map<String, dynamic>> members;
-  SharedListDetailLoaded({required this.list, required this.items, required this.members});
-
-  @override
-  List<Object?> get props => [list, items, members];
-}
-
 class SharedListsError extends SharedListsState {
   final String message;
   SharedListsError(this.message);
@@ -39,12 +28,11 @@ class SharedListsError extends SharedListsState {
   List<Object?> get props => [message];
 }
 
-// Cubit
+// Cubit — singleton, only manages list of shared lists
 class SharedListsCubit extends Cubit<SharedListsState> {
   final SupabaseService _supabaseService;
-  final TmdbService _tmdbService;
 
-  SharedListsCubit(this._supabaseService, this._tmdbService) : super(SharedListsInitial());
+  SharedListsCubit(this._supabaseService) : super(SharedListsInitial());
 
   Future<void> loadSharedLists() async {
     if (isClosed) return;
@@ -59,61 +47,6 @@ class SharedListsCubit extends Cubit<SharedListsState> {
 
       final lists = await _supabaseService.getSharedLists(user.id);
       if (!isClosed) emit(SharedListsLoaded(lists: lists));
-    } catch (e) {
-      if (isClosed) return;
-      emit(SharedListsError('Something went wrong. Please try again.'));
-    }
-  }
-
-  Future<void> loadSharedListDetail(String listId) async {
-    if (isClosed) return;
-    emit(SharedListsLoading());
-    try {
-      final items = await _supabaseService.getSharedListItemsWithWatchStatus(listId);
-      final members = await _supabaseService.getSharedListMembers(listId);
-      final listData = await _supabaseService.client.from('shared_lists').select().eq('id', listId).maybeSingle();
-
-      // Only fetch TMDB data for items missing stored title/poster_path
-      final itemsWithTitles = await Future.wait(items.map((item) async {
-        final storedTitle = item['title'] as String?;
-        final storedPoster = item['poster_path'] as String?;
-
-        if (storedTitle != null && storedTitle.isNotEmpty) {
-          return item;
-        }
-
-        final tmdbId = item['tmdb_id'] as int;
-        final mediaType = item['media_type'] as String;
-        String title = storedTitle ?? 'Unknown';
-        String? posterPath = storedPoster;
-
-        try {
-          if (mediaType == 'tv') {
-            final details = await _tmdbService.getShowDetails(tmdbId);
-            title = details['name'] ?? title;
-            posterPath = details['poster_path'] ?? posterPath;
-          } else {
-            final details = await _tmdbService.getMovieDetails(tmdbId);
-            title = details['title'] ?? title;
-            posterPath = details['poster_path'] ?? posterPath;
-          }
-        } catch (e) {
-          // Keep stored/default values
-        }
-
-        return {
-          ...item,
-          'title': title,
-          'poster_path': posterPath,
-        };
-      }));
-
-      if (isClosed) return;
-      emit(SharedListDetailLoaded(
-        list: listData ?? {'id': listId},
-        items: itemsWithTitles,
-        members: members,
-      ));
     } catch (e) {
       if (isClosed) return;
       emit(SharedListsError('Something went wrong. Please try again.'));
@@ -154,70 +87,6 @@ class SharedListsCubit extends Cubit<SharedListsState> {
       }
 
       await loadSharedLists();
-    } catch (e) {
-      if (isClosed) return;
-      emit(SharedListsError('Something went wrong. Please try again.'));
-    }
-  }
-
-  Future<void> addItemToList(String listId, int tmdbId, String mediaType, {String? title, String? posterPath}) async {
-    final user = _supabaseService.currentUser;
-    if (user == null) {
-      if (isClosed) return;
-      emit(SharedListsError('Please login to add items'));
-      return;
-    }
-
-    try {
-      await _supabaseService.addSharedListItem(
-        listId: listId,
-        tmdbId: tmdbId,
-        mediaType: mediaType,
-        addedBy: user.id,
-        title: title,
-        posterPath: posterPath,
-      );
-      await loadSharedListDetail(listId);
-    } catch (e) {
-      if (isClosed) return;
-      emit(SharedListsError('Something went wrong. Please try again.'));
-    }
-  }
-
-  Future<void> removeItemFromList(String listId, int tmdbId, String mediaType) async {
-    try {
-      await _supabaseService.removeSharedListItem(
-        listId: listId,
-        tmdbId: tmdbId,
-        mediaType: mediaType,
-      );
-      await loadSharedListDetail(listId);
-    } catch (e) {
-      if (isClosed) return;
-      emit(SharedListsError('Something went wrong. Please try again.'));
-    }
-  }
-
-  Future<void> addMember(String listId, String userId) async {
-    try {
-      await _supabaseService.addSharedListMember(
-        listId: listId,
-        userId: userId,
-      );
-      await loadSharedListDetail(listId);
-    } catch (e) {
-      if (isClosed) return;
-      emit(SharedListsError('Something went wrong. Please try again.'));
-    }
-  }
-
-  Future<void> removeMember(String listId, String userId) async {
-    try {
-      await _supabaseService.removeSharedListMember(
-        listId: listId,
-        userId: userId,
-      );
-      await loadSharedListDetail(listId);
     } catch (e) {
       if (isClosed) return;
       emit(SharedListsError('Something went wrong. Please try again.'));

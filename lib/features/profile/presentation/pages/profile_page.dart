@@ -505,14 +505,6 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   Widget _buildCustomListsCarousel(BuildContext context) {
     return BlocBuilder<CustomListsCubit, CustomListsState>(
       builder: (context, state) {
-        if (state is CustomListDetailLoaded) {
-          if (ModalRoute.of(context)?.isCurrent ?? false) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) context.read<CustomListsCubit>().loadCustomLists();
-            });
-          }
-          return const SizedBox();
-        }
         if (state is! CustomListsLoaded) return const SizedBox();
         final lists = state.lists;
         if (lists.isEmpty) return const SizedBox();
@@ -548,14 +540,6 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   Widget _buildSharedListsCarousel(BuildContext context) {
     return BlocBuilder<SharedListsCubit, SharedListsState>(
       builder: (context, state) {
-        if (state is SharedListDetailLoaded) {
-          if (ModalRoute.of(context)?.isCurrent ?? false) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) context.read<SharedListsCubit>().loadSharedLists();
-            });
-          }
-          return const SizedBox();
-        }
         if (state is! SharedListsLoaded) return const SizedBox();
         final lists = state.lists;
         if (lists.isEmpty) return const SizedBox();

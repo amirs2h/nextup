@@ -18,8 +18,10 @@ import '../../features/movie/presentation/pages/movie_detail_page.dart';
 import '../../features/watchlist/presentation/pages/watchlist_page.dart';
 import '../../features/shared_lists/presentation/pages/shared_lists_page.dart';
 import '../../features/shared_lists/presentation/pages/shared_list_detail_page.dart';
+import '../../features/shared_lists/domain/shared_list_detail_cubit.dart';
 import '../../features/custom_lists/presentation/pages/custom_lists_page.dart';
 import '../../features/custom_lists/presentation/pages/custom_list_detail_page.dart';
+import '../../features/custom_lists/domain/custom_list_detail_cubit.dart';
 import '../../features/rankings/presentation/pages/rankings_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/discover/presentation/pages/discover_page.dart';
@@ -42,6 +44,8 @@ import '../../features/profile/presentation/pages/user_list_page.dart';
 import '../../features/profile/presentation/pages/watch_history_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../shared/widgets/main_scaffold.dart';
+import '../../shared/services/supabase_service.dart';
+import '../../shared/services/tmdb_service.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -201,7 +205,13 @@ class AppRouter {
         builder: (context, state) {
           final listId = state.pathParameters['listId']!;
           final listName = state.extra as String? ?? 'Shared List';
-          return SharedListDetailPage(listId: listId, listName: listName);
+          return BlocProvider(
+            create: (context) => SharedListDetailCubit(
+              context.read<SupabaseService>(),
+              context.read<TmdbService>(),
+            )..loadDetail(listId),
+            child: SharedListDetailPage(listId: listId, listName: listName),
+          );
         },
       ),
       GoRoute(path: '/custom-lists', builder: (context, state) => const CustomListsPage()),
@@ -210,7 +220,13 @@ class AppRouter {
         builder: (context, state) {
           final listId = state.pathParameters['listId']!;
           final listName = state.extra as String? ?? 'Custom List';
-          return CustomListDetailPage(listId: listId, listName: listName);
+          return BlocProvider(
+            create: (context) => CustomListDetailCubit(
+              context.read<SupabaseService>(),
+              context.read<TmdbService>(),
+            )..loadDetail(listId),
+            child: CustomListDetailPage(listId: listId, listName: listName),
+          );
         },
       ),
       GoRoute(path: '/rankings', builder: (context, state) => const RankingsPage()),

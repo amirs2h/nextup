@@ -104,13 +104,11 @@ class _SharedListsPageState extends State<SharedListsPage> {
                       );
                     }
 
-                    // Back from detail page — state is SharedListDetailLoaded, reload list
+                    // Back from detail page — reload list
                     if (state is! SharedListsLoaded) {
-                      if (ModalRoute.of(context)?.isCurrent ?? false) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) _loadLists();
-                        });
-                      }
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _loadLists();
+                      });
                       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
                     }
 

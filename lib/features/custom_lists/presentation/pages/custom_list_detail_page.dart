@@ -7,6 +7,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/dialog_helper.dart';
+import '../../domain/custom_list_detail_cubit.dart';
 import '../../domain/custom_lists_cubit.dart';
 import '../../../../shared/services/tmdb_service.dart';
 
@@ -20,12 +21,6 @@ class CustomListDetailPage extends StatefulWidget {
 }
 
 class _CustomListDetailPageState extends State<CustomListDetailPage> {
-  @override
-  void initState() {
-    super.initState();
-    context.read<CustomListsCubit>().loadCustomListDetail(widget.listId);
-  }
-
   @override
   Widget build(BuildContext context) {
     return AppBackground(
@@ -49,7 +44,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return BlocBuilder<CustomListsCubit, CustomListsState>(
+    return BlocBuilder<CustomListDetailCubit, CustomListDetailState>(
       builder: (context, state) {
         String description = '';
         bool isPublic = false;
@@ -131,13 +126,13 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
   }
 
   Widget _buildContent(BuildContext context) {
-    return BlocBuilder<CustomListsCubit, CustomListsState>(
+    return BlocBuilder<CustomListDetailCubit, CustomListDetailState>(
       builder: (context, state) {
-        if (state is CustomListsLoading) {
+        if (state is CustomListDetailLoading || state is CustomListDetailInitial) {
           return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
-        if (state is CustomListsError) {
+        if (state is CustomListDetailError) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -147,7 +142,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => context.read<CustomListsCubit>().loadCustomListDetail(widget.listId),
+                  onPressed: () => context.read<CustomListDetailCubit>().loadDetail(widget.listId),
                   child: const Text('Retry'),
                 ),
               ],
@@ -155,15 +150,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
           );
         }
 
-        // Back from show/movie page — state might be CustomListsLoaded, reload
-        if (state is! CustomListDetailLoaded) {
-          if (ModalRoute.of(context)?.isCurrent ?? false) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) context.read<CustomListsCubit>().loadCustomListDetail(widget.listId);
-            });
-          }
-          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-        }
+        if (state is CustomListDetailLoaded) {
           final shows = state.shows;
           final movies = state.movies;
           final totalItems = shows.length + movies.length;
@@ -236,7 +223,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                     dangerIcon: Icons.delete_outline,
                                     onDanger: () {
                                       Navigator.pop(dialogContext);
-                                      context.read<CustomListsCubit>().removeItemFromList(widget.listId, show.id, 'tv');
+                                      context.read<CustomListDetailCubit>().removeItem(widget.listId, show.id, 'tv');
                                     },
                                   ),
                                 ),
@@ -301,7 +288,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                     dangerIcon: Icons.delete_outline,
                                     onDanger: () {
                                       Navigator.pop(dialogContext);
-                                      context.read<CustomListsCubit>().removeItemFromList(widget.listId, movie.id, 'movie');
+                                      context.read<CustomListDetailCubit>().removeItem(widget.listId, movie.id, 'movie');
                                     },
                                   ),
                                 ),
@@ -318,6 +305,9 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
               const SizedBox(height: 100),
             ],
           );
+        }
+
+        return const SizedBox();
       },
     );
   }
@@ -443,7 +433,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                           subtitle: Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<CustomListsCubit>().addItemToList(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
+                            context.read<CustomListDetailCubit>().addItem(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
                           },
                         );
                       },
@@ -502,7 +492,8 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
           dangerIcon: Icons.delete_forever,
           onDanger: () {
             Navigator.pop(dialogContext);
-            context.read<CustomListsCubit>().deleteList(widget.listId);
+            context.read<CustomListDetailCubit>().deleteList(widget.listId);
+            context.read<CustomListsCubit>().loadCustomLists();
             context.pop();
           },
         ),

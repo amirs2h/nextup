@@ -9,6 +9,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/dialog_helper.dart';
 import '../../../../shared/services/tmdb_service.dart';
 import '../../../auth/domain/auth_cubit.dart';
+import '../../domain/shared_list_detail_cubit.dart';
 import '../../domain/shared_lists_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
 
@@ -22,12 +23,6 @@ class SharedListDetailPage extends StatefulWidget {
 }
 
 class _SharedListDetailPageState extends State<SharedListDetailPage> {
-  @override
-  void initState() {
-    super.initState();
-    context.read<SharedListsCubit>().loadSharedListDetail(widget.listId);
-  }
-
   @override
   Widget build(BuildContext context) {
     return AppBackground(
@@ -101,13 +96,13 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
   }
 
   Widget _buildContent(BuildContext context) {
-    return BlocBuilder<SharedListsCubit, SharedListsState>(
+    return BlocBuilder<SharedListDetailCubit, SharedListDetailState>(
       builder: (context, state) {
-        if (state is SharedListsLoading) {
+        if (state is SharedListDetailLoading || state is SharedListDetailInitial) {
           return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
 
-        if (state is SharedListsError) {
+        if (state is SharedListDetailError) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -117,7 +112,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => context.read<SharedListsCubit>().loadSharedListDetail(widget.listId),
+                  onPressed: () => context.read<SharedListDetailCubit>().loadDetail(widget.listId),
                   child: const Text('Retry'),
                 ),
               ],
@@ -278,7 +273,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                                       dangerIcon: Icons.delete_outline,
                                       onDanger: () {
                                         Navigator.pop(dialogContext);
-                                        context.read<SharedListsCubit>().removeItemFromList(widget.listId, tmdbId, mediaType);
+                                        context.read<SharedListDetailCubit>().removeItem(widget.listId, tmdbId, mediaType);
                                       },
                                     ),
                                   ),
@@ -297,13 +292,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
           );
         }
 
-        // State is SharedListsLoaded (from list page) — reload detail only if current route
-        if (ModalRoute.of(context)?.isCurrent ?? false) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) context.read<SharedListsCubit>().loadSharedListDetail(widget.listId);
-          });
-        }
-        return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        return const SizedBox();
       },
     );
   }
@@ -311,12 +300,9 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
   void _showMembersSheet(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => BlocBuilder<SharedListsCubit, SharedListsState>(
-        builder: (context, state) {
-          List<Map<String, dynamic>> members = [];
-          if (state is SharedListDetailLoaded) {
-            members = state.members;
-          }
+      builder: (ctx) => BlocBuilder<SharedListDetailCubit, SharedListDetailState>(
+            builder: (ctx, state) {
+          final members = state is SharedListDetailLoaded ? state.members : <Map<String, dynamic>>[];
           return SimpleDialog(
             backgroundColor: AppColors.surface(context),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -379,7 +365,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                                     dangerIcon: Icons.delete_outline,
                                     onDanger: () {
                                       Navigator.pop(dialogContext);
-                                      context.read<SharedListsCubit>().removeMember(widget.listId, userId);
+                                      context.read<SharedListDetailCubit>().removeMember(widget.listId, userId);
                                     },
                                   ),
                                 ),
@@ -490,7 +476,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                           title: Text(username, style: TextStyle(color: AppColors.text(context))),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<SharedListsCubit>().addMember(widget.listId, userId);
+                            context.read<SharedListDetailCubit>().addMember(widget.listId, userId);
                           },
                         );
                       },
@@ -620,7 +606,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                           subtitle: Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<SharedListsCubit>().addItemToList(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
+                            context.read<SharedListDetailCubit>().addItem(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
                           },
                         );
                       },
@@ -645,7 +631,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
       backgroundColor: AppColors.surface(context),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
-        final cubitState = context.read<SharedListsCubit>().state;
+        final cubitState = context.read<SharedListDetailCubit>().state;
         bool isOwner = false;
         if (cubitState is SharedListDetailLoaded) {
           isOwner = cubitState.list['creator_id'] == userId;
@@ -702,7 +688,8 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               dangerIcon: Icons.delete_forever,
               onDanger: () {
                 Navigator.pop(ctx);
-                context.read<SharedListsCubit>().deleteList(widget.listId);
+                context.read<SharedListDetailCubit>().deleteList(widget.listId);
+                context.read<SharedListsCubit>().loadSharedLists();
                 context.pop();
               },
             ),
@@ -728,7 +715,8 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               dangerIcon: Icons.exit_to_app,
               onDanger: () {
                 Navigator.pop(ctx);
-                context.read<SharedListsCubit>().leaveList(widget.listId);
+                context.read<SharedListDetailCubit>().leaveList(widget.listId);
+                context.read<SharedListsCubit>().loadSharedLists();
                 context.pop();
               },
             ),
