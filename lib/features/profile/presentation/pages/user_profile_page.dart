@@ -28,7 +28,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   int _watchlistCount = 0;
   List<Map<String, dynamic>> _watchlist = [];
   List<Map<String, dynamic>> _favorites = [];
-  List<Map<String, dynamic>> _watchHistory = [];
   List<Map<String, dynamic>> _groupedWatchHistory = [];
   List<Map<String, dynamic>> _followers = [];
   List<Map<String, dynamic>> _following = [];
@@ -94,7 +93,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _isPublic = profile?['is_public'] ?? true;
           _watchlist = watchlist;
           _favorites = favorites;
-          _watchHistory = watchHistory;
           _groupedWatchHistory = groupedHistory;
           _followers = followers;
           _following = following;
@@ -145,7 +143,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
     final tmdb = context.read<TmdbService>();
     final itemsNeedingFetch = items.where((item) =>
-        item['title'] == null || (item['title'] as String? ?? '').isEmpty).toList();
+        item['title'] == null || (item['title'] as String? ?? '').isEmpty).take(20).toList();
 
     if (itemsNeedingFetch.isEmpty) return;
 
@@ -588,7 +586,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ],
             const SizedBox(height: 24),
             // Content sections
-            if (_isPublic || _isOwnProfile) ...[
+            if (_isPublic || _isOwnProfile || _isFollowing) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -597,21 +595,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       _buildSectionHeader('Watchlist', Icons.bookmark_rounded, const Color(0xFF6C63FF),
                         onSeeAll: () => context.push('/user/${widget.userId}/list/watchlist')),
                       const SizedBox(height: 12),
-                      _buildMediaCarousel(_watchlist),
+                      _buildMediaCarousel(_watchlist.take(10).toList()),
                       const SizedBox(height: 24),
                     ],
                     if (_favorites.isNotEmpty) ...[
                       _buildSectionHeader('Favorites', Icons.favorite_rounded, const Color(0xFFE50914),
                         onSeeAll: () => context.push('/user/${widget.userId}/list/favorites')),
                       const SizedBox(height: 12),
-                      _buildMediaCarousel(_favorites),
+                      _buildMediaCarousel(_favorites.take(10).toList()),
                       const SizedBox(height: 24),
                     ],
                     if (_groupedWatchHistory.isNotEmpty) ...[
                       _buildSectionHeader('Watch History', Icons.history_rounded, const Color(0xFF00CC6A),
                         onSeeAll: () => context.push('/user/${widget.userId}/list/history')),
                       const SizedBox(height: 12),
-                      _buildGroupedHistoryCarousel(_groupedWatchHistory),
+                      _buildGroupedHistoryCarousel(_groupedWatchHistory.take(10).toList()),
                       const SizedBox(height: 24),
                     ],
                     if (_publicCustomLists.isNotEmpty) ...[
@@ -704,7 +702,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       }),
                       const SizedBox(height: 24),
                     ],
-                    if (_watchlist.isEmpty && _favorites.isEmpty && _groupedWatchHistory.isEmpty)
+                    if (_watchlist.isEmpty && _favorites.isEmpty && _groupedWatchHistory.isEmpty && _publicCustomLists.isEmpty && _commonSharedLists.isEmpty)
                       GlassContainer(
                         padding: const EdgeInsets.all(24),
                         borderRadius: BorderRadius.circular(16),

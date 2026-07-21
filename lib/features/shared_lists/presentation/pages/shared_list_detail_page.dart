@@ -298,10 +298,13 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
   }
 
   void _showMembersSheet(BuildContext context) {
+    final cubit = context.read<SharedListDetailCubit>();
     showDialog(
       context: context,
-      builder: (ctx) => BlocBuilder<SharedListDetailCubit, SharedListDetailState>(
-            builder: (ctx, state) {
+      builder: (ctx) => BlocProvider.value(
+        value: cubit,
+        child: BlocBuilder<SharedListDetailCubit, SharedListDetailState>(
+          builder: (ctx, state) {
           final members = state is SharedListDetailLoaded ? state.members : <Map<String, dynamic>>[];
           return SimpleDialog(
             backgroundColor: AppColors.surface(context),
@@ -365,7 +368,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                                     dangerIcon: Icons.delete_outline,
                                     onDanger: () {
                                       Navigator.pop(dialogContext);
-                                      context.read<SharedListDetailCubit>().removeMember(widget.listId, userId);
+                                      cubit.removeMember(widget.listId, userId);
                                     },
                                   ),
                                 ),
@@ -380,11 +383,13 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
             ],
           );
         },
+        ),
       ),
     );
   }
 
   void _showAddMemberDialog(BuildContext context) {
+    final cubit = context.read<SharedListDetailCubit>();
     final searchController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
@@ -476,7 +481,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                           title: Text(username, style: TextStyle(color: AppColors.text(context))),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<SharedListDetailCubit>().addMember(widget.listId, userId);
+                            cubit.addMember(widget.listId, userId);
                           },
                         );
                       },
@@ -492,6 +497,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
   }
 
   void _showAddItemDialog(BuildContext context) {
+    final cubit = context.read<SharedListDetailCubit>();
     final searchController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
@@ -606,7 +612,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                           subtitle: Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<SharedListDetailCubit>().addItem(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
+                            cubit.addItem(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
                           },
                         );
                       },
@@ -622,16 +628,16 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
   }
 
   void _showMenuSheet(BuildContext context) {
+    final cubit = context.read<SharedListDetailCubit>();
     final authState = context.read<AuthCubit>().state;
     final userId = authState is AuthAuthenticated ? authState.user.id : null;
-    final isCreator = userId != null; // We'll check against creator_id from state
 
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface(context),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
-        final cubitState = context.read<SharedListDetailCubit>().state;
+        final cubitState = cubit.state;
         bool isOwner = false;
         if (cubitState is SharedListDetailLoaded) {
           isOwner = cubitState.list['creator_id'] == userId;

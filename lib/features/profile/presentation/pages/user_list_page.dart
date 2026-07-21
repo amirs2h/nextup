@@ -26,6 +26,7 @@ class _UserListPageState extends State<UserListPage> {
   List<Map<String, dynamic>> _filteredItems = [];
   List<Map<String, dynamic>> _groupedHistory = [];
   bool _isLoading = true;
+  bool _hasError = false;
   String _username = 'User';
   String _filter = 'all';
   String _mediaType = 'all';
@@ -103,7 +104,7 @@ class _UserListPageState extends State<UserListPage> {
         _applyFilters();
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() { _isLoading = false; _hasError = true; });
     }
   }
 
@@ -163,7 +164,7 @@ class _UserListPageState extends State<UserListPage> {
 
   Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
     final tmdb = context.read<TmdbService>();
-    final needFetch = items.where((i) => i['title'] == null || (i['title'] as String).isEmpty).toList();
+    final needFetch = items.where((i) => i['title'] == null || (i['title'] as String).isEmpty).take(20).toList();
     if (needFetch.isEmpty) return;
 
     final futures = needFetch.map((item) async {
@@ -270,7 +271,30 @@ class _UserListPageState extends State<UserListPage> {
         backgroundColor: Colors.transparent,
         body: _isLoading
             ? Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : SafeArea(
+            : _hasError
+                ? SafeArea(
+                    child: Column(
+                      children: [
+                        _buildHeader(),
+                        Expanded(child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.error_outline, size: 60, color: AppColors.error),
+                                const SizedBox(height: 16),
+                                Text('Failed to load. Please try again.', style: TextStyle(color: AppColors.textSecondary(context))),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () { setState(() { _isLoading = true; _hasError = false; }); _loadData(); },
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                          ),
+                        )),
+                      ],
+                    ),
+                  )
+                : SafeArea(
                 child: Column(
                   children: [
                     _buildHeader(),
@@ -566,11 +590,13 @@ class _UserListPageState extends State<UserListPage> {
   }
 
   Widget _buildGroupedHistoryList() {
+    final displayItems = _groupedHistory.take(_displayCount).toList();
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      itemCount: _groupedHistory.length,
+      itemCount: displayItems.length,
       itemBuilder: (context, index) {
-        final item = _groupedHistory[index];
+        final item = displayItems[index];
         final tmdbId = item['tmdb_id'];
         final mediaType = item['media_type'] ?? 'tv';
         final posterPath = item['poster_path'];

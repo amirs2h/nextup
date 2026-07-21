@@ -313,6 +313,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
   }
 
   void _showAddItemDialog(BuildContext context) {
+    final cubit = context.read<CustomListDetailCubit>();
     final searchController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
@@ -433,7 +434,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                           subtitle: Text(mediaType == 'tv' ? 'TV Show' : 'Movie', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                           onTap: () {
                             Navigator.pop(dialogContext);
-                            context.read<CustomListDetailCubit>().addItem(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
+                            cubit.addItem(widget.listId, tmdbId, mediaType, title: title, posterPath: posterPath);
                           },
                         );
                       },
