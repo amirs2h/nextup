@@ -39,6 +39,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool _isFollowingMe = false;
   List<Map<String, dynamic>> _publicCustomLists = [];
   List<Map<String, dynamic>> _commonSharedLists = [];
+  int _userLevel = 1;
+  int _userCurrentXp = 0;
+  int _userXpToNext = 100;
 
   @override
   void initState() {
@@ -86,6 +89,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
       // Group watch history by tmdb_id
       final groupedHistory = _groupWatchHistory(watchHistory);
 
+      // Calculate simplified level/XP from activity
+      int totalShows = 0;
+      int totalMovies = 0;
+      int totalEpisodes = 0;
+      for (final item in watchHistory) {
+        if (item['media_type'] == 'tv') {
+          totalShows++;
+          if (item['episode_number'] != null) totalEpisodes++;
+        } else {
+          totalMovies++;
+        }
+      }
+      final totalXp = (totalShows * 50) + (totalMovies * 30) + (totalEpisodes * 10) + (watchlist.length * 5) + (favorites.length * 5);
+      final level = (totalXp / 100).floor() + 1;
+      final currentXp = totalXp % 100;
+
       // Show profile immediately — don't wait for missing titles
       if (mounted) {
         setState(() {
@@ -102,6 +121,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _isFollowing = isFollowing;
           _isFollowingMe = isFollowingMe;
           _isLoading = false;
+          _userLevel = level;
+          _userCurrentXp = currentXp;
+          _userXpToNext = 100;
         });
       }
 
@@ -396,7 +418,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       child: Text(bio, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.4), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis),
                     ),
                   ],
-                  // Level + Badges (only for own profile)
+                  // Level + Badges
                   if (_isOwnProfile)
                     BlocBuilder<AchievementsCubit, AchievementsState>(
                       builder: (context, achState) {
@@ -410,88 +432,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
                         if (displayBadges.isEmpty) return const SizedBox();
 
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: GlassContainer(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                            borderRadius: BorderRadius.circular(20),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-                                        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2))],
-                                      ),
-                                      child: Center(child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
-                                              const Spacer(),
-                                              Text('$currentXp / $xpToNext XP', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 6),
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(6),
-                                            child: LinearProgressIndicator(
-                                              value: xpToNext > 0 ? currentXp / xpToNext : 0,
-                                              minHeight: 6,
-                                              backgroundColor: AppColors.cardBg(context),
-                                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: displayBadges.map((badge) {
-                                    return GestureDetector(
-                                      onTap: () => context.push('/achievements'),
-                                      child: Container(
-                                        width: 56,
-                                        height: 56,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: badge.color.withValues(alpha: 0.15),
-                                          border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
-                                          boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 3))],
-                                        ),
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(badge.icon, color: badge.color, size: 20),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
-                                              style: const TextStyle(fontSize: 9),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
+                        return _buildLevelBadgesCard(level, currentXp, xpToNext, displayBadges);
                       },
-                    ),
+                    )
+                  else
+                    _buildLevelBadgesCard(_userLevel, _userCurrentXp, _userXpToNext, []),
                 ],
               ),
             ),
@@ -806,6 +751,91 @@ class _UserProfilePageState extends State<UserProfilePage> {
         Text(value.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
       ],
+    );
+  }
+
+  Widget _buildLevelBadgesCard(int level, int currentXp, int xpToNext, List<Achievement> displayBadges) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: GlassContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
+                    boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  child: Center(child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
+                          const Spacer(),
+                          Text('$currentXp / $xpToNext XP', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: xpToNext > 0 ? currentXp / xpToNext : 0,
+                          minHeight: 6,
+                          backgroundColor: AppColors.cardBg(context),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (displayBadges.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: displayBadges.map((badge) {
+                  return GestureDetector(
+                    onTap: _isOwnProfile ? () => context.push('/achievements') : null,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: badge.color.withValues(alpha: 0.15),
+                        border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
+                        boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 3))],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(badge.icon, color: badge.color, size: 20),
+                          const SizedBox(height: 2),
+                          Text(
+                            badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
+                            style: const TextStyle(fontSize: 9),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
