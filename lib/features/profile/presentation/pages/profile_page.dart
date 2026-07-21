@@ -117,6 +117,10 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                         child: Column(
                           children: [
                             _buildQuickStats(context, watchlistCount, followersCount, followingCount, followers, following),
+                            const SizedBox(height: 16),
+                            _buildLevelAndBadges(context),
+                            const SizedBox(height: 16),
+                            _buildActionButtons(context),
                             const SizedBox(height: 20),
                             _buildFavoritesCarousel(context),
                             const SizedBox(height: 20),
@@ -127,8 +131,6 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                             _buildCustomListsCarousel(context),
                             const SizedBox(height: 20),
                             _buildSharedListsCarousel(context),
-                            const SizedBox(height: 20),
-                            _buildActionButtons(context),
                             const SizedBox(height: 20),
                             _buildUserContent(context),
                             const SizedBox(height: 100),
@@ -151,14 +153,11 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   Widget _buildProfileHeader(BuildContext context, String username, String email, String? avatarUrl, String bio, int followersCount, int followingCount, int watchlistCount, List<Map<String, dynamic>> followers, List<Map<String, dynamic>> following) {
     return BlocBuilder<WatchlistCubit, WatchlistState>(
       builder: (context, watchlistState) {
-        // Get header image: first try header_image_url, then watchlist backdrop
         final authState = context.read<AuthCubit>().state;
         String? headerUrl;
         if (authState is AuthAuthenticated) {
           headerUrl = authState.profile?['header_image_url'] as String?;
         }
-        
-        // Fallback to watchlist backdrop if no header image
         String? backdropUrl = headerUrl;
         if (backdropUrl == null && watchlistState is WatchlistLoaded && watchlistState.items.isNotEmpty) {
           final firstItem = watchlistState.items.first;
@@ -171,210 +170,134 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
           }
         }
 
-        return Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF6C63FF).withValues(alpha: 0.3),
-                Colors.transparent,
-              ],
-            ),
-          ),
-          child: Column(
-            children: [
-              // Header with backdrop
-              Container(
-                width: double.infinity,
-                height: 180,
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+        return Column(
+          children: [
+            // Full-width backdrop banner
+            Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+                    ),
                   ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
                   child: backdropUrl != null
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl: backdropUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (c, u, e) => Container(
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
-                                  ),
-                                ),
+                      ? CachedNetworkImage(
+                          imageUrl: backdropUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (c, u, e) => Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
                               ),
                             ),
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         )
-                      : Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
-                            ),
-                          ),
-                          child: Center(
-                            child: Icon(Icons.movie_outlined, size: 50, color: Colors.white.withValues(alpha: 0.3)),
-                          ),
+                      : Center(
+                          child: Icon(Icons.movie_outlined, size: 60, color: Colors.white.withValues(alpha: 0.2)),
                         ),
                 ),
-              ),
-              // Avatar + Info
-              Transform.translate(
-                offset: const Offset(0, -40),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
-                        border: Border.all(color: AppColors.background(context), width: 4),
-                        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8))],
-                      ),
-                      child: avatarUrl != null
-                          ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36)))))
-                          : Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36))),
+                // Gradient overlay
+                Container(
+                  width: double.infinity,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.3),
+                        AppColors.background(context).withValues(alpha: 0.95),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
                     ),
-                    const SizedBox(height: 12),
-                    Text(username, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                    if (email.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(email, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
-                    ],
-                    if (bio.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
-                        child: Text(bio, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+                // Settings button top-right
+                Positioned(
+                  top: 50,
+                  right: 16,
+                  child: GestureDetector(
+                    onTap: () => context.push('/settings'),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                    // Level + Badges
-                    BlocBuilder<AchievementsCubit, AchievementsState>(
-                      builder: (context, achState) {
-                        if (achState is! AchievementsLoaded) return const SizedBox();
-                        final level = achState.level;
-                        final currentXp = achState.currentXp;
-                        final xpToNext = achState.xpToNextLevel;
-                        final topBadges = achState.achievements.where((a) => a.isUnlocked).toList()
-                          ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
-                        final displayBadges = topBadges.take(3).toList();
-
-                        if (displayBadges.isEmpty) return const SizedBox();
-
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: Column(
-                            children: [
-                              // Level + XP
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardBg(context),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppColors.border(context)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: AppColors.primaryGradient,
-                                      ),
-                                      child: Center(child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w600)),
-                                        SizedBox(
-                                          width: 100,
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
-                                            child: LinearProgressIndicator(
-                                              value: xpToNext > 0 ? currentXp / xpToNext : 0,
-                                              minHeight: 4,
-                                              backgroundColor: AppColors.cardBg(context),
-                                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                      child: Icon(Icons.settings_outlined, color: Colors.white.withValues(alpha: 0.8), size: 22),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // Avatar overlapping banner
+            Transform.translate(
+              offset: const Offset(0, -50),
+              child: Column(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
+                      border: Border.all(color: AppColors.background(context), width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6C63FF).withValues(alpha: 0.5),
+                          blurRadius: 24,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: avatarUrl != null
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: avatarUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (c, u, e) => Center(
+                                child: Text(
+                                  username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 40),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              // Top 3 Badges
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: displayBadges.map((badge) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                                    child: GestureDetector(
-                                      onTap: () => context.push('/achievements'),
-                                      child: Container(
-                                        width: 52,
-                                        height: 52,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: badge.color.withValues(alpha: 0.15),
-                                          border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
-                                          boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
-                                        ),
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(badge.icon, color: badge.color, size: 18),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
-                                              style: const TextStyle(fontSize: 8),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 40),
+                            ),
                           ),
-                        );
-                      },
+                  ),
+                  const SizedBox(height: 10),
+                  Text(username, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  if (bio.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        bio,
+                        style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.4),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+          ],
         );
       },
     );
@@ -410,6 +333,105 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         const SizedBox(height: 4),
         Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
       ],
+    );
+  }
+
+  Widget _buildLevelAndBadges(BuildContext context) {
+    return BlocBuilder<AchievementsCubit, AchievementsState>(
+      builder: (context, achState) {
+        if (achState is! AchievementsLoaded) return const SizedBox();
+        final level = achState.level;
+        final currentXp = achState.currentXp;
+        final xpToNext = achState.xpToNextLevel;
+        final topBadges = achState.achievements.where((a) => a.isUnlocked).toList()
+          ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
+        final displayBadges = topBadges.take(3).toList();
+
+        if (displayBadges.isEmpty && level == 1) return const SizedBox();
+
+        return GlassContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            children: [
+              // Level + XP bar
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
+                      boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2))],
+                    ),
+                    child: Center(
+                      child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            Text('$currentXp / $xpToNext XP', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: xpToNext > 0 ? currentXp / xpToNext : 0,
+                            minHeight: 6,
+                            backgroundColor: AppColors.cardBg(context),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (displayBadges.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: displayBadges.map((badge) {
+                    return GestureDetector(
+                      onTap: () => context.push('/achievements'),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: badge.color.withValues(alpha: 0.15),
+                          border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
+                          boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 3))],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(badge.icon, color: badge.color, size: 20),
+                            const SizedBox(height: 2),
+                            Text(
+                              badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
+                              style: const TextStyle(fontSize: 9),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 

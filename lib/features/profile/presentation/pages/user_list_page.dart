@@ -47,13 +47,25 @@ class _UserListPageState extends State<UserListPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300) {
       if (_displayCount < _filteredItems.length) {
+        final newCount = (_displayCount + 12).clamp(0, _filteredItems.length);
         setState(() {
-          _displayCount = (_displayCount + 12).clamp(0, _filteredItems.length);
+          _displayCount = newCount;
         });
+        _fetchMissingTitlesForVisibleItems();
       }
     }
+  }
+
+  Future<void> _fetchMissingTitlesForVisibleItems() async {
+    final visibleItems = _filteredItems.take(_displayCount).toList();
+    final needFetch = visibleItems.where((i) =>
+        i['title'] == null || (i['title'] as String).isEmpty).toList();
+    if (needFetch.isEmpty) return;
+
+    await _fetchMissingTitles(needFetch);
+    if (mounted) setState(() {});
   }
 
   void _applyFilters() {
@@ -89,7 +101,8 @@ class _UserListPageState extends State<UserListPage> {
       final profile = results[0] as Map<String, dynamic>?;
       final items = results[1] as List<Map<String, dynamic>>;
 
-      await _fetchMissingTitles(items);
+      // Fetch titles for initial visible items only
+      await _fetchMissingTitles(items.take(20).toList());
 
       final grouped = widget.listType == 'history' ? _groupHistoryItems(items) : <Map<String, dynamic>>[];
 
@@ -164,7 +177,7 @@ class _UserListPageState extends State<UserListPage> {
 
   Future<void> _fetchMissingTitles(List<Map<String, dynamic>> items) async {
     final tmdb = context.read<TmdbService>();
-    final needFetch = items.where((i) => i['title'] == null || (i['title'] as String).isEmpty).take(20).toList();
+    final needFetch = items.where((i) => i['title'] == null || (i['title'] as String).isEmpty).toList();
     if (needFetch.isEmpty) return;
 
     final futures = needFetch.map((item) async {
@@ -466,6 +479,7 @@ class _UserListPageState extends State<UserListPage> {
 
   Widget _buildDetailsGrid() {
     final displayItems = _filteredItems.take(_displayCount).toList();
+    final hasMore = _displayCount < _filteredItems.length;
 
     return GridView.builder(
       controller: _scrollController,
@@ -476,8 +490,11 @@ class _UserListPageState extends State<UserListPage> {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: displayItems.length,
+      itemCount: displayItems.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index >= displayItems.length) {
+          return const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)));
+        }
         final item = displayItems[index];
         return _buildDetailGridCard(item);
       },
@@ -591,11 +608,18 @@ class _UserListPageState extends State<UserListPage> {
 
   Widget _buildGroupedHistoryList() {
     final displayItems = _groupedHistory.take(_displayCount).toList();
+    final hasMore = _displayCount < _groupedHistory.length;
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      itemCount: displayItems.length,
+      itemCount: displayItems.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index >= displayItems.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
+          );
+        }
         final item = displayItems[index];
         final tmdbId = item['tmdb_id'];
         final mediaType = item['media_type'] ?? 'tv';
