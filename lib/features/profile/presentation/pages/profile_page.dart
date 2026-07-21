@@ -121,17 +121,17 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                             _buildLevelAndBadges(context),
                             const SizedBox(height: 16),
                             _buildActionButtons(context),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             _buildFavoritesCarousel(context),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             _buildWatchlistCarousel(context),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             _buildHistoryCarousel(context),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             _buildCustomListsCarousel(context),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             _buildSharedListsCarousel(context),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             _buildUserContent(context),
                             const SizedBox(height: 100),
                           ],
@@ -598,51 +598,68 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 150,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(14),
+        width: 160,
+        margin: const EdgeInsets.only(right: 14),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withValues(alpha: 0.15),
-              color.withValues(alpha: 0.05),
+              color.withValues(alpha: 0.18),
+              color.withValues(alpha: 0.04),
             ],
           ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.15)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 20),
+                ],
               ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              name,
-              style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w600),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (description.isNotEmpty) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 14),
               Text(
-                description,
-                style: TextStyle(color: AppColors.textMuted(context), fontSize: 11),
+                name,
+                style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (description.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(color: AppColors.textMuted(context), fontSize: 11, height: 1.3),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

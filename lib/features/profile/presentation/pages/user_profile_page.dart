@@ -379,49 +379,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
-            // Header with back button and optional settings
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => context.pop(),
-                    child: GlassContainer(
-                      padding: const EdgeInsets.all(10),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Icon(Icons.arrow_back, color: AppColors.text(context), size: 24),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(child: Text(username, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context)))),
-                  if (_isOwnProfile)
-                    GestureDetector(
-                      onTap: () => context.push('/settings'),
-                      child: GlassContainer(
-                        padding: const EdgeInsets.all(10),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Icon(Icons.settings_outlined, color: AppColors.text(context), size: 24),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Header image (like profile_page)
+            // Header with backdrop
             _buildHeaderImage(headerUrl, avatarUrl, username),
-            // Avatar + Name + Bio (always visible)
+            // Avatar + Name + Bio
             Transform.translate(
-              offset: const Offset(0, -40),
+              offset: const Offset(0, -50),
               child: Column(
                 children: [
                   _buildAvatar(username, avatarUrl),
-                  const SizedBox(height: 12),
-                  Text(username, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  const SizedBox(height: 10),
+                  Text(username, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                   if (bio.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Text(bio, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis),
+                      child: Text(bio, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.4), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis),
                     ),
                   ],
                   // Level + Badges (only for own profile)
@@ -439,87 +411,83 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         if (displayBadges.isEmpty) return const SizedBox();
 
                         return Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Column(
-                            children: [
-                              // Level + XP
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardBg(context),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppColors.border(context)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                          padding: const EdgeInsets.only(top: 16),
+                          child: GlassContainer(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Column(
+                              children: [
+                                Row(
                                   children: [
                                     Container(
-                                      width: 28,
-                                      height: 28,
+                                      width: 36,
+                                      height: 36,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        gradient: AppColors.primaryGradient,
+                                        gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
+                                        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 2))],
                                       ),
-                                      child: Center(child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                                      child: Center(child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w600)),
-                                        SizedBox(
-                                          width: 100,
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
+                                              const Spacer(),
+                                              Text('$currentXp / $xpToNext XP', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
                                             child: LinearProgressIndicator(
                                               value: xpToNext > 0 ? currentXp / xpToNext : 0,
-                                              minHeight: 4,
+                                              minHeight: 6,
                                               backgroundColor: AppColors.cardBg(context),
                                               valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Top 3 Badges
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: displayBadges.map((badge) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                                    child: GestureDetector(
+                                const SizedBox(height: 14),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: displayBadges.map((badge) {
+                                    return GestureDetector(
                                       onTap: () => context.push('/achievements'),
                                       child: Container(
-                                        width: 52,
-                                        height: 52,
+                                        width: 56,
+                                        height: 56,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           color: badge.color.withValues(alpha: 0.15),
                                           border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
-                                          boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                                          boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 3))],
                                         ),
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(badge.icon, color: badge.color, size: 18),
+                                            Icon(badge.icon, color: badge.color, size: 20),
                                             const SizedBox(height: 2),
                                             Text(
                                               badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
-                                              style: const TextStyle(fontSize: 8),
+                                              style: const TextStyle(fontSize: 9),
                                             ),
                                           ],
                                         ),
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -527,12 +495,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ],
               ),
             ),
-            // Stats (always visible)
+            // Stats
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _buildStats(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             // Follow button (only for other users)
             if (!_isOwnProfile)
               Padding(
@@ -613,93 +581,41 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       const SizedBox(height: 24),
                     ],
                     if (_publicCustomLists.isNotEmpty) ...[
-                      _buildSectionHeader('Public Lists', Icons.list_rounded, const Color(0xFFFFD93D)),
+                      _buildSectionHeader('Public Lists', Icons.playlist_play_rounded, const Color(0xFF9D4EDD)),
                       const SizedBox(height: 12),
-                      ..._publicCustomLists.map((list) {
-                        final listId = list['id'] as String?;
-                        final name = list['name'] ?? 'Untitled';
-                        final desc = list['description'] ?? '';
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: GestureDetector(
-                            onTap: () => context.push('/custom-list/$listId'),
-                            child: GlassContainer(
-                              padding: const EdgeInsets.all(12),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFFD93D).withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.list_rounded, color: const Color(0xFFFFD93D), size: 18),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
-                                        if (desc.isNotEmpty)
-                                          Text(desc, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(Icons.chevron_right, color: AppColors.textMuted(context), size: 18),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
+                      SizedBox(
+                        height: 130,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _publicCustomLists.length,
+                          itemBuilder: (context, index) {
+                            final list = _publicCustomLists[index];
+                            final listId = list['id'] as String?;
+                            final name = list['name'] ?? 'Untitled';
+                            final desc = list['description'] ?? '';
+                            return _buildListCard(name, desc, Icons.playlist_play_rounded, const Color(0xFF9D4EDD), () => context.push('/custom-list/$listId'));
+                          },
+                        ),
+                      ),
                       const SizedBox(height: 24),
                     ],
                     if (_commonSharedLists.isNotEmpty) ...[
                       _buildSectionHeader('Shared Lists', Icons.people_alt_rounded, const Color(0xFF00B4D8)),
                       const SizedBox(height: 12),
-                      ..._commonSharedLists.map((list) {
-                        final listId = list['id'] as String?;
-                        final name = list['name'] ?? 'Untitled';
-                        final desc = list['description'] ?? '';
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: GestureDetector(
-                            onTap: () => context.push('/shared-list/$listId', extra: name),
-                            child: GlassContainer(
-                              padding: const EdgeInsets.all(12),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF00B4D8).withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.people_alt_rounded, color: const Color(0xFF00B4D8), size: 18),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
-                                        if (desc.isNotEmpty)
-                                          Text(desc, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(Icons.chevron_right, color: AppColors.textMuted(context), size: 18),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
+                      SizedBox(
+                        height: 130,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _commonSharedLists.length,
+                          itemBuilder: (context, index) {
+                            final list = _commonSharedLists[index];
+                            final listId = list['id'] as String?;
+                            final name = list['name'] ?? 'Untitled';
+                            final desc = list['description'] ?? '';
+                            return _buildListCard(name, desc, Icons.people_alt_rounded, const Color(0xFF00B4D8), () => context.push('/shared-list/$listId', extra: name));
+                          },
+                        ),
+                      ),
                       const SizedBox(height: 24),
                     ],
                     if (_watchlist.isEmpty && _favorites.isEmpty && _groupedWatchHistory.isEmpty && _publicCustomLists.isEmpty && _commonSharedLists.isEmpty)
@@ -744,72 +660,120 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildHeaderImage(String? headerUrl, String? avatarUrl, String username) {
-    // Use header_image_url if available, otherwise show gradient
-    // (watchlist backdrop would require fetching TMDB data which is expensive)
-    
-    return Container(
-      width: double.infinity,
-      height: 180,
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 220,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)],
+            ),
+          ),
+          child: headerUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: headerUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (c, u, e) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)]),
+                    ),
+                  ),
+                )
+              : Center(
+                  child: Icon(Icons.movie_outlined, size: 60, color: Colors.white.withValues(alpha: 0.2)),
+                ),
         ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: headerUrl != null
-            ? Stack(
-                fit: StackFit.expand,
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: headerUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (c, u, e) => Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)]),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD), Color(0xFFE50914)]),
-                ),
-                child: Center(
-                  child: Icon(Icons.movie_outlined, size: 50, color: Colors.white.withValues(alpha: 0.3)),
-                ),
+        Container(
+          width: double.infinity,
+          height: 220,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.3),
+                AppColors.background(context).withValues(alpha: 0.95),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+        ),
+        // Back button
+        Positioned(
+          top: 50,
+          left: 16,
+          child: GestureDetector(
+            onTap: () => context.pop(),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
               ),
-      ),
+              child: Icon(Icons.arrow_back, color: Colors.white.withValues(alpha: 0.9), size: 22),
+            ),
+          ),
+        ),
+        // Share button (if own profile)
+        if (_isOwnProfile)
+          Positioned(
+            top: 50,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => context.push('/settings'),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.settings_outlined, color: Colors.white.withValues(alpha: 0.8), size: 22),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildAvatar(String username, String? avatarUrl) {
     return Container(
-      width: 90,
-      height: 90,
+      width: 100,
+      height: 100,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
         border: Border.all(color: AppColors.background(context), width: 4),
-        boxShadow: [BoxShadow(color: const Color(0xFF6C63FF).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8))],
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6C63FF).withValues(alpha: 0.5),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: avatarUrl != null
-          ? ClipOval(child: CachedNetworkImage(imageUrl: avatarUrl, fit: BoxFit.cover, errorWidget: (c, u, e) => Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36)))))
-          : Center(child: Text(username.isNotEmpty ? username[0].toUpperCase() : 'U', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 36))),
+          ? ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: avatarUrl,
+                fit: BoxFit.cover,
+                errorWidget: (c, u, e) => Center(
+                  child: Text(
+                    username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 40),
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Text(
+                username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 40),
+              ),
+            ),
     );
   }
 
@@ -842,6 +806,56 @@ class _UserProfilePageState extends State<UserProfilePage> {
         Text(value.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
       ],
+    );
+  }
+
+  Widget _buildListCard(String name, String description, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.only(right: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color.withValues(alpha: 0.18), color.withValues(alpha: 0.04)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.15)]),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 20),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(name, style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+              if (description.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(description, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
