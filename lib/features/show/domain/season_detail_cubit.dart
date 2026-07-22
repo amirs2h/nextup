@@ -45,6 +45,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   final int seasonNumber;
   bool _isTogglingEpisode = false;
   bool _isMarkingAll = false;
+  List<String>? _showGenres;
 
   SeasonDetailCubit(
     this._tmdbService,
@@ -59,6 +60,23 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
 
   void _syncAchievements() {
     _achievementsCubit?.syncAfterActivity();
+  }
+
+  Future<List<String>> _resolveShowGenres() async {
+    if (_showGenres != null) return _showGenres!;
+    try {
+      final data = await _tmdbService.getShowDetails(showId);
+      final genres = (data['genres'] as List?)
+              ?.map((g) => g['name']?.toString())
+              .whereType<String>()
+              .where((n) => n.isNotEmpty)
+              .toList() ??
+          <String>[];
+      _showGenres = genres;
+      return genres;
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<void> loadSeasonDetails() async {
@@ -120,6 +138,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
             episodeNumber: episodeNumber,
           );
         } else {
+          final genres = await _resolveShowGenres();
           await _supabaseService.markAsWatched(
             userId: user.id,
             tmdbId: showId,
@@ -128,6 +147,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
             episodeNumber: episodeNumber,
             title: currentState.season.name,
             posterPath: currentState.season.posterPath,
+            genres: genres,
           );
         }
 
@@ -215,6 +235,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
         if (i > 0) await Future.delayed(const Duration(milliseconds: 100));
         await Future.wait(batches[i].map((epNum) async {
           try {
+            final genres = await _resolveShowGenres();
             await _supabaseService.markAsWatched(
               userId: user.id,
               tmdbId: showId,
@@ -223,6 +244,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
               episodeNumber: epNum as int,
               title: currentState.season.name,
               posterPath: currentState.season.posterPath,
+              genres: genres,
             );
           } catch (_) {}
         }));

@@ -85,6 +85,17 @@ class ShowModel {
   String? get backdropUrl => backdropPath != null
       ? AppConfig.getImageUrl(backdropPath, size: 'original')
       : null;
+
+  List<String> get genreNames {
+    if (genres != null && genres!.isNotEmpty) {
+      return genres!
+          .map((g) => g['name']?.toString())
+          .whereType<String>()
+          .where((n) => n.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
 }
 
 class SeasonModel {

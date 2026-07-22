@@ -33,6 +33,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
   Map<String, dynamic>? _episodeData;
   String? _showName;
   String? _showPosterPath;
+  List<String> _showGenres = const [];
   bool _isLoading = true;
   bool _isWatched = false;
   double? _userRating;
@@ -55,6 +56,12 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
       final showDetails = await tmdb.getShowDetails(widget.showId);
       _showName = showDetails['name'] as String?;
       _showPosterPath = showDetails['poster_path'] as String?;
+      _showGenres = (showDetails['genres'] as List?)
+              ?.map((g) => g['name']?.toString())
+              .whereType<String>()
+              .where((n) => n.isNotEmpty)
+              .toList() ??
+          const [];
 
       final seasonData = await tmdb.getShowSeasonDetails(widget.showId, widget.seasonNumber);
       final episodes = seasonData['episodes'] as List? ?? [];
@@ -138,6 +145,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
           episodeNumber: widget.episodeNumber,
           title: _episodeData?['name'] as String? ?? _showName,
           posterPath: _showPosterPath,
+          genres: _showGenres,
         );
       }
       if (mounted) setState(() => _isWatched = !_isWatched);

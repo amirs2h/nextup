@@ -312,6 +312,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             status: status,
             title: currentState.show.name,
             posterPath: currentState.show.posterPath,
+            genres: currentState.show.genreNames,
           );
           try {
             final showDetails = await _tmdbService.getShowDetails(showId);
@@ -365,6 +366,9 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             userId: user.id,
             tmdbId: showId,
             mediaType: 'tv',
+            title: currentState.show.name,
+            posterPath: currentState.show.posterPath,
+            genres: currentState.show.genreNames,
           );
         }
         _syncAchievements();
@@ -412,6 +416,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             episodeNumber: episodeNumber,
             title: currentState.show.name,
             posterPath: currentState.show.posterPath,
+            genres: currentState.show.genreNames,
           );
         }
         try {
@@ -528,6 +533,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
               episodeNumber: task[1] as int,
               title: currentState.show.name,
               posterPath: currentState.show.posterPath,
+              genres: currentState.show.genreNames,
             );
           } catch (_) {}
         }));

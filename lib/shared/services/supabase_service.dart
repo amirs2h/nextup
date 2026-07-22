@@ -216,8 +216,10 @@ class SupabaseService {
     String status = 'watchlist',
     String? title,
     String? posterPath,
+    List<String>? genres,
+    List<String>? originCountries,
   }) async {
-    await _client.from('watchlist').upsert({
+    final row = <String, dynamic>{
       'user_id': userId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
@@ -225,7 +227,13 @@ class SupabaseService {
       'status': status,
       'title': title,
       'poster_path': posterPath,
-    }, onConflict: 'user_id,tmdb_id,media_type,list_name');
+    };
+    if (genres != null) row['genres'] = genres;
+    if (originCountries != null) row['origin_countries'] = originCountries;
+    await _client.from('watchlist').upsert(
+          row,
+          onConflict: 'user_id,tmdb_id,media_type,list_name',
+        );
   }
 
   Future<void> removeFromWatchlist({
@@ -314,9 +322,11 @@ class SupabaseService {
     int? episodeNumber,
     String? title,
     String? posterPath,
+    List<String>? genres,
+    List<String>? originCountries,
   }) async {
     try {
-      await _client.from('watch_history').upsert({
+      final row = <String, dynamic>{
         'user_id': userId,
         'tmdb_id': tmdbId,
         'media_type': mediaType,
@@ -324,7 +334,13 @@ class SupabaseService {
         'episode_number': episodeNumber ?? 0,
         'title': title,
         'poster_path': posterPath,
-      }, onConflict: 'user_id,tmdb_id,media_type,season_number,episode_number');
+      };
+      if (genres != null) row['genres'] = genres;
+      if (originCountries != null) row['origin_countries'] = originCountries;
+      await _client.from('watch_history').upsert(
+            row,
+            onConflict: 'user_id,tmdb_id,media_type,season_number,episode_number',
+          );
     } catch (e) {
       rethrow;
     }
@@ -423,14 +439,79 @@ class SupabaseService {
     required String mediaType,
     String? title,
     String? posterPath,
+    List<String>? genres,
+    List<String>? originCountries,
   }) async {
-    await _client.from('favorites').upsert({
+    final row = <String, dynamic>{
       'user_id': userId,
       'tmdb_id': tmdbId,
       'media_type': mediaType,
       'title': title,
       'poster_path': posterPath,
-    });
+    };
+    if (genres != null) row['genres'] = genres;
+    if (originCountries != null) row['origin_countries'] = originCountries;
+    await _client.from('favorites').upsert(row);
+  }
+
+  /// Backfill genres for history rows missing metadata (limited batch).
+  Future<int> backfillHistoryGenres({
+    required String userId,
+    required Future<Map<String, dynamic>> Function(int tmdbId, String mediaType) fetchDetails,
+    int limit = 40,
+  }) async {
+    try {
+      final rows = await _client
+          .from('watch_history')
+          .select('tmdb_id, media_type')
+          .eq('user_id', userId)
+          .or('genres.is.null,genres.eq.{}')
+          .limit(limit);
+      final list = List<Map<String, dynamic>>.from(rows);
+      final seen = <String>{};
+      var updated = 0;
+      for (final row in list) {
+        final tmdbId = row['tmdb_id'] as int?;
+        final mediaType = row['media_type'] as String? ?? 'tv';
+        if (tmdbId == null) continue;
+        final key = '$tmdbId:$mediaType';
+        if (seen.contains(key)) continue;
+        seen.add(key);
+        try {
+          final data = await fetchDetails(tmdbId, mediaType);
+          final genres = (data['genres'] as List?)
+                  ?.map((g) => g['name']?.toString())
+                  .whereType<String>()
+                  .where((n) => n.isNotEmpty)
+                  .toList() ??
+              <String>[];
+          List<String> countries = [];
+          if (mediaType == 'tv') {
+            countries = (data['origin_country'] as List?)?.map((c) => c.toString()).toList() ?? [];
+          } else {
+            countries = (data['production_countries'] as List?)
+                    ?.map((c) => c is Map ? c['iso_3166_1']?.toString() : c.toString())
+                    .whereType<String>()
+                    .toList() ??
+                [];
+          }
+          if (genres.isEmpty && countries.isEmpty) continue;
+          await _client
+              .from('watch_history')
+              .update({
+                'genres': genres,
+                'origin_countries': countries,
+              })
+              .eq('user_id', userId)
+              .eq('tmdb_id', tmdbId)
+              .eq('media_type', mediaType);
+          updated++;
+        } catch (_) {}
+      }
+      return updated;
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<void> removeFromFavorites({

@@ -84,6 +84,23 @@ class MovieModel {
       ? AppConfig.getImageUrl(backdropPath, size: 'original')
       : null;
 
+  /// Genre names for achievements / denormalized storage.
+  List<String> get genreNames {
+    if (genres != null && genres!.isNotEmpty) {
+      return genres!
+          .map((g) => g['name']?.toString())
+          .whereType<String>()
+          .where((n) => n.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  List<String> get originCountryCodes {
+    // Movies often use production_countries
+    return const [];
+  }
+
   String get runtimeFormatted {
     if (runtime == null) return '';
     final hours = runtime! ~/ 60;

@@ -297,6 +297,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             status: status,
             title: currentState.movie.title,
             posterPath: currentState.movie.posterPath,
+            genres: currentState.movie.genreNames,
           );
           try {
             await _supabaseService.computeAndSetMovieStatus(
@@ -341,6 +342,9 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             userId: user.id,
             tmdbId: movieId,
             mediaType: 'movie',
+            title: currentState.movie.title,
+            posterPath: currentState.movie.posterPath,
+            genres: currentState.movie.genreNames,
           );
         }
         _syncAchievements();
@@ -380,6 +384,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             mediaType: 'movie',
             title: currentState.movie.title,
             posterPath: currentState.movie.posterPath,
+            genres: currentState.movie.genreNames,
           );
         }
 

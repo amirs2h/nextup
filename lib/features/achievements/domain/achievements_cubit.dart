@@ -228,6 +228,20 @@ class AchievementsCubit extends Cubit<AchievementsState> {
   }
 
   Future<AchievementsLoaded> _computeForUser(String userId, {required bool persist}) async {
+    // Backfill genres for older history rows (best-effort, limited)
+    if (persist) {
+      try {
+        await _supabaseService.backfillHistoryGenres(
+          userId: userId,
+          fetchDetails: (tmdbId, mediaType) async {
+            if (mediaType == 'tv') return _tmdbService.getShowDetails(tmdbId);
+            return _tmdbService.getMovieDetails(tmdbId);
+          },
+          limit: 50,
+        );
+      } catch (_) {}
+    }
+
     final results = await Future.wait([
       _supabaseService.getWatchHistory(userId: userId),
       _supabaseService.getWatchlist(userId: userId),
@@ -402,34 +416,84 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       }
     }
 
-    // Genres: try TMDB; on total failure keep cache (never wipe)
-    final genreCounts = <String, int>{};
-    final countryCounts = <String, int>{};
+    // Genres: prefer denormalized columns on history (distinct titles).
+    // Fallback: TMDB for missing rows only; never wipe cache on total failure.
+    final genreTitleSets = <String, Set<String>>{};
+    final countryTitleSets = <String, Set<String>>{};
+    final missingMeta = <Map<String, dynamic>>[];
+
+    final seenTitles = <String>{};
+    for (final item in history) {
+      final tmdbId = item['tmdb_id'];
+      final mediaType = item['media_type'] as String? ?? 'tv';
+      if (tmdbId == null) continue;
+      final titleKey = '$mediaType:$tmdbId';
+      if (seenTitles.contains(titleKey)) continue;
+      seenTitles.add(titleKey);
+
+      final genres = _parseStringList(item['genres']);
+      final countries = _parseStringList(item['origin_countries']);
+
+      if (genres.isEmpty && countries.isEmpty) {
+        missingMeta.add({'tmdb_id': tmdbId is int ? tmdbId : int.tryParse(tmdbId.toString()), 'media_type': mediaType, 'key': titleKey});
+        continue;
+      }
+      for (final genre in genres) {
+        genreTitleSets.putIfAbsent(genre, () => <String>{}).add(titleKey);
+      }
+      for (final country in countries) {
+        countryTitleSets.putIfAbsent(country, () => <String>{}).add(titleKey);
+      }
+    }
+
+    // Fallback TMDB only for titles still missing metadata (cap 30)
     var genreFetchOk = 0;
-    final recentItems = history.take(20).toList();
-    for (final item in recentItems) {
+    for (final row in missingMeta.take(30)) {
+      final tmdbId = row['tmdb_id'] as int?;
+      final mediaType = row['media_type'] as String? ?? 'tv';
+      final titleKey = row['key'] as String;
+      if (tmdbId == null) continue;
       try {
-        final tmdbId = item['tmdb_id'] as int;
-        final mediaType = item['media_type'] as String? ?? 'tv';
         final data = mediaType == 'tv'
             ? await _tmdbService.getShowDetails(tmdbId)
             : await _tmdbService.getMovieDetails(tmdbId);
         genreFetchOk++;
-        final genres = (data['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? [];
-        for (final genre in genres) {
-          genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+        final genres = (data['genres'] as List?)
+                ?.map((g) => g['name']?.toString())
+                .whereType<String>()
+                .where((n) => n.isNotEmpty)
+                .toList() ??
+            <String>[];
+        List<String> countries = [];
+        if (mediaType == 'tv') {
+          countries = (data['origin_country'] as List?)?.map((c) => c.toString()).toList() ?? [];
+        } else {
+          countries = (data['production_countries'] as List?)
+                  ?.map((c) => c is Map ? c['iso_3166_1']?.toString() : c.toString())
+                  .whereType<String>()
+                  .toList() ??
+              [];
         }
-        final originCountries = (data['origin_country'] as List?)?.map((c) => c.toString()).toList() ?? [];
-        for (final country in originCountries) {
-          countryCounts[country] = (countryCounts[country] ?? 0) + 1;
+        for (final genre in genres) {
+          genreTitleSets.putIfAbsent(genre, () => <String>{}).add(titleKey);
+        }
+        for (final country in countries) {
+          countryTitleSets.putIfAbsent(country, () => <String>{}).add(titleKey);
         }
       } catch (_) {}
     }
 
-    if (genreFetchOk == 0 && _cachedGenreCounts.isNotEmpty) {
+    final genreCounts = <String, int>{
+      for (final e in genreTitleSets.entries) e.key: e.value.length,
+    };
+    final countryCounts = <String, int>{
+      for (final e in countryTitleSets.entries) e.key: e.value.length,
+    };
+
+    if (genreCounts.isEmpty && genreFetchOk == 0 && _cachedGenreCounts.isNotEmpty) {
       genreCounts.addAll(_cachedGenreCounts);
       countryCounts.addAll(_cachedCountryCounts);
-    } else if (genreFetchOk > 0) {
+    } else if (genreCounts.isNotEmpty) {
       _cachedGenreCounts = Map.from(genreCounts);
       _cachedCountryCounts = Map.from(countryCounts);
     }
@@ -451,6 +515,20 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       watchlistCount: watchlistCount,
       favoriteCount: favoriteCount,
     );
+  }
+
+  List<String> _parseStringList(dynamic raw) {
+    if (raw == null) return const [];
+    if (raw is List) {
+      return raw.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+    }
+    if (raw is String && raw.isNotEmpty) {
+      // postgres array text fallback "{Horror,Thriller}"
+      final cleaned = raw.replaceAll('{', '').replaceAll('}', '');
+      if (cleaned.isEmpty) return const [];
+      return cleaned.split(',').map((s) => s.trim().replaceAll('"', '')).where((s) => s.isNotEmpty).toList();
+    }
+    return const [];
   }
 
   List<Achievement> _buildAchievements(_ActivityStats s) {
