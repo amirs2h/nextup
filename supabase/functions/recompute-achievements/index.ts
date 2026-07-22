@@ -91,6 +91,7 @@ async function computeStats(
   const dayOfWeekCounts: Record<number, number> = {};
   const hourCounts: Record<number, number> = {};
   const activeDays = new Set<string>();
+  let totalMinutes = 0;
   let isNightOwl = false;
   let isEarlyBird = false;
   let watchedInOctober = false;
@@ -100,14 +101,17 @@ async function computeStats(
   for (const item of history) {
     const tmdbId = item.tmdb_id?.toString();
     const mediaType = item.media_type ?? "tv";
+    const rt = typeof item.runtime_minutes === "number" ? item.runtime_minutes : null;
+
     if (mediaType === "tv") {
-      if (tmdbId) showIds.add(tmdbId);
       if (episodeIsValid(item)) {
+        if (tmdbId) showIds.add(tmdbId);
         totalEpisodes++;
-        if (tmdbId) showEpisodeCounts[tmdbId] = (showEpisodeCounts[tmdbId] ?? 0) + 1;
+        totalMinutes += rt ?? 45;
       }
     } else {
       if (tmdbId) movieIds.add(tmdbId);
+      totalMinutes += rt ?? 120;
     }
     if (item.watched_at) {
       const d = new Date(item.watched_at);
@@ -129,7 +133,7 @@ async function computeStats(
 
   const totalShows = showIds.size;
   const totalMovies = movieIds.size;
-  const totalHours = Math.floor((totalEpisodes * 45 + totalMovies * 120) / 60);
+  const totalHours = Math.floor(totalMinutes / 60);
 
   // Longest streak
   const sortedDays = [...activeDays].sort();
@@ -296,13 +300,13 @@ async function recomputeUser(
   tmdb: typeof tmdbFetch,
   userId: string
 ): Promise<{ unlocked: number; newUnlocks: number; removed: number; backfilled: number }> {
-  // 1. Backfill genres (up to 50)
+  // 1. Backfill genres + runtime for older rows
   let backfilled = 0;
   const { data: missingRows } = await admin
     .from("watch_history")
     .select("tmdb_id, media_type")
     .eq("user_id", userId)
-    .or("genres.is.null,genres.eq.{}")
+    .or("genres.is.null,genres.eq.{},runtime_minutes.is.null")
     .limit(50);
 
   if (missingRows?.length) {
@@ -317,13 +321,20 @@ async function recomputeUser(
         const data = mt === "tv" ? await getShowDetails(tmdbId) : await getMovieDetails(tmdbId);
         const genres: string[] = (data.genres ?? []).map((g: any) => g.name).filter(Boolean);
         let countries: string[] = [];
+        let runtime: number | null = null;
         if (mt === "tv") {
           countries = (data.origin_country ?? []).map(String);
+          runtime = typeof data.episode_run_time === "number" ? data.episode_run_time : null;
         } else {
           countries = (data.production_countries ?? []).map((c: any) => c.iso_3166_1).filter(Boolean);
+          runtime = typeof data.runtime === "number" ? data.runtime : null;
         }
-        if (genres.length || countries.length) {
-          await admin.from("watch_history").update({ genres, origin_countries: countries })
+        const update: Record<string, any> = {};
+        if (genres.length) update.genres = genres;
+        if (countries.length) update.origin_countries = countries;
+        if (runtime != null) update.runtime_minutes = runtime;
+        if (Object.keys(update).length) {
+          await admin.from("watch_history").update(update)
             .eq("user_id", userId).eq("tmdb_id", tmdbId).eq("media_type", mt);
           backfilled++;
         }

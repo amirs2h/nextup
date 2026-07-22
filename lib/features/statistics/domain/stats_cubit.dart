@@ -93,9 +93,7 @@ class StatsCubit extends Cubit<StatsState> {
 
     try {
       final history = await _supabaseService.getWatchHistory(userId: user.id);
-      final watchlist = await _supabaseService.getWatchlist(userId: user.id);
-      final favorites = await _supabaseService.getFavorites(userId: user.id);
-      final activity = UserActivityStats.fromHistory(history, watchlist: watchlist, favorites: favorites);
+      final activity = UserActivityStats.fromHistory(history);
 
       var mostWatchedShow = activity.mostWatchedShowId;
       if (mostWatchedShow.isNotEmpty) {

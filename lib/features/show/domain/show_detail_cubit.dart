@@ -417,6 +417,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             title: currentState.show.name,
             posterPath: currentState.show.posterPath,
             genres: currentState.show.genreNames,
+            runtimeMinutes: currentState.show.episodeRunTime,
           );
         }
         try {
@@ -534,6 +535,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
               title: currentState.show.name,
               posterPath: currentState.show.posterPath,
               genres: currentState.show.genreNames,
+              runtimeMinutes: currentState.show.episodeRunTime,
             );
           } catch (_) {}
         }));

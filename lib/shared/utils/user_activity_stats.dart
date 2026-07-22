@@ -1,9 +1,10 @@
 /// Shared activity stats derived from watch_history rows.
-/// Single source of truth for Stats page, Compare, and consistent episode counting.
+/// Single source of truth for Stats page, Compare, Achievements.
 class UserActivityStats {
   final int totalShows;
   final int totalMovies;
   final int totalEpisodes;
+  final int totalMinutes;
   final int totalHours;
   final int longestStreak;
   final int currentStreak;
@@ -19,6 +20,7 @@ class UserActivityStats {
     this.totalShows = 0,
     this.totalMovies = 0,
     this.totalEpisodes = 0,
+    this.totalMinutes = 0,
     this.totalHours = 0,
     this.longestStreak = 0,
     this.currentStreak = 0,
@@ -38,19 +40,16 @@ class UserActivityStats {
         'totalHours': totalHours,
       };
 
-  /// Unified rules:
-  /// - TV show count: distinct tmdb_id where media_type == tv, from history + watchlist
-  /// - Movie count: distinct tmdb_id where media_type == movie, from history + watchlist
-  /// - Episode count: history tv rows with episode_number != null && > 0
-  /// - Hours: (episodes * 45 + movies * 120) ~/ 60 (from history only)
-  static UserActivityStats fromHistory(
-    List<Map<String, dynamic>> history, {
-    List<Map<String, dynamic>> watchlist = const [],
-    List<Map<String, dynamic>> favorites = const [],
-  }) {
+  /// Unified rules (single source of truth):
+  /// - TV show count: distinct tmdb_id where media_type == tv AND episode_number > 0
+  /// - Movie count: distinct tmdb_id where media_type == movie
+  /// - Episode count: tv rows with episode_number > 0
+  /// - Minutes: sum of runtime_minutes per row (if available), else fallback 45/120
+  static UserActivityStats fromHistory(List<Map<String, dynamic>> history) {
     final showIds = <String>{};
     final movieIds = <String>{};
     var totalEpisodes = 0;
+    var totalMinutes = 0;
     final monthlyWatched = <String, int>{};
     final showEpisodeCounts = <String, int>{};
     final dayOfWeekCounts = <int, int>{};
@@ -61,18 +60,23 @@ class UserActivityStats {
       final tmdbId = item['tmdb_id']?.toString() ?? '';
       final mediaType = item['media_type'] as String? ?? 'tv';
       final epNum = item['episode_number'];
+      final ep = epNum is int ? epNum : int.tryParse(epNum?.toString() ?? '');
+      final runtimeMin = item['runtime_minutes'] is int
+          ? item['runtime_minutes'] as int
+          : int.tryParse(item['runtime_minutes']?.toString() ?? '');
 
       if (mediaType == 'tv') {
-        if (tmdbId.isNotEmpty) showIds.add(tmdbId);
-        final ep = epNum is int ? epNum : int.tryParse(epNum?.toString() ?? '');
         if (ep != null && ep > 0) {
           totalEpisodes++;
           if (tmdbId.isNotEmpty) {
+            showIds.add(tmdbId);
             showEpisodeCounts[tmdbId] = (showEpisodeCounts[tmdbId] ?? 0) + 1;
           }
+          totalMinutes += runtimeMin ?? 45;
         }
       } else if (mediaType == 'movie') {
         if (tmdbId.isNotEmpty) movieIds.add(tmdbId);
+        totalMinutes += runtimeMin ?? 120;
       }
 
       final watchedAt = item['watched_at'];
@@ -90,33 +94,9 @@ class UserActivityStats {
       }
     }
 
-    // Also count shows/movies from watchlist (not just history)
-    for (final item in watchlist) {
-      final tmdbId = item['tmdb_id']?.toString() ?? '';
-      final mediaType = item['media_type'] as String? ?? 'tv';
-      if (tmdbId.isEmpty) continue;
-      if (mediaType == 'tv') {
-        showIds.add(tmdbId);
-      } else if (mediaType == 'movie') {
-        movieIds.add(tmdbId);
-      }
-    }
-
-    // Also count from favorites
-    for (final item in favorites) {
-      final tmdbId = item['tmdb_id']?.toString() ?? '';
-      final mediaType = item['media_type'] as String? ?? 'tv';
-      if (tmdbId.isEmpty) continue;
-      if (mediaType == 'tv') {
-        showIds.add(tmdbId);
-      } else if (mediaType == 'movie') {
-        movieIds.add(tmdbId);
-      }
-    }
-
     final totalShows = showIds.length;
     final totalMovies = movieIds.length;
-    final totalHours = (totalEpisodes * 45 + totalMovies * 120) ~/ 60;
+    final totalHours = totalMinutes ~/ 60;
     final avgEpisodesPerShow = totalShows > 0 ? (totalEpisodes / totalShows).round() : 0;
 
     String mostWatchedShowId = '';
@@ -191,6 +171,7 @@ class UserActivityStats {
       totalShows: totalShows,
       totalMovies: totalMovies,
       totalEpisodes: totalEpisodes,
+      totalMinutes: totalMinutes,
       totalHours: totalHours,
       longestStreak: longestStreak,
       currentStreak: currentStreak,

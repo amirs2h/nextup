@@ -324,6 +324,7 @@ class SupabaseService {
     String? posterPath,
     List<String>? genres,
     List<String>? originCountries,
+    int? runtimeMinutes,
   }) async {
     try {
       final row = <String, dynamic>{
@@ -337,6 +338,7 @@ class SupabaseService {
       };
       if (genres != null) row['genres'] = genres;
       if (originCountries != null) row['origin_countries'] = originCountries;
+      if (runtimeMinutes != null) row['runtime_minutes'] = runtimeMinutes;
       await _client.from('watch_history').upsert(
             row,
             onConflict: 'user_id,tmdb_id,media_type,season_number,episode_number',

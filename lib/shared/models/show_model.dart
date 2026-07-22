@@ -23,6 +23,7 @@ class ShowModel {
   final List<Map<String, dynamic>>? spokenLanguages;
   final bool? inProduction;
   final String? type;
+  final int? episodeRunTime;
 
   ShowModel({
     required this.id,
@@ -47,6 +48,7 @@ class ShowModel {
     this.spokenLanguages,
     this.inProduction,
     this.type,
+    this.episodeRunTime,
   });
 
   factory ShowModel.fromJson(Map<String, dynamic> json) {
@@ -75,6 +77,9 @@ class ShowModel {
       spokenLanguages: json['spoken_languages'] != null ? List<Map<String, dynamic>>.from(json['spoken_languages']) : null,
       inProduction: json['in_production'],
       type: json['type'],
+      episodeRunTime: json['episode_run_time'] is int
+          ? json['episode_run_time'] as int
+          : int.tryParse(json['episode_run_time']?.toString() ?? ''),
     );
   }
 

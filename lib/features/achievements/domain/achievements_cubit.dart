@@ -353,6 +353,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     required int favoriteCount,
   }) async {
     int totalEpisodes = 0;
+    int totalMinutes = 0;
     final showIds = <String>{};
     final movieIds = <String>{};
     final activeDays = <String>{};
@@ -363,11 +364,23 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     var watchedInSummer = false;
 
     for (final item in history) {
-      if (item['media_type'] == 'tv') {
-        showIds.add(item['tmdb_id'].toString());
-        if (item['episode_number'] != null) totalEpisodes++;
+      final mediaType = item['media_type'] as String? ?? 'tv';
+      final tmdbId = item['tmdb_id']?.toString() ?? '';
+      final epRaw = item['episode_number'];
+      final ep = epRaw is int ? epRaw : int.tryParse(epRaw?.toString() ?? '');
+      final runtimeMin = item['runtime_minutes'] is int
+          ? item['runtime_minutes'] as int
+          : int.tryParse(item['runtime_minutes']?.toString() ?? '');
+
+      if (mediaType == 'tv') {
+        if (ep != null && ep > 0) {
+          if (tmdbId.isNotEmpty) showIds.add(tmdbId);
+          totalEpisodes++;
+          totalMinutes += runtimeMin ?? 45;
+        }
       } else {
-        movieIds.add(item['tmdb_id'].toString());
+        if (tmdbId.isNotEmpty) movieIds.add(tmdbId);
+        totalMinutes += runtimeMin ?? 120;
       }
       if (item['watched_at'] != null) {
         final date = DateTime.tryParse(item['watched_at'].toString());
@@ -386,7 +399,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
 
     final totalShows = showIds.length;
     final totalMovies = movieIds.length;
-    final totalHours = (totalEpisodes * 45 + totalMovies * 120) ~/ 60;
+    final totalHours = totalMinutes ~/ 60;
 
     final sortedDays = activeDays.toList()..sort();
     int longestStreak = 0;

@@ -46,6 +46,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   bool _isTogglingEpisode = false;
   bool _isMarkingAll = false;
   List<String>? _showGenres;
+  int? _showRuntime;
 
   SeasonDetailCubit(
     this._tmdbService,
@@ -73,6 +74,9 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
               .toList() ??
           <String>[];
       _showGenres = genres;
+      _showRuntime = data['episode_run_time'] is int
+          ? data['episode_run_time'] as int
+          : int.tryParse(data['episode_run_time']?.toString() ?? '');
       return genres;
     } catch (_) {
       return const [];
@@ -148,6 +152,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
             title: currentState.season.name,
             posterPath: currentState.season.posterPath,
             genres: genres,
+            runtimeMinutes: _showRuntime,
           );
         }
 
@@ -245,6 +250,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
               title: currentState.season.name,
               posterPath: currentState.season.posterPath,
               genres: genres,
+              runtimeMinutes: _showRuntime,
             );
           } catch (_) {}
         }));

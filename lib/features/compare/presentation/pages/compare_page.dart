@@ -56,23 +56,15 @@ class _ComparePageState extends State<ComparePage> {
         supabase.getWatchHistory(userId: currentUserId),
         supabase.getWatchHistory(userId: widget.userId),
         supabase.getCommonContent(currentUserId, widget.userId),
-        supabase.getWatchlist(userId: currentUserId),
-        supabase.getWatchlist(userId: widget.userId),
-        supabase.getFavorites(userId: currentUserId),
-        supabase.getFavorites(userId: widget.userId),
       ]);
 
       final otherProfile = results[0] as Map<String, dynamic>?;
       final myHistory = List<Map<String, dynamic>>.from(results[1] as List);
       final otherHistory = List<Map<String, dynamic>>.from(results[2] as List);
       final commonContent = List<Map<String, dynamic>>.from(results[3] as List);
-      final myWatchlist = List<Map<String, dynamic>>.from(results[4] as List);
-      final otherWatchlist = List<Map<String, dynamic>>.from(results[5] as List);
-      final myFavorites = List<Map<String, dynamic>>.from(results[6] as List);
-      final otherFavorites = List<Map<String, dynamic>>.from(results[7] as List);
 
-      final myActivity = UserActivityStats.fromHistory(myHistory, watchlist: myWatchlist, favorites: myFavorites);
-      final otherActivity = UserActivityStats.fromHistory(otherHistory, watchlist: otherWatchlist, favorites: otherFavorites);
+      final myActivity = UserActivityStats.fromHistory(myHistory);
+      final otherActivity = UserActivityStats.fromHistory(otherHistory);
       final myStats = myActivity.toSummaryMap();
       final otherStats = otherActivity.toSummaryMap();
 
