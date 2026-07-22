@@ -1,7 +1,7 @@
 name: nextup
 description: "NextUp - Track your favorite shows and movies"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.7.2
@@ -43,6 +43,8 @@ dependencies:
   fl_chart: ^0.70.2
   timeago: ^3.7.0
   app_links: ^6.3.2
+  package_info_plus: ^8.1.2
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

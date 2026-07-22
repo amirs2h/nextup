@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:timeago/timeago.dart' as timeago;
-import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/services/supabase_service.dart';
+import '../../../../shared/utils/user_activity_stats.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
-import '../../../profile/domain/profile_cubit.dart';
 
 class ComparePage extends StatefulWidget {
   final String userId;
@@ -30,6 +27,7 @@ class _ComparePageState extends State<ComparePage> {
   List<Achievement> _myBadges = [];
   List<Achievement> _otherBadges = [];
   bool _isLoading = true;
+  bool _hasError = false;
   int _myLevel = 1;
   int _otherLevel = 1;
 
@@ -45,10 +43,14 @@ class _ComparePageState extends State<ComparePage> {
 
     final currentUserId = authState.user.id;
     final supabase = context.read<SupabaseService>();
+    final achCubit = context.read<AchievementsCubit>();
+
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
     try {
-      // Load all data in parallel
-      final achCubit = context.read<AchievementsCubit>();
       final results = await Future.wait([
         supabase.getProfile(widget.userId),
         supabase.getWatchHistory(userId: currentUserId),
@@ -57,19 +59,19 @@ class _ComparePageState extends State<ComparePage> {
       ]);
 
       final otherProfile = results[0] as Map<String, dynamic>?;
-      final myHistory = results[1] as List<Map<String, dynamic>>;
-      final otherHistory = results[2] as List<Map<String, dynamic>>;
-      final commonContent = results[3] as List<Map<String, dynamic>>;
+      final myHistory = List<Map<String, dynamic>>.from(results[1] as List);
+      final otherHistory = List<Map<String, dynamic>>.from(results[2] as List);
+      final commonContent = List<Map<String, dynamic>>.from(results[3] as List);
 
-      // Compute stats
-      final myStats = _computeStats(myHistory);
-      final otherStats = _computeStats(otherHistory);
+      final myActivity = UserActivityStats.fromHistory(myHistory);
+      final otherActivity = UserActivityStats.fromHistory(otherHistory);
+      final myStats = myActivity.toSummaryMap();
+      final otherStats = otherActivity.toSummaryMap();
 
-      // Get achievements for both users
       List<Achievement> myBadges = [];
       List<Achievement> otherBadges = [];
-      int myLevel = 1;
-      int otherLevel = 1;
+      var myLevel = 1;
+      var otherLevel = 1;
 
       final achState = achCubit.state;
       if (achState is AchievementsLoaded) {
@@ -101,47 +103,22 @@ class _ComparePageState extends State<ComparePage> {
           _myStats = myStats;
           _otherStats = otherStats;
           _commonContent = commonContent;
-          _myBadges = myBadges.take(3).toList();
-          _otherBadges = otherBadges.take(3).toList();
+          _myBadges = myBadges;
+          _otherBadges = otherBadges;
           _myLevel = myLevel;
           _otherLevel = otherLevel;
           _isLoading = false;
+          _hasError = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Map<String, dynamic> _computeStats(List<Map<String, dynamic>> history) {
-    int totalShows = 0;
-    int totalMovies = 0;
-    int totalEpisodes = 0;
-    Set<String> showIds = {};
-    Set<String> movieIds = {};
-
-    for (final item in history) {
-      final tmdbId = item['tmdb_id']?.toString() ?? '';
-      final mediaType = item['media_type'] ?? 'tv';
-
-      if (mediaType == 'tv') {
-        showIds.add(tmdbId);
-        totalEpisodes++;
-      } else {
-        movieIds.add(tmdbId);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+        });
       }
     }
-
-    totalShows = showIds.length;
-    totalMovies = movieIds.length;
-    final totalHours = (totalEpisodes * 45 + totalMovies * 120) / 60;
-
-    return {
-      'totalShows': totalShows,
-      'totalMovies': totalMovies,
-      'totalEpisodes': totalEpisodes,
-      'totalHours': totalHours.round(),
-    };
   }
 
   @override
@@ -151,352 +128,288 @@ class _ComparePageState extends State<ComparePage> {
         backgroundColor: Colors.transparent,
         body: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 20),
-                      _buildStatComparison(),
-                      const SizedBox(height: 20),
-                      _buildCommonContent(),
-                      const SizedBox(height: 20),
-                      _buildBadgeComparison(),
-                      const SizedBox(height: 100),
-                    ],
+            : _hasError
+                ? SafeArea(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 56, color: AppColors.error),
+                          const SizedBox(height: 12),
+                          Text('Failed to load comparison', style: TextStyle(color: AppColors.text(context))),
+                          const SizedBox(height: 16),
+                          ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
+                          TextButton(onPressed: () => context.pop(), child: const Text('Go Back')),
+                        ],
+                      ),
+                    ),
+                  )
+                : SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 20),
+                          _buildLevelComparison(),
+                          const SizedBox(height: 20),
+                          _buildStatsComparison(),
+                          const SizedBox(height: 20),
+                          _buildBadgesComparison(),
+                          const SizedBox(height: 20),
+                          _buildCommonContent(),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    final authState = context.read<AuthCubit>().state;
-    final myName = authState is AuthAuthenticated ? (authState.profile?['username'] ?? 'You') : 'You';
-    final otherName = _otherProfile?['username'] ?? 'User';
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+      padding: const EdgeInsets.only(top: 12),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.cardBg(context),
-                border: Border.all(color: AppColors.border(context)),
-              ),
-              child: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context), size: 18),
-            ),
+          IconButton(
+            onPressed: () => context.pop(),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context)),
           ),
-          const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              children: [
-                Text('Stats Comparison', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                const SizedBox(height: 4),
-                Text('$myName vs $otherName', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
-              ],
+            child: Text(
+              'Compare',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.text(context), fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
+          const SizedBox(width: 48),
         ],
       ),
     );
   }
 
-  Widget _buildStatComparison() {
+  Widget _buildLevelComparison() {
+    final otherName = _otherProfile?['username'] as String? ?? 'User';
     return GlassContainer(
       padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      borderRadius: BorderRadius.circular(20),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(Icons.bar_chart_rounded, color: AppColors.electricPurple, size: 18),
-              const SizedBox(width: 8),
-              Text('Watch Stats', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-            ],
+          Expanded(child: _levelCard('You', _myLevel, AppColors.electricPurple)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Icon(Icons.compare_arrows_rounded, color: AppColors.textMuted(context)),
           ),
-          const SizedBox(height: 16),
-          _buildStatRow('Shows', _myStats?['totalShows'] ?? 0, _otherStats?['totalShows'] ?? 0),
-          _buildStatRow('Movies', _myStats?['totalMovies'] ?? 0, _otherStats?['totalMovies'] ?? 0),
-          _buildStatRow('Episodes', _myStats?['totalEpisodes'] ?? 0, _otherStats?['totalEpisodes'] ?? 0),
-          _buildStatRow('Hours', _myStats?['totalHours'] ?? 0, _otherStats?['totalHours'] ?? 0, suffix: 'h'),
+          Expanded(child: _levelCard(otherName, _otherLevel, const Color(0xFF00B4D8))),
         ],
       ),
     );
   }
 
-  Widget _buildStatRow(String label, int myValue, int otherValue, {String suffix = ''}) {
-    final authState = context.read<AuthCubit>().state;
-    final myName = authState is AuthAuthenticated ? (authState.profile?['username'] ?? 'You') : 'You';
-    final otherName = _otherProfile?['username'] ?? 'User';
-    final max = [myValue, otherValue].reduce((a, b) => a > b ? a : b);
-    final myPct = max > 0 ? myValue / max : 0.0;
-    final otherPct = max > 0 ? otherValue / max : 0.0;
+  Widget _levelCard(String label, int level, Color color) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 8),
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.6)]),
+          ),
+          child: Center(
+            child: Text('$level', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text('Level', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+  Widget _buildStatsComparison() {
+    final my = _myStats ?? {};
+    final other = _otherStats ?? {};
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: AppColors.text(context), fontSize: 13, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              SizedBox(
-                width: 40,
-                child: Text('${myValue}$suffix', style: TextStyle(color: AppColors.electricPurple, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text('Stats', style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          _statRow('Shows', my['totalShows'] ?? 0, other['totalShows'] ?? 0),
+          _statRow('Movies', my['totalMovies'] ?? 0, other['totalMovies'] ?? 0),
+          _statRow('Episodes', my['totalEpisodes'] ?? 0, other['totalEpisodes'] ?? 0),
+          _statRow('Hours', my['totalHours'] ?? 0, other['totalHours'] ?? 0),
+        ],
+      ),
+    );
+  }
+
+  Widget _statRow(String label, int mine, int theirs) {
+    final winMine = mine > theirs;
+    final winTheirs = theirs > mine;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 56,
+            child: Text(
+              '$mine',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: winMine ? AppColors.electricPurple : AppColors.text(context),
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: myPct,
-                    minHeight: 8,
-                    backgroundColor: AppColors.cardBg(context),
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.electricPurple),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 12,
-                child: Text(myName[0].toUpperCase(), style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              SizedBox(
-                width: 40,
-                child: Text('${otherValue}$suffix', style: TextStyle(color: AppColors.success, fontSize: 14, fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+          ),
+          SizedBox(
+            width: 56,
+            child: Text(
+              '$theirs',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: winTheirs ? const Color(0xFF00B4D8) : AppColors.text(context),
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: otherPct,
-                    minHeight: 8,
-                    backgroundColor: AppColors.cardBg(context),
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 12,
-                child: Text(otherName[0].toUpperCase(), style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
-              ),
-            ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBadgesComparison() {
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Achievements', style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('You · ${_myBadges.length}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+          const SizedBox(height: 8),
+          _badgeScroll(_myBadges),
+          const SizedBox(height: 16),
+          Text(
+            '${_otherProfile?['username'] ?? 'User'} · ${_otherBadges.length}',
+            style: TextStyle(color: AppColors.textMuted(context), fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          _badgeScroll(_otherBadges),
+        ],
+      ),
+    );
+  }
+
+  Widget _badgeScroll(List<Achievement> badges) {
+    if (badges.isEmpty) {
+      return Text('No achievements yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13));
+    }
+    return SizedBox(
+      height: 32,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: badges.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final badge = badges[index];
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: badge.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: badge.color.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(badge.icon, color: badge.color, size: 13),
+                const SizedBox(width: 5),
+                Text(badge.title, style: TextStyle(color: badge.color, fontSize: 11, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildCommonContent() {
-    if (_commonContent.isEmpty) return const SizedBox();
-
     return GlassContainer(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.handshake_rounded, color: AppColors.warning, size: 18),
-              const SizedBox(width: 8),
-              Text('You both watched', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text('${_commonContent.length}', style: TextStyle(color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ],
+          Text(
+            'In common · ${_commonContent.length}',
+            style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 160,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _commonContent.length,
-              itemBuilder: (context, index) {
-                final item = _commonContent[index];
-                final tmdbId = item['tmdb_id'];
-                final mediaType = item['media_type'] ?? 'tv';
-                final posterPath = item['poster_path'] as String?;
-                final title = item['title'] ?? 'Unknown';
-
-                return GestureDetector(
-                  onTap: () => context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId'),
-                  child: Container(
-                    width: 100,
-                    margin: const EdgeInsets.only(right: 12),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 100,
-                          height: 130,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: posterPath != null && posterPath.toString().isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: AppConfig.getImageUrl(posterPath, size: 'w154'),
-                                    fit: BoxFit.cover,
-                                    errorWidget: (c, u, e) => Container(
-                                      color: AppColors.cardBg(context),
-                                      child: Icon(Icons.movie, color: AppColors.textMuted(context)),
-                                    ),
-                                  )
-                                : Container(
-                                    color: AppColors.cardBg(context),
-                                    child: Icon(Icons.movie, color: AppColors.textMuted(context)),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          title,
-                          style: TextStyle(color: AppColors.text(context), fontSize: 11),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBadgeComparison() {
-    return GlassContainer(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.emoji_events_rounded, color: AppColors.warning, size: 18),
-              const SizedBox(width: 8),
-              Text('Top Badges', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // My badges
-          Row(
-            children: [
-              SizedBox(
-                width: 60,
-                child: Column(
-                  children: [
-                    Text('Level $_myLevel', style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Builder(
-                      builder: (ctx) {
-                        final s = context.read<AuthCubit>().state;
-                        final n = s is AuthAuthenticated ? (s.profile?['username'] ?? 'You') : 'You';
-                        return Text(n, style: TextStyle(color: AppColors.text(context), fontSize: 11));
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              ..._myBadges.map((badge) => Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: badge.color.withValues(alpha: 0.15),
-                    border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
-                    boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          const SizedBox(height: 12),
+          if (_commonContent.isEmpty)
+            Text('No shared watch history yet', style: TextStyle(color: AppColors.textMuted(context)))
+          else
+            ..._commonContent.take(20).map((item) {
+              final title = item['title'] as String? ?? 'Unknown';
+              final poster = item['poster_path'] as String?;
+              final tmdbId = item['tmdb_id'];
+              final mediaType = item['media_type'] as String? ?? 'tv';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: GestureDetector(
+                  onTap: () {
+                    if (tmdbId == null) return;
+                    context.push(mediaType == 'movie' ? '/movie/$tmdbId' : '/show/$tmdbId');
+                  },
+                  child: Row(
                     children: [
-                      Icon(badge.icon, color: badge.color, size: 16),
-                      const SizedBox(height: 2),
-                      Text(
-                        badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
-                        style: const TextStyle(fontSize: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: poster != null && poster.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: AppConfig.getImageUrl(poster, size: 'w92'),
+                                width: 40,
+                                height: 56,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Container(
+                                  width: 40,
+                                  height: 56,
+                                  color: AppColors.cardBg(context),
+                                  child: const Icon(Icons.movie, size: 18),
+                                ),
+                              )
+                            : Container(
+                                width: 40,
+                                height: 56,
+                                color: AppColors.cardBg(context),
+                                child: const Icon(Icons.movie, size: 18),
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w500),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              )),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Other user's badges
-          Row(
-            children: [
-              SizedBox(
-                width: 60,
-                child: Column(
-                  children: [
-                    Text(_otherLevel > 0 ? 'Level $_otherLevel' : 'N/A', style: TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(_otherProfile?['username'] ?? 'User', style: TextStyle(color: AppColors.text(context), fontSize: 11)),
-                  ],
-                ),
-              ),
-              if (_otherBadges.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text('No badge data available', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
-                )
-              else
-                ..._otherBadges.map((badge) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: badge.color.withValues(alpha: 0.15),
-                      border: Border.all(color: badge.rarityColor.withValues(alpha: 0.5), width: 2),
-                      boxShadow: [BoxShadow(color: badge.rarityColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(badge.icon, color: badge.color, size: 16),
-                        const SizedBox(height: 2),
-                        Text(
-                          badge.rarity == AchievementRarity.legendary ? '⭐' : badge.rarity == AchievementRarity.epic ? '💜' : badge.rarity == AchievementRarity.rare ? '💙' : '🤍',
-                          style: const TextStyle(fontSize: 8),
-                        ),
-                      ],
-                    ),
-                  ),
-                )),
-            ],
-          ),
+              );
+            }),
         ],
       ),
     );

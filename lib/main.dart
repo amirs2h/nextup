@@ -9,6 +9,7 @@ import 'shared/services/supabase_service.dart';
 import 'shared/services/tmdb_service.dart';
 import 'shared/services/omdb_service.dart';
 import 'shared/widgets/pwa_install_prompt.dart';
+import 'shared/widgets/app_update_gate.dart';
 import 'shared/widgets/error_screen.dart';
 import 'features/auth/domain/auth_cubit.dart';
 import 'features/home/domain/home_cubit.dart';
@@ -118,7 +119,8 @@ class _NextUpAppState extends State<NextUpApp> {
                 child: DefaultTextStyle(
                   style: const TextStyle(fontFamilyFallback: ['Vazirmatn']),
                   child: PwaInstallPrompt(
-                    child: MaterialApp.router(
+                    child: AppUpdateGate(
+                      child: MaterialApp.router(
                       title: 'NextUp',
                       debugShowCheckedModeBanner: false,
                       theme: AppTheme.lightTheme,
@@ -135,6 +137,7 @@ class _NextUpAppState extends State<NextUpApp> {
                         Locale('en', 'US'),
                         Locale('fa', 'IR'),
                       ],
+                    ),
                     ),
                   ),
                 ),
