@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/services/supabase_service.dart';
+import '../../achievements/domain/achievements_cubit.dart';
 
 // States
 abstract class SeasonDetailState extends Equatable {
@@ -39,6 +40,7 @@ class SeasonDetailError extends SeasonDetailState {
 class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   final TmdbService _tmdbService;
   final SupabaseService _supabaseService;
+  final AchievementsCubit? _achievementsCubit;
   final int showId;
   final int seasonNumber;
   bool _isTogglingEpisode = false;
@@ -48,9 +50,15 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
     this._tmdbService,
     this._supabaseService,
     this.showId,
-    this.seasonNumber,
-  ) : super(SeasonDetailInitial()) {
+    this.seasonNumber, {
+    AchievementsCubit? achievementsCubit,
+  })  : _achievementsCubit = achievementsCubit,
+        super(SeasonDetailInitial()) {
     loadSeasonDetails();
+  }
+
+  void _syncAchievements() {
+    _achievementsCubit?.syncAfterActivity();
   }
 
   Future<void> loadSeasonDetails() async {
@@ -124,6 +132,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
         }
 
         await _autoComputeStatus(user.id);
+        _syncAchievements();
       } catch (e) {
         if (!isClosed) emit(currentState);
       }
@@ -220,6 +229,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
       }
 
       await _autoComputeStatus(user.id);
+      _syncAchievements();
     } catch (e) {
       // Revert optimistic update on failure
       final currentState = state;

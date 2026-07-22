@@ -5,6 +5,7 @@ import '../../../shared/models/person_model.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/omdb_service.dart';
+import '../../achievements/domain/achievements_cubit.dart';
 
 // States
 abstract class MovieDetailState extends Equatable {
@@ -100,14 +101,25 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
   final TmdbService _tmdbService;
   final SupabaseService _supabaseService;
   final OmdbService _omdbService;
+  final AchievementsCubit? _achievementsCubit;
   final int movieId;
   bool _isTogglingWatchlist = false;
   bool _isTogglingFavorite = false;
   bool _isTogglingWatched = false;
 
-  MovieDetailCubit(this._tmdbService, this._supabaseService, this._omdbService, this.movieId)
-      : super(MovieDetailInitial()) {
+  MovieDetailCubit(
+    this._tmdbService,
+    this._supabaseService,
+    this._omdbService,
+    this.movieId, {
+    AchievementsCubit? achievementsCubit,
+  })  : _achievementsCubit = achievementsCubit,
+        super(MovieDetailInitial()) {
     loadMovieDetails();
+  }
+
+  void _syncAchievements() {
+    _achievementsCubit?.syncAfterActivity();
   }
 
   Future<void> loadMovieDetails() async {
@@ -293,6 +305,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
               isWatched: false,
             );
           } catch (_) {}
+          _syncAchievements();
         }
       } catch (e) {
         if (!isClosed) emit(currentState);
@@ -330,6 +343,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             mediaType: 'movie',
           );
         }
+        _syncAchievements();
       } catch (e) {
         if (!isClosed) emit(currentState);
       }
@@ -382,6 +396,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
           );
           if (!isClosed) emit((state as MovieDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
         } catch (_) {}
+        _syncAchievements();
       } catch (e) {
         if (!isClosed) emit(currentState);
       }

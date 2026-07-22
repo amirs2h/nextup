@@ -1151,6 +1151,74 @@ class SupabaseService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getUserAchievements(String userId) async {
+    try {
+      final response = await _client
+          .from('user_achievements')
+          .select('achievement_id, unlocked_at, xp_awarded')
+          .eq('user_id', userId)
+          .order('unlocked_at', ascending: true);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> unlockAchievements({
+    required String userId,
+    required List<Map<String, dynamic>> achievements,
+  }) async {
+    if (achievements.isEmpty) return;
+    try {
+      await _client.from('user_achievements').upsert(
+        achievements
+            .map((a) => {
+                  'user_id': userId,
+                  'achievement_id': a['achievement_id'],
+                  'xp_awarded': a['xp_awarded'] ?? 0,
+                })
+            .toList(),
+        onConflict: 'user_id,achievement_id',
+      );
+    } catch (e) {
+      // table may not exist yet before migration
+    }
+  }
+
+  /// Cleanup wrongly granted seasonal achievements (no matching watched_at evidence).
+  Future<void> deleteUserAchievements({
+    required String userId,
+    required List<String> achievementIds,
+  }) async {
+    if (achievementIds.isEmpty) return;
+    try {
+      await _client
+          .from('user_achievements')
+          .delete()
+          .eq('user_id', userId)
+          .inFilter('achievement_id', achievementIds);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  Future<Map<String, int>> getProfileXpLevel(String userId) async {
+    try {
+      final row = await _client
+          .from('profiles')
+          .select('total_xp, level')
+          .eq('id', userId)
+          .maybeSingle();
+      if (row == null) return {'total_xp': 0, 'level': 1};
+      return {
+        'total_xp': (row['total_xp'] as num?)?.toInt() ?? 0,
+        'level': (row['level'] as num?)?.toInt() ?? 1,
+      };
+    } catch (e) {
+      return {'total_xp': 0, 'level': 1};
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getSharedLists(String userId) async {
     try {
       final response = await _client.from('shared_list_members')

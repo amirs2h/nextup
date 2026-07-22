@@ -48,6 +48,7 @@ class _ComparePageState extends State<ComparePage> {
 
     try {
       // Load all data in parallel
+      final achCubit = context.read<AchievementsCubit>();
       final results = await Future.wait([
         supabase.getProfile(widget.userId),
         supabase.getWatchHistory(userId: currentUserId),
@@ -65,22 +66,34 @@ class _ComparePageState extends State<ComparePage> {
       final otherStats = _computeStats(otherHistory);
 
       // Get achievements for both users
-      final achState = context.read<AchievementsCubit>().state;
       List<Achievement> myBadges = [];
       List<Achievement> otherBadges = [];
       int myLevel = 1;
       int otherLevel = 1;
 
+      final achState = achCubit.state;
       if (achState is AchievementsLoaded) {
         myBadges = achState.achievements.where((a) => a.isUnlocked).toList()
           ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
         myLevel = achState.level;
+      } else {
+        try {
+          final myAch = await achCubit.calculateForUser(currentUserId);
+          myBadges = myAch.achievements.where((a) => a.isUnlocked).toList()
+            ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
+          myLevel = myAch.level;
+        } catch (_) {}
       }
 
-      // For other user, we can't easily compute achievements without loading their data
-      // For now, we'll show N/A for their badges
-      otherBadges = [];
-      otherLevel = 0;
+      try {
+        final otherAch = await achCubit.calculateForUser(widget.userId);
+        otherBadges = otherAch.achievements.where((a) => a.isUnlocked).toList()
+          ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
+        otherLevel = otherAch.level;
+      } catch (_) {
+        otherBadges = [];
+        otherLevel = 1;
+      }
 
       if (mounted) {
         setState(() {

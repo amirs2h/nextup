@@ -21,6 +21,7 @@ import '../../../../shared/mixins/toggle_lock_mixin.dart';
 import '../../../watchlist/domain/watchlist_cubit.dart';
 import '../../../profile/domain/favorites_cubit.dart';
 import '../../../profile/domain/watch_history_cubit.dart';
+import '../../../achievements/domain/achievements_cubit.dart';
 
 class MovieDetailPage extends StatelessWidget {
   final int movieId;
@@ -35,6 +36,7 @@ class MovieDetailPage extends StatelessWidget {
         context.read<SupabaseService>(),
         context.read<OmdbService>(),
         movieId,
+        achievementsCubit: context.read<AchievementsCubit>(),
       ),
       child: _MovieDetailView(movieId: movieId),
     );

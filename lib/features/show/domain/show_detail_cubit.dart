@@ -5,6 +5,7 @@ import '../../../shared/models/person_model.dart';
 import '../../../shared/services/tmdb_service.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/omdb_service.dart';
+import '../../achievements/domain/achievements_cubit.dart';
 
 // States
 abstract class ShowDetailState extends Equatable {
@@ -100,15 +101,26 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
   final TmdbService _tmdbService;
   final SupabaseService _supabaseService;
   final OmdbService _omdbService;
+  final AchievementsCubit? _achievementsCubit;
   final int showId;
   bool _isTogglingEpisode = false;
   bool _isTogglingWatchlist = false;
   bool _isTogglingFavorite = false;
   bool _isMarkingAll = false;
 
-  ShowDetailCubit(this._tmdbService, this._supabaseService, this._omdbService, this.showId)
-      : super(ShowDetailInitial()) {
+  ShowDetailCubit(
+    this._tmdbService,
+    this._supabaseService,
+    this._omdbService,
+    this.showId, {
+    AchievementsCubit? achievementsCubit,
+  })  : _achievementsCubit = achievementsCubit,
+        super(ShowDetailInitial()) {
     loadShowDetails();
+  }
+
+  void _syncAchievements() {
+    _achievementsCubit?.syncAfterActivity();
   }
 
   Future<void> loadShowDetails() async {
@@ -317,6 +329,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
               emit((state as ShowDetailLoaded).copyWith(isInWatchlist: true));
             }
           } catch (_) {}
+          _syncAchievements();
         }
       } catch (e) {
         if (!isClosed) emit(currentState);
@@ -354,6 +367,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             mediaType: 'tv',
           );
         }
+        _syncAchievements();
       } catch (e) {
         if (!isClosed) emit(currentState);
       }
@@ -414,6 +428,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
           );
           if (!isClosed) emit((state as ShowDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
         } catch (_) {}
+        _syncAchievements();
       } catch (e) {
         if (!isClosed) emit(currentState);
       }
@@ -533,6 +548,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
         );
         if (!isClosed) emit((state as ShowDetailLoaded).copyWith(isInWatchlist: newIsInWatchlist));
       } catch (_) {}
+      _syncAchievements();
     } catch (e) {
       // Revert optimistic update on failure
       final currentState = state;

@@ -11,6 +11,7 @@ import '../../../../shared/widgets/spoiler_widget.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
+import '../../../achievements/domain/achievements_cubit.dart';
 
 class EpisodeDetailPage extends StatefulWidget {
   final int showId;
@@ -140,6 +141,9 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
         );
       }
       if (mounted) setState(() => _isWatched = !_isWatched);
+      try {
+        context.read<AchievementsCubit>().syncAfterActivity();
+      } catch (_) {}
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

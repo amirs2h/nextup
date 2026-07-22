@@ -10,6 +10,7 @@ import '../../../../shared/models/show_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/season_detail_cubit.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
+import '../../../achievements/domain/achievements_cubit.dart';
 
 class SeasonDetailPage extends StatelessWidget {
   final int showId;
@@ -29,6 +30,7 @@ class SeasonDetailPage extends StatelessWidget {
         context.read<SupabaseService>(),
         showId,
         seasonNumber,
+        achievementsCubit: context.read<AchievementsCubit>(),
       ),
       child: _SeasonDetailView(showId: showId, seasonNumber: seasonNumber),
     );
