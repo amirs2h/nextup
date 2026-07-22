@@ -78,7 +78,7 @@ interface ActivityStats {
   favoriteCount: number;
 }
 
-function computeStats(
+async function computeStats(
   history: any[],
   watchlist: any[],
   favorites: any[]
