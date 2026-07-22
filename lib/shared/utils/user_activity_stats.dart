@@ -39,11 +39,15 @@ class UserActivityStats {
       };
 
   /// Unified rules:
-  /// - TV show count: distinct tmdb_id where media_type == tv
-  /// - Movie count: distinct tmdb_id where media_type == movie
-  /// - Episode count: tv rows with episode_number != null && > 0
-  /// - Hours: (episodes * 45 + movies * 120) ~/ 60
-  static UserActivityStats fromHistory(List<Map<String, dynamic>> history) {
+  /// - TV show count: distinct tmdb_id where media_type == tv, from history + watchlist
+  /// - Movie count: distinct tmdb_id where media_type == movie, from history + watchlist
+  /// - Episode count: history tv rows with episode_number != null && > 0
+  /// - Hours: (episodes * 45 + movies * 120) ~/ 60 (from history only)
+  static UserActivityStats fromHistory(
+    List<Map<String, dynamic>> history, {
+    List<Map<String, dynamic>> watchlist = const [],
+    List<Map<String, dynamic>> favorites = const [],
+  }) {
     final showIds = <String>{};
     final movieIds = <String>{};
     var totalEpisodes = 0;
@@ -83,6 +87,30 @@ class UserActivityStats {
             '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
           );
         }
+      }
+    }
+
+    // Also count shows/movies from watchlist (not just history)
+    for (final item in watchlist) {
+      final tmdbId = item['tmdb_id']?.toString() ?? '';
+      final mediaType = item['media_type'] as String? ?? 'tv';
+      if (tmdbId.isEmpty) continue;
+      if (mediaType == 'tv') {
+        showIds.add(tmdbId);
+      } else if (mediaType == 'movie') {
+        movieIds.add(tmdbId);
+      }
+    }
+
+    // Also count from favorites
+    for (final item in favorites) {
+      final tmdbId = item['tmdb_id']?.toString() ?? '';
+      final mediaType = item['media_type'] as String? ?? 'tv';
+      if (tmdbId.isEmpty) continue;
+      if (mediaType == 'tv') {
+        showIds.add(tmdbId);
+      } else if (mediaType == 'movie') {
+        movieIds.add(tmdbId);
       }
     }
 
