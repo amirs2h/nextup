@@ -346,7 +346,7 @@ async function recomputeUser(
   const persisted = persistedRes.data ?? [];
 
   // 3. Compute stats
-  const stats = computeStats(history, watchlist, favorites);
+  const stats = await computeStats(history, watchlist, favorites);
 
   // 4. Rule-based unlocks
   const ruleUnlocked = new Map<string, number>();
