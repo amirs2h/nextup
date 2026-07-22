@@ -19,9 +19,10 @@ flutter --version
 # Get dependencies
 flutter pub get
 
-# Build for web (pwa-strategy online-first helps clients pick up updates faster)
+# Build for web
+# pwa-strategy=none: no aggressive service-worker shell cache (users get updates without clear-cache)
 flutter build web --release \
-  --pwa-strategy=online-first \
+  --pwa-strategy=none \
   --dart-define=TMDB_API_KEY="$TMDB_API_KEY" \
   --dart-define=OMDB_API_KEY="$OMDB_API_KEY" \
   --dart-define=SUPABASE_URL="$SUPABASE_URL" \
