@@ -307,7 +307,7 @@ async function recomputeUser(
     .select("tmdb_id, media_type")
     .eq("user_id", userId)
     .or("genres.is.null,genres.eq.{},origin_countries.is.null,origin_countries.eq.{},runtime_minutes.is.null")
-    .limit(50);
+    .limit(500);
 
   if (missingRows?.length) {
     const seen = new Set<string>();
@@ -335,14 +335,15 @@ async function recomputeUser(
           runtime = typeof data.runtime === "number" ? data.runtime : null;
         }
         const update: Record<string, any> = {};
-        if (genres.length) update.genres = genres;
-        if (countries.length) update.origin_countries = countries;
-        if (runtime != null) update.runtime_minutes = runtime;
-        if (Object.keys(update).length) {
-          await admin.from("watch_history").update(update)
-            .eq("user_id", userId).eq("tmdb_id", tmdbId).eq("media_type", mt);
-          backfilled++;
-        }
+        // Always set genres (empty array if none)
+        update.genres = genres;
+        // Always set countries (empty array if none)
+        update.origin_countries = countries;
+        // Always set runtime (fallback 45/120 if TMDB doesn't have it)
+        update.runtime_minutes = runtime ?? (mt === "tv" ? 45 : 120);
+        await admin.from("watch_history").update(update)
+          .eq("user_id", userId).eq("tmdb_id", tmdbId).eq("media_type", mt);
+        backfilled++;
         await sleep(80);
       } catch (_) { /* skip */ }
     }

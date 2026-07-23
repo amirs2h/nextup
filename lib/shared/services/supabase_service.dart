@@ -467,7 +467,7 @@ class SupabaseService {
           .from('watch_history')
           .select('tmdb_id, media_type')
           .eq('user_id', userId)
-          .or('genres.is.null,genres.eq.{}')
+          .or('genres.is.null,genres.eq.{},origin_countries.is.null,origin_countries.eq.{},runtime_minutes.is.null')
           .limit(limit);
       final list = List<Map<String, dynamic>>.from(rows);
       final seen = <String>{};
@@ -488,21 +488,34 @@ class SupabaseService {
                   .toList() ??
               <String>[];
           List<String> countries = [];
+          int? runtime;
           if (mediaType == 'tv') {
             countries = (data['origin_country'] as List?)?.map((c) => c.toString()).toList() ?? [];
+            final ert = data['episode_run_time'];
+            if (ert is int) {
+              runtime = ert;
+            } else if (ert is List && ert.isNotEmpty) {
+              runtime = ert.first is int ? ert.first as int : int.tryParse(ert.first?.toString() ?? '');
+            }
           } else {
-            countries = (data['production_countries'] as List?)
+            countries = (data['origin_country'] as List?)
+                    ?.map((c) => c?.toString())
+                    .whereType<String>()
+                    .toList() ??
+                (data['production_countries'] as List?)
                     ?.map((c) => c is Map ? c['iso_3166_1']?.toString() : c.toString())
                     .whereType<String>()
                     .toList() ??
                 [];
+            runtime = data['runtime'] is int ? data['runtime'] as int : int.tryParse(data['runtime']?.toString() ?? '');
           }
-          if (genres.isEmpty && countries.isEmpty) continue;
+          // Always update — even with empty values — so rows don't get re-selected
           await _client
               .from('watch_history')
               .update({
                 'genres': genres,
                 'origin_countries': countries,
+                'runtime_minutes': runtime ?? (mediaType == 'tv' ? 45 : 120),
               })
               .eq('user_id', userId)
               .eq('tmdb_id', tmdbId)
