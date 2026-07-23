@@ -46,6 +46,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
   bool _isTogglingEpisode = false;
   bool _isMarkingAll = false;
   List<String>? _showGenres;
+  List<String>? _showCountries;
   int? _showRuntime;
 
   SeasonDetailCubit(
@@ -74,9 +75,19 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
               .toList() ??
           <String>[];
       _showGenres = genres;
-      _showRuntime = data['episode_run_time'] is int
-          ? data['episode_run_time'] as int
-          : int.tryParse(data['episode_run_time']?.toString() ?? '');
+      // TMDB returns episode_run_time as array [45]
+      final ert = data['episode_run_time'];
+      if (ert is int) {
+        _showRuntime = ert;
+      } else if (ert is List && ert.isNotEmpty) {
+        _showRuntime = ert.first is int ? ert.first as int : int.tryParse(ert.first?.toString() ?? '');
+      }
+      _showCountries = (data['origin_country'] as List?)
+              ?.map((c) => c?.toString())
+              .whereType<String>()
+              .where((c) => c.isNotEmpty)
+              .toList() ??
+          const [];
       return genres;
     } catch (_) {
       return const [];
@@ -152,6 +163,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
             title: currentState.season.name,
             posterPath: currentState.season.posterPath,
             genres: genres,
+            originCountries: _showCountries,
             runtimeMinutes: _showRuntime,
           );
         }
@@ -250,6 +262,7 @@ class SeasonDetailCubit extends Cubit<SeasonDetailState> {
               title: currentState.season.name,
               posterPath: currentState.season.posterPath,
               genres: genres,
+              originCountries: _showCountries,
               runtimeMinutes: _showRuntime,
             );
           } catch (_) {}

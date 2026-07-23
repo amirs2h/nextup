@@ -123,7 +123,7 @@ class UserActivityStats {
     }
     if (tempStreak > longestStreak) longestStreak = tempStreak;
 
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     var currentStreak = 0;
     for (var i = 0; i < 365; i++) {
       final checkDate = now.subtract(Duration(days: i));

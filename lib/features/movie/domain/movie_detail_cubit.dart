@@ -385,6 +385,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             title: currentState.movie.title,
             posterPath: currentState.movie.posterPath,
             genres: currentState.movie.genreNames,
+            originCountries: currentState.movie.originCountryCodes.isNotEmpty ? currentState.movie.originCountryCodes : null,
             runtimeMinutes: currentState.movie.runtime,
           );
         }

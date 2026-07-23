@@ -109,7 +109,7 @@ async function computeStats(
         totalEpisodes++;
         totalMinutes += rt ?? 45;
       }
-    } else {
+    } else if (mediaType === "movie") {
       if (tmdbId) movieIds.add(tmdbId);
       totalMinutes += rt ?? 120;
     }
@@ -306,7 +306,7 @@ async function recomputeUser(
     .from("watch_history")
     .select("tmdb_id, media_type")
     .eq("user_id", userId)
-    .or("genres.is.null,genres.eq.{},runtime_minutes.is.null")
+    .or("genres.is.null,genres.eq.{},origin_countries.is.null,origin_countries.eq.{},runtime_minutes.is.null")
     .limit(50);
 
   if (missingRows?.length) {
@@ -324,9 +324,14 @@ async function recomputeUser(
         let runtime: number | null = null;
         if (mt === "tv") {
           countries = (data.origin_country ?? []).map(String);
-          runtime = typeof data.episode_run_time === "number" ? data.episode_run_time : null;
+          // TMDB returns episode_run_time as array [45]
+          const ert = data.episode_run_time;
+          if (typeof ert === "number") runtime = ert;
+          else if (Array.isArray(ert) && ert.length > 0) runtime = typeof ert[0] === "number" ? ert[0] : null;
         } else {
-          countries = (data.production_countries ?? []).map((c: any) => c.iso_3166_1).filter(Boolean);
+          countries = (data.origin_country ?? []).map(String).length > 0
+            ? (data.origin_country ?? []).map(String)
+            : (data.production_countries ?? []).map((c: any) => c.iso_3166_1).filter(Boolean);
           runtime = typeof data.runtime === "number" ? data.runtime : null;
         }
         const update: Record<string, any> = {};

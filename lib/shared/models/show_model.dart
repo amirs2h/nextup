@@ -24,6 +24,7 @@ class ShowModel {
   final bool? inProduction;
   final String? type;
   final int? episodeRunTime;
+  final List<String>? _originCountry;
 
   ShowModel({
     required this.id,
@@ -49,7 +50,8 @@ class ShowModel {
     this.inProduction,
     this.type,
     this.episodeRunTime,
-  });
+    List<String>? originCountry,
+  }) : _originCountry = originCountry;
 
   factory ShowModel.fromJson(Map<String, dynamic> json) {
     return ShowModel(
@@ -77,9 +79,12 @@ class ShowModel {
       spokenLanguages: json['spoken_languages'] != null ? List<Map<String, dynamic>>.from(json['spoken_languages']) : null,
       inProduction: json['in_production'],
       type: json['type'],
-      episodeRunTime: json['episode_run_time'] is int
-          ? json['episode_run_time'] as int
-          : int.tryParse(json['episode_run_time']?.toString() ?? ''),
+      episodeRunTime: _parseEpisodeRunTime(json['episode_run_time']),
+      originCountry: (json['origin_country'] as List?)
+          ?.map((c) => c?.toString())
+          .whereType<String>()
+          .where((c) => c.isNotEmpty)
+          .toList(),
     );
   }
 
@@ -100,6 +105,25 @@ class ShowModel {
           .toList();
     }
     return const [];
+  }
+
+  /// TMDB returns origin_country as a list of ISO codes, e.g. ["US", "GB"]
+  List<String> get originCountryCodes {
+    if (_originCountry != null && _originCountry.isNotEmpty) {
+      return _originCountry;
+    }
+    return const [];
+  }
+
+  static int? _parseEpisodeRunTime(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    if (raw is List && raw.isNotEmpty) {
+      final first = raw.first;
+      if (first is int) return first;
+      return int.tryParse(first?.toString() ?? '');
+    }
+    return int.tryParse(raw.toString());
   }
 }
 

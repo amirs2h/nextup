@@ -1220,20 +1220,6 @@ class SupabaseService {
     }
   }
 
-  Future<Map<String, dynamic>?> getUserStats(String userId) async {
-    try {
-      final response = await _client.rpc('get_user_stats', params: {
-        'target_user_id': userId,
-      });
-      if (response is List && response.isNotEmpty) {
-        return Map<String, dynamic>.from(response.first);
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
   Future<List<Map<String, dynamic>>> getUserAchievements(String userId) async {
     try {
       final response = await _client
@@ -1282,23 +1268,6 @@ class SupabaseService {
           .inFilter('achievement_id', achievementIds);
     } catch (e) {
       // ignore
-    }
-  }
-
-  Future<Map<String, int>> getProfileXpLevel(String userId) async {
-    try {
-      final row = await _client
-          .from('profiles')
-          .select('total_xp, level')
-          .eq('id', userId)
-          .maybeSingle();
-      if (row == null) return {'total_xp': 0, 'level': 1};
-      return {
-        'total_xp': (row['total_xp'] as num?)?.toInt() ?? 0,
-        'level': (row['level'] as num?)?.toInt() ?? 1,
-      };
-    } catch (e) {
-      return {'total_xp': 0, 'level': 1};
     }
   }
 

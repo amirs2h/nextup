@@ -378,7 +378,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
           totalEpisodes++;
           totalMinutes += runtimeMin ?? 45;
         }
-      } else {
+      } else if (mediaType == 'movie') {
         if (tmdbId.isNotEmpty) movieIds.add(tmdbId);
         totalMinutes += runtimeMin ?? 120;
       }
@@ -416,7 +416,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     }
     if (tempStreak > longestStreak) longestStreak = tempStreak;
 
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     int currentStreak = 0;
     for (int i = 0; i < 365; i++) {
       final checkDate = now.subtract(Duration(days: i));
@@ -447,7 +447,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       final genres = _parseStringList(item['genres']);
       final countries = _parseStringList(item['origin_countries']);
 
-      if (genres.isEmpty && countries.isEmpty) {
+      if (genres.isEmpty || countries.isEmpty) {
         missingMeta.add({'tmdb_id': tmdbId is int ? tmdbId : int.tryParse(tmdbId.toString()), 'media_type': mediaType, 'key': titleKey});
         continue;
       }

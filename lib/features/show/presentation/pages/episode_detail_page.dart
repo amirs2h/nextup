@@ -34,6 +34,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
   String? _showName;
   String? _showPosterPath;
   List<String> _showGenres = const [];
+  List<String> _showCountries = const [];
   int? _showRuntime;
   bool _isLoading = true;
   bool _isWatched = false;
@@ -57,15 +58,19 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
       final showDetails = await tmdb.getShowDetails(widget.showId);
       _showName = showDetails['name'] as String?;
       _showPosterPath = showDetails['poster_path'] as String?;
+      _showRuntime = _parseEpisodeRunTime(showDetails['episode_run_time']);
       _showGenres = (showDetails['genres'] as List?)
               ?.map((g) => g['name']?.toString())
               .whereType<String>()
               .where((n) => n.isNotEmpty)
               .toList() ??
           const [];
-      _showRuntime = showDetails['episode_run_time'] is int
-          ? showDetails['episode_run_time'] as int
-          : int.tryParse(showDetails['episode_run_time']?.toString() ?? '');
+      _showCountries = (showDetails['origin_country'] as List?)
+              ?.map((c) => c?.toString())
+              .whereType<String>()
+              .where((c) => c.isNotEmpty)
+              .toList() ??
+          const [];
 
       final seasonData = await tmdb.getShowSeasonDetails(widget.showId, widget.seasonNumber);
       final episodes = seasonData['episodes'] as List? ?? [];
@@ -150,6 +155,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
           title: _episodeData?['name'] as String? ?? _showName,
           posterPath: _showPosterPath,
           genres: _showGenres,
+          originCountries: _showCountries.isNotEmpty ? _showCountries : null,
           runtimeMinutes: _showRuntime,
         );
       }
@@ -700,4 +706,15 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
       ),
     );
   }
+}
+
+int? _parseEpisodeRunTime(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is int) return raw;
+  if (raw is List && raw.isNotEmpty) {
+    final first = raw.first;
+    if (first is int) return first;
+    return int.tryParse(first?.toString() ?? '');
+  }
+  return int.tryParse(raw.toString());
 }

@@ -23,6 +23,7 @@ class MovieModel {
   final String? imdbId;
   final String? homepage;
   final Map<String, dynamic>? belongsToCollection;
+  final List<String>? _originCountry;
 
   MovieModel({
     required this.id,
@@ -47,7 +48,8 @@ class MovieModel {
     this.imdbId,
     this.homepage,
     this.belongsToCollection,
-  });
+    List<String>? originCountry,
+  }) : _originCountry = originCountry;
 
   factory MovieModel.fromJson(Map<String, dynamic> json) {
     return MovieModel(
@@ -73,6 +75,11 @@ class MovieModel {
       imdbId: json['imdb_id'],
       homepage: json['homepage'],
       belongsToCollection: json['belongs_to_collection'],
+      originCountry: (json['origin_country'] as List?)
+          ?.map((c) => c?.toString())
+          .whereType<String>()
+          .where((c) => c.isNotEmpty)
+          .toList(),
     );
   }
 
@@ -96,8 +103,17 @@ class MovieModel {
     return const [];
   }
 
+  /// Country codes from origin_country or production_countries (TMDB movie API)
   List<String> get originCountryCodes {
-    // Movies often use production_countries
+    if (_originCountry != null && _originCountry.isNotEmpty) return _originCountry;
+    if (productionCompanies != null && productionCompanies!.isNotEmpty) {
+      final codes = productionCompanies!
+          .map((c) => c['iso_3166_1']?.toString())
+          .whereType<String>()
+          .where((c) => c.isNotEmpty)
+          .toList();
+      if (codes.isNotEmpty) return codes;
+    }
     return const [];
   }
 

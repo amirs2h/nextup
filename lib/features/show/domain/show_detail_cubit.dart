@@ -417,6 +417,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             title: currentState.show.name,
             posterPath: currentState.show.posterPath,
             genres: currentState.show.genreNames,
+            originCountries: currentState.show.originCountryCodes.isNotEmpty ? currentState.show.originCountryCodes : null,
             runtimeMinutes: currentState.show.episodeRunTime,
           );
         }
@@ -535,6 +536,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
               title: currentState.show.name,
               posterPath: currentState.show.posterPath,
               genres: currentState.show.genreNames,
+              originCountries: currentState.show.originCountryCodes.isNotEmpty ? currentState.show.originCountryCodes : null,
               runtimeMinutes: currentState.show.episodeRunTime,
             );
           } catch (_) {}
