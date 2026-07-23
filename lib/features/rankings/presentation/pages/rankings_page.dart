@@ -121,7 +121,8 @@ class _RankingsPageState extends State<RankingsPage> {
               final rank = state.rankings[index];
               final username = (rank['username'] as String?)?.isNotEmpty == true ? rank['username'] : 'User';
               final avatarUrl = rank['avatar_url'];
-              final totalHours = rank['total_hours'] ?? '0';
+              final rawHours = rank['total_hours'];
+              final totalHours = (rawHours is num ? rawHours : double.tryParse(rawHours?.toString() ?? '0') ?? 0).round();
               final isMe = rank['is_me'] ?? false;
               final position = index + 1;
 
