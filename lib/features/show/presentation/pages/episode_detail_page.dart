@@ -161,6 +161,16 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
       }
       if (mounted) setState(() => _isWatched = !_isWatched);
       try {
+        // Compute watchlist status (matching show_detail_cubit behavior)
+        final tmdb = context.read<TmdbService>();
+        final showDetails = await tmdb.getShowDetails(widget.showId);
+        await supabase.computeAndSetShowStatus(
+          userId: user.id,
+          tmdbId: widget.showId,
+          showDetails: showDetails,
+        );
+      } catch (_) {}
+      try {
         context.read<AchievementsCubit>().syncAfterActivity();
       } catch (_) {}
     } catch (e) {

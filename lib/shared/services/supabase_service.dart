@@ -991,12 +991,14 @@ class SupabaseService {
     required int tmdbId,
     required String mediaType,
     required String status,
+    String listName = 'default',
   }) async {
     await _client.from('watchlist')
         .update({'status': status})
         .eq('user_id', userId)
         .eq('tmdb_id', tmdbId)
-        .eq('media_type', mediaType);
+        .eq('media_type', mediaType)
+        .eq('list_name', listName);
   }
 
   Future<List<Map<String, dynamic>>> getWatchlistByStatus({
@@ -1111,15 +1113,15 @@ class SupabaseService {
 
       if (watchlistItem == null) return; // Not in watchlist
 
-      final newStatus = isWatched ? 'completed' : 'watchlist';
       final currentStatus = watchlistItem['status'] ?? 'watchlist';
 
-      if (currentStatus != newStatus) {
+      // Only update status: completed when watched; don't overwrite custom status
+      if (isWatched && currentStatus != 'completed') {
         await updateWatchlistStatus(
           userId: userId,
           tmdbId: tmdbId,
           mediaType: 'movie',
-          status: newStatus,
+          status: 'completed',
         );
       }
     } catch (e) {

@@ -304,6 +304,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             tmdbId: showId,
             mediaType: 'tv',
           );
+          _syncAchievements();
         } else {
           await _supabaseService.addToWatchlist(
             userId: user.id,

@@ -289,6 +289,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             tmdbId: movieId,
             mediaType: 'movie',
           );
+          _syncAchievements();
         } else {
           await _supabaseService.addToWatchlist(
             userId: user.id,
@@ -298,12 +299,13 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             title: currentState.movie.title,
             posterPath: currentState.movie.posterPath,
             genres: currentState.movie.genreNames,
+            originCountries: currentState.movie.originCountryCodes.isNotEmpty ? currentState.movie.originCountryCodes : null,
           );
           try {
             await _supabaseService.computeAndSetMovieStatus(
               userId: user.id,
               tmdbId: movieId,
-              isWatched: false,
+              isWatched: currentState.isWatched,
             );
           } catch (_) {}
           _syncAchievements();

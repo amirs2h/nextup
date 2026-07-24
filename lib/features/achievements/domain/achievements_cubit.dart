@@ -383,7 +383,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         totalMinutes += runtimeMin ?? 120;
       }
       if (item['watched_at'] != null) {
-        final date = DateTime.tryParse(item['watched_at'].toString());
+        final date = DateTime.tryParse(item['watched_at'].toString())?.toLocal();
         if (date != null) {
           activeDays.add(
             '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
