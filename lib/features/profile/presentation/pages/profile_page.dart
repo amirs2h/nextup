@@ -90,6 +90,25 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
 
           return BlocBuilder<ProfileCubit, ProfileState>(
             builder: (context, state) {
+              if (state is ProfileLoading && state is! ProfileLoaded) {
+                return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+              }
+
+              if (state is ProfileError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const SizedBox(height: 12),
+                      Text('Could not load profile', style: TextStyle(color: AppColors.textSecondary(context))),
+                      const SizedBox(height: 12),
+                      ElevatedButton(onPressed: () => _loadData(), child: const Text('Retry')),
+                    ],
+                  ),
+                );
+              }
+
               int followersCount = 0;
               int followingCount = 0;
               int watchlistCount = 0;
