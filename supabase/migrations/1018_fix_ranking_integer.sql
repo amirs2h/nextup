@@ -1,9 +1,12 @@
 -- ============================================================
 -- MIGRATION 1018: Fix ranking to return INTEGER hours
--- + cleanup remaining NULL runtime_minutes
 -- ============================================================
 
--- ۱. Fix get_following_watch_hours to return INTEGER
+-- ۱. Drop old versions first (return type changed from NUMERIC to INTEGER)
+DROP FUNCTION IF EXISTS get_following_watch_hours(UUID);
+DROP FUNCTION IF EXISTS get_user_stats(UUID);
+
+-- ۲. Ranking: returns INTEGER hours (no decimals)
 CREATE OR REPLACE FUNCTION get_following_watch_hours(p_user_id UUID)
 RETURNS TABLE(
   user_id UUID,
@@ -55,7 +58,7 @@ RETURNS TABLE(
   ORDER BY result_hours DESC;
 $$ LANGUAGE sql STABLE;
 
--- ۲. Fix get_user_stats to also return INTEGER hours
+-- ۳. Stats: also INTEGER hours, aligned with ranking
 CREATE OR REPLACE FUNCTION get_user_stats(target_user_id UUID)
 RETURNS TABLE(
   total_shows BIGINT,
@@ -90,7 +93,7 @@ RETURNS TABLE(
   WHERE wh.user_id = target_user_id;
 $$ LANGUAGE sql STABLE;
 
--- ۳. Fix remaining NULL runtime_minutes with fallback values
+-- ۴. Fix remaining NULL/0 runtime
 UPDATE public.watch_history
 SET runtime_minutes = CASE WHEN media_type = 'tv' THEN 45 ELSE 120 END
 WHERE runtime_minutes IS NULL OR runtime_minutes = 0;
