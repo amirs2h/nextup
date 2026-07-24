@@ -411,8 +411,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         final allBadges = achState.achievements.where((a) => a.isUnlocked).toList()
                           ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
 
-                        if (allBadges.isEmpty) return const SizedBox();
-
                         return _buildLevelBadgesCard(level, currentXp, xpToNext, allBadges);
                       },
                     )

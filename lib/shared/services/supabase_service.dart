@@ -1029,6 +1029,7 @@ class SupabaseService {
           .eq('user_id', userId)
           .eq('tmdb_id', tmdbId)
           .eq('media_type', 'tv')
+          .eq('list_name', 'default')
           .maybeSingle();
 
       if (watchlistItem == null) {
@@ -1038,6 +1039,7 @@ class SupabaseService {
             .eq('user_id', userId)
             .eq('tmdb_id', tmdbId)
             .eq('media_type', 'tv')
+            .eq('list_name', 'default')
             .maybeSingle();
       }
 
@@ -1050,12 +1052,16 @@ class SupabaseService {
           .eq('tmdb_id', tmdbId)
           .eq('media_type', 'tv')
           .not('season_number', 'is', null)
-          .not('episode_number', 'is', null);
+          .not('episode_number', 'is', null)
+          .gt('episode_number', 0);
       final watchedCount = (watchedResponse as List).length;
 
       // Get total episodes from TMDB
       final totalEpisodes = showDetails['number_of_episodes'] ?? 0;
       final showStatus = showDetails['status'] ?? '';
+
+      final currentStatus = watchlistItem['status'] ?? 'watchlist';
+      final autoStatuses = {'watchlist', 'watching', 'up_to_date', 'completed'};
 
       String newStatus;
       if (watchedCount == 0) {
@@ -1072,9 +1078,8 @@ class SupabaseService {
         newStatus = 'watching';
       }
 
-      // Update status if different
-      final currentStatus = watchlistItem['status'] ?? 'watchlist';
-      if (currentStatus != newStatus) {
+      // Only update auto-computed statuses; preserve custom statuses (dropped, on_hold, etc.)
+      if (autoStatuses.contains(currentStatus) && currentStatus != newStatus) {
         await updateWatchlistStatus(
           userId: userId,
           tmdbId: tmdbId,
