@@ -102,6 +102,7 @@ class AchievementsLoaded extends AchievementsState {
   final int level;
   final int currentXp;
   final int xpToNextLevel;
+  final int totalXp;
   final int longestStreak;
   final int currentStreak;
 
@@ -114,15 +115,15 @@ class AchievementsLoaded extends AchievementsState {
     this.level = 1,
     this.currentXp = 0,
     this.xpToNextLevel = 100,
+    this.totalXp = 0,
     this.longestStreak = 0,
     this.currentStreak = 0,
   });
 
   int get unlockedCount => achievements.where((a) => a.isUnlocked).length;
-  int get totalXp => achievements.where((a) => a.isUnlocked).fold(0, (sum, a) => sum + a.xpReward);
 
   @override
-  List<Object?> get props => [achievements, totalShows, totalMovies, totalEpisodes, totalHours, level, currentXp, xpToNextLevel, longestStreak, currentStreak];
+  List<Object?> get props => [achievements, totalShows, totalMovies, totalEpisodes, totalHours, level, currentXp, xpToNextLevel, totalXp, longestStreak, currentStreak];
 }
 
 class AchievementsError extends AchievementsState {
@@ -342,6 +343,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       level: levelFinal,
       currentXp: currentXpFinal,
       xpToNextLevel: 100,
+      totalXp: totalXpFinal,
       longestStreak: stats.longestStreak,
       currentStreak: stats.currentStreak,
     );
@@ -416,7 +418,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     }
     if (tempStreak > longestStreak) longestStreak = tempStreak;
 
-    final now = DateTime.now().toUtc();
+    final now = DateTime.now();
     int currentStreak = 0;
     for (int i = 0; i < 365; i++) {
       final checkDate = now.subtract(Duration(days: i));

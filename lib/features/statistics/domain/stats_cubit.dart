@@ -73,7 +73,6 @@ class StatsError extends StatsState {
 class StatsCubit extends Cubit<StatsState> {
   final SupabaseService _supabaseService;
   final TmdbService _tmdbService;
-  List<Map<String, dynamic>> _lastTopGenres = const [];
 
   StatsCubit(this._supabaseService, this._tmdbService) : super(StatsInitial());
 
@@ -105,40 +104,32 @@ class StatsCubit extends Cubit<StatsState> {
         }
       }
 
-      // Top genres from recent items; keep previous list if all TMDB calls fail
+      // Top genres from denormalized genres column (all history items, not just 20)
       final genreCounts = <String, int>{};
-      var genreOk = 0;
-      final recentItems = history.take(20).toList();
-      final genreResults = await Future.wait(recentItems.map((item) async {
-        try {
-          final tmdbId = item['tmdb_id'] as int;
-          final mediaType = item['media_type'] as String? ?? 'tv';
-          final data = mediaType == 'tv'
-              ? await _tmdbService.getShowDetails(tmdbId)
-              : await _tmdbService.getMovieDetails(tmdbId);
-          genreOk++;
-          return (data['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? <String>[];
-        } catch (_) {
-          return <String>[];
-        }
-      }));
-      for (final genres in genreResults) {
-        for (final genre in genres) {
-          genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+      final seenTitleKeys = <String>{};
+      for (final item in history) {
+        final tmdbId = item['tmdb_id'];
+        final mediaType = item['media_type'] as String? ?? 'tv';
+        if (tmdbId == null) continue;
+        final titleKey = '$mediaType:$tmdbId';
+        if (seenTitleKeys.contains(titleKey)) continue;
+        seenTitleKeys.add(titleKey);
+        final rawGenres = item['genres'];
+        if (rawGenres is List) {
+          for (final g in rawGenres) {
+            final name = g?.toString();
+            if (name != null && name.isNotEmpty) {
+              genreCounts[name] = (genreCounts[name] ?? 0) + 1;
+            }
+          }
         }
       }
 
-      List<Map<String, dynamic>> topGenresList;
-      if (genreOk == 0 && _lastTopGenres.isNotEmpty) {
-        topGenresList = _lastTopGenres;
-      } else {
-        final topGenres = genreCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-        topGenresList = topGenres
-            .take(5)
-            .map((e) => {'name': e.key, 'count': e.value})
-            .toList();
-        if (topGenresList.isNotEmpty) _lastTopGenres = topGenresList;
-      }
+      final topGenres = genreCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+      final topGenresList = topGenres
+          .take(5)
+          .map((e) => {'name': e.key, 'count': e.value})
+          .toList();
 
       if (isClosed) return;
       emit(StatsLoaded(

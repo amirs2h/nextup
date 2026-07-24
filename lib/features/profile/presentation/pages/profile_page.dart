@@ -346,8 +346,6 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         final allBadges = achState.achievements.where((a) => a.isUnlocked).toList()
           ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
 
-        if (allBadges.isEmpty && level == 1) return const SizedBox();
-
         return GlassContainer(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           borderRadius: BorderRadius.circular(20),

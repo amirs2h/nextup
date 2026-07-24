@@ -81,7 +81,7 @@ class UserActivityStats {
 
       final watchedAt = item['watched_at'];
       if (watchedAt != null) {
-        final date = DateTime.tryParse(watchedAt.toString());
+        final date = DateTime.tryParse(watchedAt.toString())?.toLocal();
         if (date != null) {
           final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
           monthlyWatched[monthKey] = (monthlyWatched[monthKey] ?? 0) + 1;
@@ -123,7 +123,7 @@ class UserActivityStats {
     }
     if (tempStreak > longestStreak) longestStreak = tempStreak;
 
-    final now = DateTime.now().toUtc();
+    final now = DateTime.now();
     var currentStreak = 0;
     for (var i = 0; i < 365; i++) {
       final checkDate = now.subtract(Duration(days: i));
