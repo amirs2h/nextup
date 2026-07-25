@@ -355,7 +355,7 @@ async function recomputeUser(
     admin.from("watchlist").select("*").eq("user_id", userId),
     admin.from("favorites").select("*").eq("user_id", userId),
     admin.from("user_achievements").select("achievement_id, xp_awarded").eq("user_id", userId),
-    admin.rpc("get_user_stats", { params: { target_user_id: userId } }),
+    admin.rpc("get_user_stats", { target_user_id: userId }),
   ]);
 
   const history = historyRes.data ?? [];
