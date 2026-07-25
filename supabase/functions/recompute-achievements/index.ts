@@ -9,6 +9,10 @@ const TMDB_BASE = "https://api.themoviedb.org/3";
 
 const SEASONAL_IDS = new Set(["halloween", "christmas", "summer_vacation"]);
 
+// Iran timezone offset: UTC+3:30 = 210 minutes
+// Matches Flutter's .toLocal() for Iranian users
+const TZ_OFFSET_MS = 210 * 60 * 1000;
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -116,17 +120,18 @@ async function computeStats(
     if (item.watched_at) {
       const d = new Date(item.watched_at);
       if (!isNaN(d.getTime())) {
-        const mk = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+        const local = new Date(d.getTime() + TZ_OFFSET_MS);
+        const mk = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}`;
         monthlyWatched[mk] = (monthlyWatched[mk] ?? 0) + 1;
-        dayOfWeekCounts[d.getUTCDay()] = (dayOfWeekCounts[d.getUTCDay()] ?? 0) + 1;
-        hourCounts[d.getUTCHours()] = (hourCounts[d.getUTCHours()] ?? 0) + 1;
-        const dayKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        dayOfWeekCounts[local.getUTCDay()] = (dayOfWeekCounts[local.getUTCDay()] ?? 0) + 1;
+        hourCounts[local.getUTCHours()] = (hourCounts[local.getUTCHours()] ?? 0) + 1;
+        const dayKey = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`;
         activeDays.add(dayKey);
-        if (d.getUTCHours() >= 0 && d.getUTCHours() < 4) isNightOwl = true;
-        if (d.getUTCHours() >= 5 && d.getUTCHours() < 7) isEarlyBird = true;
-        if (d.getUTCMonth() + 1 === 10) watchedInOctober = true;
-        if (d.getUTCMonth() + 1 === 12) watchedInDecember = true;
-        if (d.getUTCMonth() + 1 >= 6 && d.getUTCMonth() + 1 <= 8) watchedInSummer = true;
+        if (local.getUTCHours() >= 0 && local.getUTCHours() < 4) isNightOwl = true;
+        if (local.getUTCHours() >= 5 && local.getUTCHours() < 7) isEarlyBird = true;
+        if (local.getUTCMonth() + 1 === 10) watchedInOctober = true;
+        if (local.getUTCMonth() + 1 === 12) watchedInDecember = true;
+        if (local.getUTCMonth() + 1 >= 6 && local.getUTCMonth() + 1 <= 8) watchedInSummer = true;
       }
     }
   }
@@ -149,10 +154,10 @@ async function computeStats(
   if (tempStreak > longestStreak) longestStreak = tempStreak;
 
   // Current streak
-  const now = new Date();
+  const nowLocal = new Date(Date.now() + TZ_OFFSET_MS);
   let currentStreak = 0;
   for (let i = 0; i < 365; i++) {
-    const cd = new Date(now.getTime() - i * 86400000);
+    const cd = new Date(nowLocal.getTime() - i * 86400000);
     const ck = `${cd.getUTCFullYear()}-${String(cd.getUTCMonth() + 1).padStart(2, "0")}-${String(cd.getUTCDate()).padStart(2, "0")}`;
     if (activeDays.has(ck)) currentStreak++;
     else if (i > 0) break;
@@ -351,7 +356,7 @@ async function recomputeUser(
 
   // 2. Fetch data + RPC stats (accurate for 1000+ row users)
   const [historyRes, watchlistRes, favoritesRes, persistedRes, rpcRes] = await Promise.all([
-    admin.from("watch_history").select("*").eq("user_id", userId).limit(1000),
+    admin.from("watch_history").select("*").eq("user_id", userId).order("watched_at", { ascending: false }).limit(1000),
     admin.from("watchlist").select("*").eq("user_id", userId),
     admin.from("favorites").select("*").eq("user_id", userId),
     admin.from("user_achievements").select("achievement_id, xp_awarded").eq("user_id", userId),
@@ -362,7 +367,10 @@ async function recomputeUser(
   const watchlist = watchlistRes.data ?? [];
   const favorites = favoritesRes.data ?? [];
   const persisted = persistedRes.data ?? [];
-  const rpcStats = (rpcRes.data ?? (rpcRes as any[] ?? []))[0] as any;
+  const rpcStats = (rpcRes.data?.[0] ?? (Array.isArray(rpcRes) ? rpcRes[0] : null)) as any;
+  if (rpcRes.error) {
+    console.error(`RPC get_user_stats error for ${userId}:`, rpcRes.error);
+  }
 
   // 3. Compute stats (from limited history for genre/country/seasonal)
   const stats = await computeStats(history, watchlist, favorites);
