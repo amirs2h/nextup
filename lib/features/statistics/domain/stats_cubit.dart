@@ -100,10 +100,10 @@ class StatsCubit extends Cubit<StatsState> {
       final activity = UserActivityStats.fromHistory(history);
 
       // Use RPC for accurate counts (handles 1000+ row users)
-      final accurateShows = rpcStats?['total_shows'] as int? ?? activity.totalShows;
-      final accurateMovies = rpcStats?['total_movies'] as int? ?? activity.totalMovies;
-      final accurateEpisodes = rpcStats?['total_episodes'] as int? ?? activity.totalEpisodes;
-      final accurateHours = rpcStats?['total_hours'] as int? ?? activity.totalHours;
+      final accurateShows = (rpcStats?['total_shows'] as num?)?.toInt() ?? activity.totalShows;
+      final accurateMovies = (rpcStats?['total_movies'] as num?)?.toInt() ?? activity.totalMovies;
+      final accurateEpisodes = (rpcStats?['total_episodes'] as num?)?.toInt() ?? activity.totalEpisodes;
+      final accurateHours = (rpcStats?['total_hours'] as num?)?.toInt() ?? activity.totalHours;
 
       var mostWatchedShow = activity.mostWatchedShowId;
       if (mostWatchedShow.isNotEmpty) {
