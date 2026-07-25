@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/services/supabase_service.dart';
 import '../../../shared/services/tmdb_service.dart';
+import '../../../shared/utils/user_activity_stats.dart';
 
 enum AchievementRarity { common, rare, epic, legendary }
 
@@ -354,11 +355,10 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     required int watchlistCount,
     required int favoriteCount,
   }) async {
-    int totalEpisodes = 0;
-    int totalMinutes = 0;
-    final showIds = <String>{};
-    final movieIds = <String>{};
-    final activeDays = <String>{};
+    // Use shared calculator for base stats (consistent with Stats/Compare)
+    final activity = UserActivityStats.fromHistory(history);
+
+    // Extra fields needed by achievements but not by Stats
     var isNightOwl = false;
     var isEarlyBird = false;
     var watchedInOctober = false;
@@ -366,78 +366,22 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     var watchedInSummer = false;
 
     for (final item in history) {
-      final mediaType = item['media_type'] as String? ?? 'tv';
-      final tmdbId = item['tmdb_id']?.toString() ?? '';
-      final epRaw = item['episode_number'];
-      final ep = epRaw is int ? epRaw : int.tryParse(epRaw?.toString() ?? '');
-      final runtimeMin = item['runtime_minutes'] is int
-          ? item['runtime_minutes'] as int
-          : int.tryParse(item['runtime_minutes']?.toString() ?? '');
-
-      if (mediaType == 'tv') {
-        if (ep != null && ep > 0) {
-          if (tmdbId.isNotEmpty) showIds.add(tmdbId);
-          totalEpisodes++;
-          totalMinutes += runtimeMin ?? 45;
-        }
-      } else if (mediaType == 'movie') {
-        if (tmdbId.isNotEmpty) movieIds.add(tmdbId);
-        totalMinutes += runtimeMin ?? 120;
-      }
-      if (item['watched_at'] != null) {
-        final date = DateTime.tryParse(item['watched_at'].toString())?.toLocal();
-        if (date != null) {
-          activeDays.add(
-            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
-          );
-          if (date.hour >= 0 && date.hour < 4) isNightOwl = true;
-          if (date.hour >= 5 && date.hour < 7) isEarlyBird = true;
-          if (date.month == 10) watchedInOctober = true;
-          if (date.month == 12) watchedInDecember = true;
-          if (date.month >= 6 && date.month <= 8) watchedInSummer = true;
-        }
-      }
-    }
-
-    final totalShows = showIds.length;
-    final totalMovies = movieIds.length;
-    final totalHours = totalMinutes ~/ 60;
-
-    final sortedDays = activeDays.toList()..sort();
-    int longestStreak = 0;
-    int tempStreak = 1;
-    for (int i = 1; i < sortedDays.length; i++) {
-      final prev = DateTime.parse(sortedDays[i - 1]);
-      final curr = DateTime.parse(sortedDays[i]);
-      if (curr.difference(prev).inDays == 1) {
-        tempStreak++;
-      } else {
-        if (tempStreak > longestStreak) longestStreak = tempStreak;
-        tempStreak = 1;
-      }
-    }
-    if (tempStreak > longestStreak) longestStreak = tempStreak;
-
-    final now = DateTime.now();
-    int currentStreak = 0;
-    for (int i = 0; i < 365; i++) {
-      final checkDate = now.subtract(Duration(days: i));
-      final checkKey =
-          '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
-      if (activeDays.contains(checkKey)) {
-        currentStreak++;
-      } else if (i > 0) {
-        break;
-      }
+      if (item['watched_at'] == null) continue;
+      final date = DateTime.tryParse(item['watched_at'].toString())?.toLocal();
+      if (date == null) continue;
+      if (date.hour >= 0 && date.hour < 4) isNightOwl = true;
+      if (date.hour >= 5 && date.hour < 7) isEarlyBird = true;
+      if (date.month == 10) watchedInOctober = true;
+      if (date.month == 12) watchedInDecember = true;
+      if (date.month >= 6 && date.month <= 8) watchedInSummer = true;
     }
 
     // Genres: prefer denormalized columns on history (distinct titles).
-    // Fallback: TMDB for missing rows only; never wipe cache on total failure.
     final genreTitleSets = <String, Set<String>>{};
     final countryTitleSets = <String, Set<String>>{};
     final missingMeta = <Map<String, dynamic>>[];
-
     final seenTitles = <String>{};
+
     for (final item in history) {
       final tmdbId = item['tmdb_id'];
       final mediaType = item['media_type'] as String? ?? 'tv';
@@ -514,12 +458,12 @@ class AchievementsCubit extends Cubit<AchievementsState> {
     }
 
     return _ActivityStats(
-      totalShows: totalShows,
-      totalMovies: totalMovies,
-      totalEpisodes: totalEpisodes,
-      totalHours: totalHours,
-      longestStreak: longestStreak,
-      currentStreak: currentStreak,
+      totalShows: activity.totalShows,
+      totalMovies: activity.totalMovies,
+      totalEpisodes: activity.totalEpisodes,
+      totalHours: activity.totalHours,
+      longestStreak: activity.longestStreak,
+      currentStreak: activity.currentStreak,
       isNightOwl: isNightOwl,
       isEarlyBird: isEarlyBird,
       watchedInOctober: watchedInOctober,

@@ -517,7 +517,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         height: 130,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: _publicCustomLists.length,
+                          itemCount: _publicCustomLists.length > 10 ? 10 : _publicCustomLists.length,
                           itemBuilder: (context, index) {
                             final list = _publicCustomLists[index];
                             final listId = list['id'] as String?;
@@ -536,7 +536,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         height: 130,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: _commonSharedLists.length,
+                          itemCount: _commonSharedLists.length > 10 ? 10 : _commonSharedLists.length,
                           itemBuilder: (context, index) {
                             final list = _commonSharedLists[index];
                             final listId = list['id'] as String?;
