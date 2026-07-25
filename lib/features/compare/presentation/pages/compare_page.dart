@@ -72,8 +72,19 @@ class _ComparePageState extends State<ComparePage> {
       final otherActivity = UserActivityStats.fromHistory(otherHistory);
 
       // Override with RPC values if available (accurate for 1000+ row users)
-      final myStats = myRpcStats ?? myActivity.toSummaryMap();
-      final otherStats = otherRpcStats ?? otherActivity.toSummaryMap();
+      // RPC returns snake_case keys, convert to camelCase
+      final myStats = <String, dynamic>{
+        'totalShows': myRpcStats?['total_shows'] ?? myActivity.totalShows,
+        'totalMovies': myRpcStats?['total_movies'] ?? myActivity.totalMovies,
+        'totalEpisodes': myRpcStats?['total_episodes'] ?? myActivity.totalEpisodes,
+        'totalHours': myRpcStats?['total_hours'] ?? myActivity.totalHours,
+      };
+      final otherStats = <String, dynamic>{
+        'totalShows': otherRpcStats?['total_shows'] ?? otherActivity.totalShows,
+        'totalMovies': otherRpcStats?['total_movies'] ?? otherActivity.totalMovies,
+        'totalEpisodes': otherRpcStats?['total_episodes'] ?? otherActivity.totalEpisodes,
+        'totalHours': otherRpcStats?['total_hours'] ?? otherActivity.totalHours,
+      };
 
       List<Achievement> myBadges = [];
       List<Achievement> otherBadges = [];

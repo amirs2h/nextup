@@ -349,21 +349,31 @@ async function recomputeUser(
     }
   }
 
-  // 2. Fetch data
-  const [historyRes, watchlistRes, favoritesRes, persistedRes] = await Promise.all([
-    admin.from("watch_history").select("*").eq("user_id", userId),
+  // 2. Fetch data + RPC stats (accurate for 1000+ row users)
+  const [historyRes, watchlistRes, favoritesRes, persistedRes, rpcRes] = await Promise.all([
+    admin.from("watch_history").select("*").eq("user_id", userId).limit(1000),
     admin.from("watchlist").select("*").eq("user_id", userId),
     admin.from("favorites").select("*").eq("user_id", userId),
     admin.from("user_achievements").select("achievement_id, xp_awarded").eq("user_id", userId),
+    admin.rpc("get_user_stats", { params: { target_user_id: userId } }),
   ]);
 
   const history = historyRes.data ?? [];
   const watchlist = watchlistRes.data ?? [];
   const favorites = favoritesRes.data ?? [];
   const persisted = persistedRes.data ?? [];
+  const rpcStats = (rpcRes.data ?? (rpcRes as any[] ?? []))[0] as any;
 
-  // 3. Compute stats
+  // 3. Compute stats (from limited history for genre/country/seasonal)
   const stats = await computeStats(history, watchlist, favorites);
+
+  // Override base stats with RPC values (accurate for 1000+ row users)
+  if (rpcStats) {
+    stats.totalShows = Number(rpcStats.total_shows) || stats.totalShows;
+    stats.totalMovies = Number(rpcStats.total_movies) || stats.totalMovies;
+    stats.totalEpisodes = Number(rpcStats.total_episodes) || stats.totalEpisodes;
+    stats.totalHours = Number(rpcStats.total_hours) || stats.totalHours;
+  }
 
   // 4. Rule-based unlocks
   const ruleUnlocked = new Map<string, number>();

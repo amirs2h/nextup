@@ -249,18 +249,41 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       _supabaseService.getWatchlist(userId: userId),
       _supabaseService.getFavorites(userId: userId),
       _supabaseService.getUserAchievements(userId),
+      _supabaseService.getUserStats(userId),
     ]);
 
     final history = List<Map<String, dynamic>>.from(results[0] as List);
     final watchlist = List<Map<String, dynamic>>.from(results[1] as List);
     final favorites = List<Map<String, dynamic>>.from(results[2] as List);
     final persisted = List<Map<String, dynamic>>.from(results[3] as List);
+    final rpcStats = results[4] as Map<String, dynamic>?;
 
-    final stats = await _buildActivityStats(
+    var stats = await _buildActivityStats(
       history: history,
       watchlistCount: watchlist.length,
       favoriteCount: favorites.length,
     );
+
+    // Override base stats with RPC values (accurate for 1000+ row users)
+    if (rpcStats != null) {
+      stats = _ActivityStats(
+        totalShows: (rpcStats['total_shows'] as num?)?.toInt() ?? stats.totalShows,
+        totalMovies: (rpcStats['total_movies'] as num?)?.toInt() ?? stats.totalMovies,
+        totalEpisodes: (rpcStats['total_episodes'] as num?)?.toInt() ?? stats.totalEpisodes,
+        totalHours: (rpcStats['total_hours'] as num?)?.toInt() ?? stats.totalHours,
+        longestStreak: stats.longestStreak,
+        currentStreak: stats.currentStreak,
+        isNightOwl: stats.isNightOwl,
+        isEarlyBird: stats.isEarlyBird,
+        watchedInOctober: stats.watchedInOctober,
+        watchedInDecember: stats.watchedInDecember,
+        watchedInSummer: stats.watchedInSummer,
+        genreCounts: stats.genreCounts,
+        countryCounts: stats.countryCounts,
+        watchlistCount: stats.watchlistCount,
+        favoriteCount: stats.favoriteCount,
+      );
+    }
 
     // Rule-based unlocks from current activity (seasonal uses watched_at evidence)
     final ruleBased = _buildAchievements(stats);
