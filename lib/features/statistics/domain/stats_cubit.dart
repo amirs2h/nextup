@@ -91,8 +91,19 @@ class StatsCubit extends Cubit<StatsState> {
     }
 
     try {
-      final history = await _supabaseService.getWatchHistory(userId: user.id);
+      final results = await Future.wait([
+        _supabaseService.getWatchHistory(userId: user.id),
+        _supabaseService.getUserStats(user.id),
+      ]);
+      final history = List<Map<String, dynamic>>.from(results[0] as List);
+      final rpcStats = results[1] as Map<String, dynamic>?;
       final activity = UserActivityStats.fromHistory(history);
+
+      // Use RPC for accurate counts (handles 1000+ row users)
+      final accurateShows = rpcStats?['total_shows'] as int? ?? activity.totalShows;
+      final accurateMovies = rpcStats?['total_movies'] as int? ?? activity.totalMovies;
+      final accurateEpisodes = rpcStats?['total_episodes'] as int? ?? activity.totalEpisodes;
+      final accurateHours = rpcStats?['total_hours'] as int? ?? activity.totalHours;
 
       var mostWatchedShow = activity.mostWatchedShowId;
       if (mostWatchedShow.isNotEmpty) {
@@ -133,17 +144,17 @@ class StatsCubit extends Cubit<StatsState> {
 
       if (isClosed) return;
       emit(StatsLoaded(
-        totalShows: activity.totalShows,
-        totalMovies: activity.totalMovies,
-        totalEpisodes: activity.totalEpisodes,
-        totalHours: activity.totalHours,
+        totalShows: accurateShows,
+        totalMovies: accurateMovies,
+        totalEpisodes: accurateEpisodes,
+        totalHours: accurateHours,
         monthlyWatched: activity.monthlyWatched,
         topGenres: topGenresList,
         longestStreak: activity.longestStreak,
         currentStreak: activity.currentStreak,
         favoriteDay: activity.favoriteDay,
         favoriteTime: activity.favoriteTime,
-        avgEpisodesPerShow: activity.avgEpisodesPerShow,
+        avgEpisodesPerShow: accurateShows > 0 ? (accurateEpisodes / accurateShows).round() : 0,
         mostWatchedShow: mostWatchedShow,
         mostWatchedShowEpisodes: activity.mostWatchedShowEpisodes,
       ));

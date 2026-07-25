@@ -56,17 +56,24 @@ class _ComparePageState extends State<ComparePage> {
         supabase.getWatchHistory(userId: currentUserId),
         supabase.getWatchHistory(userId: widget.userId),
         supabase.getCommonContent(currentUserId, widget.userId),
+        supabase.getUserStats(currentUserId),
+        supabase.getUserStats(widget.userId),
       ]);
 
       final otherProfile = results[0] as Map<String, dynamic>?;
       final myHistory = List<Map<String, dynamic>>.from(results[1] as List);
       final otherHistory = List<Map<String, dynamic>>.from(results[2] as List);
       final commonContent = List<Map<String, dynamic>>.from(results[3] as List);
+      final myRpcStats = results[4] as Map<String, dynamic>?;
+      final otherRpcStats = results[5] as Map<String, dynamic>?;
 
+      // Use RPC for stats (unlimited rows), history for achievements
       final myActivity = UserActivityStats.fromHistory(myHistory);
       final otherActivity = UserActivityStats.fromHistory(otherHistory);
-      final myStats = myActivity.toSummaryMap();
-      final otherStats = otherActivity.toSummaryMap();
+
+      // Override with RPC values if available (accurate for 1000+ row users)
+      final myStats = myRpcStats ?? myActivity.toSummaryMap();
+      final otherStats = otherRpcStats ?? otherActivity.toSummaryMap();
 
       List<Achievement> myBadges = [];
       List<Achievement> otherBadges = [];

@@ -1240,6 +1240,20 @@ class SupabaseService {
     }
   }
 
+  Future<Map<String, dynamic>?> getUserStats(String userId) async {
+    try {
+      final response = await _client.rpc('get_user_stats', params: {
+        'target_user_id': userId,
+      });
+      if (response is List && response.isNotEmpty) {
+        return Map<String, dynamic>.from(response.first);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getUserAchievements(String userId) async {
     try {
       final response = await _client
