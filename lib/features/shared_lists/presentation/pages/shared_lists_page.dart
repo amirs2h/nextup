@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -203,21 +202,21 @@ class _SharedListsPageState extends State<SharedListsPage> {
     final nameController = TextEditingController();
     final descController = TextEditingController();
     final searchController = TextEditingController();
-    List<Map<String, dynamic>> _selectedMembers = [];
-    List<Map<String, dynamic>> _following = [];
-    List<Map<String, dynamic>> _searchResults = [];
-    bool _isSearching = false;
+    List<Map<String, dynamic>> selectedMembers = [];
+    List<Map<String, dynamic>> following = [];
+    List<Map<String, dynamic>> searchResults = [];
+    bool isSearching = false;
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
           // Load following users on first build
-          if (_following.isEmpty) {
+          if (following.isEmpty) {
             final authState = context.read<AuthCubit>().state;
             if (authState is AuthAuthenticated) {
               context.read<SupabaseService>().getFollowing(authState.user.id).then((data) {
-                setDialogState(() => _following = data);
+                setDialogState(() => following = data);
               });
             }
           }
@@ -268,32 +267,32 @@ class _SharedListsPageState extends State<SharedListsPage> {
                       onChanged: (query) async {
                         if (query.trim().length < 2) {
                           setDialogState(() {
-                            _searchResults = [];
-                            _isSearching = false;
+                            searchResults = [];
+                            isSearching = false;
                           });
                           return;
                         }
-                        setDialogState(() => _isSearching = true);
+                        setDialogState(() => isSearching = true);
                         final results = await context.read<SupabaseService>().searchUsers(query.trim());
                         setDialogState(() {
-                          _searchResults = results.take(5).toList();
-                          _isSearching = false;
+                          searchResults = results.take(5).toList();
+                          isSearching = false;
                         });
                       },
                     ),
                     const SizedBox(height: 8),
                     // Search results
-                    if (_isSearching)
+                    if (isSearching)
                       const Padding(
                         padding: EdgeInsets.all(8),
                         child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
                       ),
-                    if (_searchResults.isNotEmpty)
-                      ..._searchResults.map((user) {
+                    if (searchResults.isNotEmpty)
+                      ...searchResults.map((user) {
                         final uid = user['id'] as String?;
                         final username = user['username'] ?? 'User';
                         final avatarUrl = user['avatar_url'] as String?;
-                        final isSelected = _selectedMembers.any((m) => m['id'] == uid);
+                        final isSelected = selectedMembers.any((m) => m['id'] == uid);
                         return ListTile(
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -316,24 +315,24 @@ class _SharedListsPageState extends State<SharedListsPage> {
                           onTap: () {
                             setDialogState(() {
                               if (isSelected) {
-                                _selectedMembers.removeWhere((m) => m['id'] == uid);
+                                selectedMembers.removeWhere((m) => m['id'] == uid);
                               } else {
-                                _selectedMembers.add({'id': uid, 'username': username, 'avatar_url': avatarUrl});
+                                selectedMembers.add({'id': uid, 'username': username, 'avatar_url': avatarUrl});
                               }
                             });
                           },
                         );
                       }),
                     // Following list (first 10)
-                    if (_following.isNotEmpty && searchController.text.isEmpty) ...[
+                    if (following.isNotEmpty && searchController.text.isEmpty) ...[
                       const SizedBox(height: 8),
                       Text('Following', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                       const SizedBox(height: 4),
-                      ..._following.take(10).map((user) {
+                      ...following.take(10).map((user) {
                         final uid = user['following_id'] as String?;
                         final username = user['profiles']?['username'] ?? 'User';
                         final avatarUrl = user['profiles']?['avatar_url'] as String?;
-                        final isSelected = _selectedMembers.any((m) => m['id'] == uid);
+                        final isSelected = selectedMembers.any((m) => m['id'] == uid);
                         return ListTile(
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -356,9 +355,9 @@ class _SharedListsPageState extends State<SharedListsPage> {
                           onTap: () {
                             setDialogState(() {
                               if (isSelected) {
-                                _selectedMembers.removeWhere((m) => m['id'] == uid);
+                                selectedMembers.removeWhere((m) => m['id'] == uid);
                               } else {
-                                _selectedMembers.add({'id': uid, 'username': username, 'avatar_url': avatarUrl});
+                                selectedMembers.add({'id': uid, 'username': username, 'avatar_url': avatarUrl});
                               }
                             });
                           },
@@ -366,18 +365,18 @@ class _SharedListsPageState extends State<SharedListsPage> {
                       }),
                     ],
                     // Selected members chips
-                    if (_selectedMembers.isNotEmpty) ...[
+                    if (selectedMembers.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      Text('Selected (${_selectedMembers.length})', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('Selected (${selectedMembers.length})', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
-                        children: _selectedMembers.map((member) {
+                        children: selectedMembers.map((member) {
                           return Chip(
                             label: Text(member['username'], style: TextStyle(color: AppColors.text(context), fontSize: 11)),
                             deleteIcon: Icon(Icons.close, size: 14, color: AppColors.textMuted(context)),
-                            onDeleted: () => setDialogState(() => _selectedMembers.remove(member)),
+                            onDeleted: () => setDialogState(() => selectedMembers.remove(member)),
                             backgroundColor: AppColors.cardBg(context),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
@@ -404,7 +403,7 @@ class _SharedListsPageState extends State<SharedListsPage> {
                     context.read<SharedListsCubit>().createSharedList(
                       name: nameController.text,
                       description: descController.text.isNotEmpty ? descController.text : null,
-                      memberIds: _selectedMembers.map((m) => m['id'] as String).toList(),
+                      memberIds: selectedMembers.map((m) => m['id'] as String).toList(),
                     );
                   } : null,
                 ),

@@ -22,7 +22,7 @@ class AppConfig {
 
   // App
   static const String appName = 'NextUp';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.0.1';
 
   // Pagination
   static const int pageSize = 20;

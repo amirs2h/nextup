@@ -20,7 +20,7 @@ class SeeAllPage extends StatefulWidget {
 
 class _SeeAllPageState extends State<SeeAllPage> {
   late final TmdbService _tmdbService;
-  List<dynamic> _items = [];
+  final List<dynamic> _items = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
   int _page = 1;

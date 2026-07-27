@@ -438,7 +438,7 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
 
   void _showMarkAllDialog(BuildContext ctx, int tmdbId, String mediaType, String newStatus) {
     showDialog(
-      context: this.context,
+      context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

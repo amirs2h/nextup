@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../../../shared/models/show_model.dart';
 import '../../../shared/models/movie_model.dart';
 import '../../../shared/services/tmdb_service.dart';

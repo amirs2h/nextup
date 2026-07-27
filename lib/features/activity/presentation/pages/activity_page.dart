@@ -140,7 +140,7 @@ class _ActivityPageState extends State<ActivityPage> {
 
     if (mediaType == 'tv') {
       if (seasonNumber != null && episodeNumber != null) {
-        action = 'watched S${seasonNumber}E${episodeNumber}';
+        action = 'watched S${seasonNumber}E$episodeNumber';
         icon = Icons.play_circle;
         iconColor = AppColors.success;
       } else {

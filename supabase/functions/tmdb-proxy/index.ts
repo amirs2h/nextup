@@ -18,6 +18,15 @@ serve(async (req) => {
   }
 
   try {
+    // Verify caller has a valid Supabase anon/user token
+    const authHeader = req.headers.get('Authorization') || req.headers.get('apikey');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
     if (!TMDB_API_KEY) {
       return new Response(JSON.stringify({ error: 'TMDB API key not configured' }), {
         status: 500,

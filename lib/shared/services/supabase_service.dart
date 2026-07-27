@@ -198,7 +198,8 @@ class SupabaseService {
       final profile = await getProfile(userId);
       if (profile != null && profile['avatar_url'] != null && (profile['avatar_url'] as String).isNotEmpty) {
         final url = profile['avatar_url'] as String;
-        final path = url.split('/').last;
+        // Use pathSegments to strip any query string (e.g. ?t=cache-buster)
+        final path = Uri.parse(url).pathSegments.last;
         await _client.storage.from('avatars').remove(['$userId/$path']);
       }
       await updateProfile(userId, {'avatar_url': null});
@@ -1570,7 +1571,7 @@ class SupabaseService {
       final profile = await getProfile(userId);
       if (profile != null && profile['header_image_url'] != null && (profile['header_image_url'] as String).isNotEmpty) {
         final url = profile['header_image_url'] as String;
-        final path = url.split('/').last;
+        final path = Uri.parse(url).pathSegments.last;
         await _client.storage.from('avatars').remove(['$userId/$path']);
       }
       await updateProfileHeader(userId: userId, headerImageUrl: null);

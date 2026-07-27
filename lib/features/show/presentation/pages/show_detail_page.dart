@@ -16,7 +16,6 @@ import '../../../../shared/widgets/favorite_actor_voting_widget.dart';
 import '../../../../shared/widgets/rating_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/show_detail_cubit.dart';
-import '../../../../shared/models/show_model.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
 import '../../../watchlist/domain/watchlist_cubit.dart';
 import '../../../profile/domain/favorites_cubit.dart';

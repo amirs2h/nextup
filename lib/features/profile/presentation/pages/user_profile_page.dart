@@ -79,8 +79,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
           supabase.isFollowing(currentUserId, widget.userId),
           supabase.isFollowing(widget.userId, currentUserId),
         ]);
-        isFollowing = results2[0] as bool;
-        isFollowingMe = results2[1] as bool;
+        isFollowing = results2[0];
+        isFollowingMe = results2[1];
       }
 
       // Group watch history by tmdb_id

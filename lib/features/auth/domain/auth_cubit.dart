@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -53,6 +54,7 @@ class AuthPasswordResetSent extends AuthState {}
 // Cubit
 class AuthCubit extends Cubit<AuthState> {
   final SupabaseService _supabaseService;
+  StreamSubscription? _authSubscription;
 
   AuthCubit(this._supabaseService) : super(AuthInitial()) {
     _checkAuth();
@@ -60,7 +62,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void _listenToAuthChanges() {
-    _supabaseService.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription = _supabaseService.client.auth.onAuthStateChange.listen((data) {
       if (isClosed) return;
       if (data.event == AuthChangeEvent.signedIn && data.session != null) {
         _loadProfile(data.session!.user);
@@ -228,5 +230,11 @@ class AuthCubit extends Cubit<AuthState> {
     if (user != null) {
       await _loadProfile(user);
     }
+  }
+
+  @override
+  Future<void> close() {
+    _authSubscription?.cancel();
+    return super.close();
   }
 }
