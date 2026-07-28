@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class WatchlistPage extends StatelessWidget {
   const WatchlistPage({super.key});
@@ -69,15 +70,16 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   Widget _buildLoginPrompt(BuildContext context) {
+    final s = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.bookmark_outline_rounded, size: 60, color: AppColors.textMuted(context)),
           const SizedBox(height: 16),
-          Text('Please login to view your watchlist', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+          Text(s.loginToWatchlist, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
           const SizedBox(height: 24),
-          ElevatedButton(onPressed: () => context.go('/login'), child: const Text('Login')),
+          ElevatedButton(onPressed: () => context.go('/login'), child: Text(s.login)),
         ],
       ),
     );
@@ -88,7 +90,7 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
         children: [
-          Text('Watchlist', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).watchlist, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
           const Spacer(),
           GestureDetector(
             onTap: _loadWatchlist,
@@ -104,15 +106,16 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   Widget _buildMediaTypeTabs(BuildContext context) {
+    final s = AppStrings.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          _buildMediaTypeTab(context, 'All', 'all', Icons.list_rounded),
+          _buildMediaTypeTab(context, s.all, 'all', Icons.list_rounded),
           const SizedBox(width: 8),
-          _buildMediaTypeTab(context, 'Shows', 'tv', Icons.tv_rounded),
+          _buildMediaTypeTab(context, s.shows, 'tv', Icons.tv_rounded),
           const SizedBox(width: 8),
-          _buildMediaTypeTab(context, 'Movies', 'movie', Icons.movie_rounded),
+          _buildMediaTypeTab(context, s.movies, 'movie', Icons.movie_rounded),
         ],
       ),
     );
@@ -150,18 +153,19 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   Widget _buildStatusFilters(BuildContext context) {
+    final s = AppStrings.of(context);
     return SizedBox(
       height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _buildFilterChip(context, 'All', 'all'),
-          _buildFilterChip(context, 'Watching', 'watching'),
-          _buildFilterChip(context, 'Completed', 'completed'),
-          _buildFilterChip(context, 'Up to Date', 'up_to_date'),
-          _buildFilterChip(context, 'Watchlist', 'watchlist'),
-          _buildFilterChip(context, 'Stopped', 'stopped'),
+          _buildFilterChip(context, s.all, 'all'),
+          _buildFilterChip(context, s.statusWatching, 'watching'),
+          _buildFilterChip(context, s.statusCompleted, 'completed'),
+          _buildFilterChip(context, s.statusUpToDate, 'up_to_date'),
+          _buildFilterChip(context, s.statusWatchlist, 'watchlist'),
+          _buildFilterChip(context, s.statusStopped, 'stopped'),
         ],
       ),
     );
@@ -190,6 +194,7 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   Widget _buildContent(BuildContext context) {
+    final s = AppStrings.of(context);
     return BlocBuilder<WatchlistCubit, WatchlistState>(
       builder: (context, state) {
         if (state is WatchlistLoading) {
@@ -205,7 +210,7 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: _loadWatchlist, child: const Text('Retry')),
+                ElevatedButton(onPressed: _loadWatchlist, child: Text(s.retry)),
               ],
             ),
           );
@@ -221,14 +226,14 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
                 children: [
                   Icon(Icons.bookmark_outline_rounded, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('Your watchlist is empty', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(s.watchlistEmpty, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Add shows and movies to watch later', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text(s.addShowsToWatchLater, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     onPressed: () => context.go('/search'),
                     icon: const Icon(Icons.search_rounded),
-                    label: const Text('Find Shows'),
+                    label: Text(s.findShows),
                   ),
                 ],
               ),
@@ -324,6 +329,7 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   void _showRemoveDialog(BuildContext context, WatchlistItem item, int id) {
+    final s = AppStrings.of(context);
     final isShow = item.mediaType == 'tv';
     final name = isShow ? (item.model as ShowModel).name : (item.model as MovieModel).title;
     showDialog(
@@ -331,8 +337,8 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Remove from Watchlist'),
-        content: Text('Remove "$name" from your watchlist?'),
+        title: Text(s.removeFromWatchlist),
+        content: Text(s.removeFromWatchlistConfirm(name)),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -341,14 +347,14 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
               foregroundColor: AppColors.text(context),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+            child: Text(s.cancel, style: TextStyle(color: AppColors.textMuted(context))),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
               context.read<WatchlistCubit>().removeFromWatchlist(id, item.mediaType);
             },
-            child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+            child: Text(s.remove, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -356,28 +362,29 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   Widget _buildStatusBadge(BuildContext context, String status, int tmdbId, String mediaType) {
+    final s = AppStrings.of(context);
     Color color;
     String label;
     switch (status) {
       case 'watching':
         color = AppColors.info;
-        label = 'Watching';
+        label = s.statusWatching;
         break;
       case 'completed':
         color = AppColors.success;
-        label = 'Completed';
+        label = s.statusCompleted;
         break;
       case 'up_to_date':
         color = AppColors.warning;
-        label = 'Up to Date';
+        label = s.statusUpToDate;
         break;
       case 'stopped':
         color = AppColors.error;
-        label = 'Stopped';
+        label = s.statusStopped;
         break;
       default:
         color = AppColors.textMuted(context);
-        label = 'Watchlist';
+        label = s.statusWatchlist;
     }
 
     return GestureDetector(
@@ -395,18 +402,19 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   void _showStatusPicker(BuildContext context, int tmdbId, String mediaType, String currentStatus) {
+    final s = AppStrings.of(context);
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Change Status', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        title: Text(s.changeStatus, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         children: [
-          _buildStatusOption(ctx, 'Watchlist', 'watchlist', currentStatus, tmdbId, mediaType),
-          _buildStatusOption(ctx, 'Watching', 'watching', currentStatus, tmdbId, mediaType),
-          _buildStatusOption(ctx, 'Completed', 'completed', currentStatus, tmdbId, mediaType),
-          _buildStatusOption(ctx, 'Up to Date', 'up_to_date', currentStatus, tmdbId, mediaType),
-          _buildStatusOption(ctx, 'Stopped', 'stopped', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, s.statusWatchlist, 'watchlist', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, s.statusWatching, 'watching', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, s.statusCompleted, 'completed', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, s.statusUpToDate, 'up_to_date', currentStatus, tmdbId, mediaType),
+          _buildStatusOption(ctx, s.statusStopped, 'stopped', currentStatus, tmdbId, mediaType),
         ],
       ),
     );
@@ -437,20 +445,21 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
   }
 
   void _showMarkAllDialog(BuildContext ctx, int tmdbId, String mediaType, String newStatus) {
+    final s = AppStrings.of(context);
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Mark as Completed?', style: TextStyle(color: AppColors.text(context))),
-        content: Text('Do you also want to mark all episodes as watched?', style: TextStyle(color: AppColors.textSecondary(context))),
+        title: Text(s.markAsCompletedQuestion, style: TextStyle(color: AppColors.text(context))),
+        content: Text(s.markAllWatchedQuestion, style: TextStyle(color: AppColors.textSecondary(context))),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
               context.read<WatchlistCubit>().updateStatus(tmdbId, mediaType, newStatus);
             },
-            child: Text('No, just change status', style: TextStyle(color: AppColors.textMuted(context))),
+            child: Text(s.noJustChangeStatus, style: TextStyle(color: AppColors.textMuted(context))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -463,7 +472,7 @@ class _WatchlistPageViewState extends State<_WatchlistPageView> {
               backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Yes, mark all'),
+            child: Text(s.yesMarkAll),
           ),
         ],
       ),

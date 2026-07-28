@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -60,7 +61,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Text('Notifications', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context)))),
+          Expanded(child: Text(AppStrings.of(context).notifications, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context)))),
           BlocBuilder<NotificationsCubit, NotificationsState>(
             builder: (context, state) {
               if (state is NotificationsLoaded && state.unreadCount > 0) {
@@ -69,7 +70,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: AppColors.electricPurple.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
-                    child: Text('Mark all read', style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w600)),
+                    child: Text(AppStrings.of(context).markAllRead, style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
                 );
               }
@@ -99,7 +100,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<NotificationsCubit>().loadNotifications(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -114,7 +115,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 children: [
                   Icon(Icons.notifications_none, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No notifications yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noNotificationsYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                 ],
               ),
             );
@@ -291,31 +292,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final names = group.usernames.take(2).toList();
     final remaining = count - names.length;
 
+    final strings = AppStrings.of(context);
     String namesText;
     if (names.length == 2) {
-      namesText = '${names[0]}, ${names[1]} and $remaining others';
+      namesText = '${names[0]}, ${names[1]} ${strings.andOthers(remaining)}';
     } else if (names.length == 1) {
-      namesText = '${names[0]} and ${count - 1} others';
+      namesText = '${names[0]} ${strings.andOther(count - 1)}';
     } else {
-      namesText = '$count people';
+      namesText = strings.nPeople(count);
     }
 
     String action;
     switch (group.type) {
       case 'comment_like':
-        action = 'liked your comment';
+        action = strings.likedYourComment;
         break;
       case 'new_comment':
-        action = 'commented';
+        action = strings.commented;
         break;
       case 'comment_reply':
-        action = 'replied to your comment';
+        action = strings.repliedToYourComment;
         break;
       case 'follow':
-        action = 'started following you';
+        action = strings.startedFollowingYou;
         break;
       default:
-        action = 'was active';
+        action = strings.wasActive;
     }
 
     return Column(
@@ -335,6 +337,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       return Text(fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: group.isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13));
     }
 
+    final onStr = AppStrings.of(context).on_;
     final idx = fullTitle.indexOf(' on ');
     if (idx == -1) {
       return Text(fullTitle, style: TextStyle(color: AppColors.text(context), fontWeight: group.isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13));
@@ -350,7 +353,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         style: TextStyle(color: AppColors.textMuted(context), fontSize: 13, height: 1.3),
         children: [
           TextSpan(text: beforeOn, style: TextStyle(color: AppColors.text(context), fontWeight: group.isRead ? FontWeight.normal : FontWeight.w600, fontSize: 13)),
-          TextSpan(text: ' on ', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+          TextSpan(text: onStr, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
           TextSpan(
             text: afterOn,
             style: TextStyle(color: _getAccentColor(group.type), fontWeight: FontWeight.w600, fontSize: 13),

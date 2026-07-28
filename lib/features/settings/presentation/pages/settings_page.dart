@@ -2,58 +2,64 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/settings_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_strings.dart';
+import '../../../../core/services/myket_service.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Column(
             children: [
-              _buildHeader(context),
+              _buildHeader(context, s),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: BlocBuilder<SettingsCubit, SettingsState>(
                     builder: (context, state) {
+                      final isFa = state.locale.languageCode == 'fa';
                       return Column(
                         children: [
                           const SizedBox(height: 20),
                           _buildSection(
                             context,
-                            title: state.locale.languageCode == 'fa' ? 'ظاهر' : 'Appearance',
+                            title: s.appearance,
                             children: [
-                              _buildThemeSelector(context, state),
-                              _buildLanguageSelector(context, state),
+                              _buildThemeSelector(context, state, s),
+                              _buildLanguageSelector(context, state, s),
                             ],
                           ),
                           _buildSection(
                             context,
-                            title: state.locale.languageCode == 'fa' ? 'اعلان‌ها' : 'Notifications',
+                            title: s.notifications,
                             children: [
                               _buildSwitchTile(
                                 context,
                                 icon: Icons.notifications_outlined,
-                                title: state.locale.languageCode == 'fa' ? 'اعلان‌های فشاری' : 'Push Notifications',
-                                subtitle: state.locale.languageCode == 'fa' ? 'اعلان قسمت جدید' : 'Get notified for new episodes',
+                                title: s.pushNotifications,
+                                subtitle: s.pushNotificationsSub,
                                 value: state.notificationsEnabled,
                                 onChanged: (_) => context.read<SettingsCubit>().toggleNotifications(),
                               ),
                               _buildSwitchTile(
                                 context,
                                 icon: Icons.email_outlined,
-                                title: state.locale.languageCode == 'fa' ? 'اعلان‌های ایمیلی' : 'Email Notifications',
-                                subtitle: state.locale.languageCode == 'fa' ? 'خلاصه هفتگی' : 'Weekly watch summary',
+                                title: s.emailNotifications,
+                                subtitle: s.emailNotificationsSub,
                                 value: state.emailNotifications,
                                 onChanged: (_) => context.read<SettingsCubit>().toggleEmailNotifications(),
                               ),
@@ -61,50 +67,96 @@ class SettingsPage extends StatelessWidget {
                           ),
                           _buildSection(
                             context,
-                            title: state.locale.languageCode == 'fa' ? 'حساب کاربری' : 'Account',
+                            title: s.account,
                             children: [
                               _buildMenuTile(
                                 context,
                                 icon: Icons.person_outline,
-                                title: state.locale.languageCode == 'fa' ? 'ویرایش پروفایل' : 'Edit Profile',
+                                title: s.editProfile,
                                 onTap: () => context.push('/edit-profile'),
                               ),
                               _buildMenuTile(
                                 context,
                                 icon: Icons.lock_outline,
-                                title: state.locale.languageCode == 'fa' ? 'تغییر رمز عبور' : 'Change Password',
-                                onTap: () => _showChangePasswordDialog(context, state.locale.languageCode == 'fa'),
+                                title: s.changePassword,
+                                onTap: () => _showChangePasswordDialog(context, isFa),
                               ),
                               _buildMenuTile(
                                 context,
                                 icon: Icons.delete_outline,
-                                title: state.locale.languageCode == 'fa' ? 'حذف حساب' : 'Delete Account',
+                                title: s.deleteAccount,
                                 titleColor: AppColors.error,
-                                onTap: () => _showDeleteDialog(context, state.locale.languageCode == 'fa'),
+                                onTap: () => _showDeleteDialog(context, isFa),
+                              ),
+                            ],
+                          ),
+                          // Myket section (store intents)
+                          _buildSection(
+                            context,
+                            title: s.myket,
+                            children: [
+                              _buildMenuTile(
+                                context,
+                                icon: Icons.star_outline_rounded,
+                                title: s.rateApp,
+                                onTap: () => _openMyket(context, s, MyketService.openAppPage),
+                              ),
+                              _buildMenuTile(
+                                context,
+                                icon: Icons.rate_review_outlined,
+                                title: s.sendComment,
+                                onTap: () => _openMyket(context, s, MyketService.openComment),
+                              ),
+                              _buildMenuTile(
+                                context,
+                                icon: Icons.system_update_outlined,
+                                title: s.checkForUpdate,
+                                onTap: () => _openMyket(context, s, MyketService.openUpdate),
+                              ),
+                              _buildMenuTile(
+                                context,
+                                icon: Icons.apps_rounded,
+                                title: s.otherApps,
+                                onTap: () => _openMyket(context, s, MyketService.openAppPage),
                               ),
                             ],
                           ),
                           _buildSection(
                             context,
-                            title: state.locale.languageCode == 'fa' ? 'درباره' : 'About',
+                            title: s.about,
                             children: [
-                              _buildInfoTile(context, icon: Icons.info_outline, title: state.locale.languageCode == 'fa' ? 'نسخه' : 'Version', value: '1.0.0'),
+                              _buildVersionTile(context, s),
                               _buildMenuTile(
                                 context,
                                 icon: Icons.description_outlined,
-                                title: state.locale.languageCode == 'fa' ? 'شرایط استفاده' : 'Terms of Service',
-                                onTap: () => _showInfoDialog(context, state.locale.languageCode == 'fa' ? 'شرایط استفاده' : 'Terms of Service', state.locale.languageCode == 'fa' ? 'این برنامه تحت قوانین جمهوری اسلامی ایران فعالیت می‌کند.' : 'This application operates under applicable laws.'),
+                                title: s.termsOfService,
+                                onTap: () => _showInfoDialog(context, s.termsOfService, s.termsBody),
                               ),
                               _buildMenuTile(
                                 context,
                                 icon: Icons.privacy_tip_outlined,
-                                title: state.locale.languageCode == 'fa' ? 'سیاست حریم خصوصی' : 'Privacy Policy',
-                                onTap: () => _showInfoDialog(context, state.locale.languageCode == 'fa' ? 'سیاست حریم خصوصی' : 'Privacy Policy', state.locale.languageCode == 'fa' ? 'ما به حریم خصوصی شما احترام می‌گذاریم.' : 'We respect your privacy.'),
+                                title: s.privacyPolicy,
+                                onTap: () => _showInfoDialog(context, s.privacyPolicy, s.privacyBody),
+                              ),
+                            ],
+                          ),
+                          // Publisher / editor info (Myket requirement)
+                          _buildSection(
+                            context,
+                            title: s.aboutApp,
+                            children: [
+                              _buildInfoTile(context, icon: Icons.verified_user_outlined, title: s.publisher, value: AppStrings.publisherName),
+                              _buildMenuTile(
+                                context,
+                                icon: Icons.telegram_outlined,
+                                title: s.support,
+                                trailingText: AppStrings.supportTelegram,
+                                onTap: () => _openTelegram(),
                               ),
                             ],
                           ),
                           const SizedBox(height: 32),
-                          _buildSignOutButton(context, state.locale.languageCode == 'fa'),
+                          _buildSignOutButton(context, s),
                           const SizedBox(height: 100),
                         ],
                       );
@@ -119,7 +171,26 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Future<void> _openMyket(BuildContext context, AppStrings s, Future<bool> Function() action) async {
+    final ok = await action();
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.myketNotAvailable), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  Future<void> _openTelegram() async {
+    final handle = AppStrings.supportTelegram.replaceFirst('@', '');
+    final uri = Uri.parse('https://t.me/$handle');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  Widget _buildHeader(BuildContext context, AppStrings s) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
@@ -138,7 +209,7 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Settings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(s.settings, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -162,7 +233,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeSelector(BuildContext context, SettingsState state) {
+  Widget _buildThemeSelector(BuildContext context, SettingsState state, AppStrings s) {
     return ListTile(
       leading: Container(
         width: 40,
@@ -170,17 +241,17 @@ class SettingsPage extends StatelessWidget {
         decoration: BoxDecoration(color: AppColors.electricPurple.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
         child: const Icon(Icons.palette_outlined, color: AppColors.electricPurple, size: 20),
       ),
-      title: Text(state.locale.languageCode == 'fa' ? 'تم' : 'Theme', style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+      title: Text(s.theme, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
       subtitle: Text(
-        state.themeMode == ThemeMode.dark ? 'Dark' : state.themeMode == ThemeMode.light ? 'Light' : 'System',
+        state.themeMode == ThemeMode.dark ? s.themeDark : state.themeMode == ThemeMode.light ? s.themeLight : s.themeSystem,
         style: TextStyle(color: AppColors.textMuted(context), fontSize: 13),
       ),
       trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context)),
-      onTap: () => _showThemeBottomSheet(context, state),
+      onTap: () => _showThemeBottomSheet(context, state, s),
     );
   }
 
-  Widget _buildLanguageSelector(BuildContext context, SettingsState state) {
+  Widget _buildLanguageSelector(BuildContext context, SettingsState state, AppStrings s) {
     return ListTile(
       leading: Container(
         width: 40,
@@ -188,13 +259,13 @@ class SettingsPage extends StatelessWidget {
         decoration: BoxDecoration(color: AppColors.neonBlue.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
         child: const Icon(Icons.language_rounded, color: AppColors.neonBlue, size: 20),
       ),
-      title: Text(state.locale.languageCode == 'fa' ? 'زبان' : 'Language', style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
+      title: Text(s.language, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
       subtitle: Text(
         state.locale.languageCode == 'fa' ? 'فارسی' : 'English',
         style: TextStyle(color: AppColors.textMuted(context), fontSize: 13),
       ),
       trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context)),
-      onTap: () => _showLanguageBottomSheet(context, state),
+      onTap: () => _showLanguageBottomSheet(context, state, s),
     );
   }
 
@@ -216,7 +287,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap, Color? titleColor}) {
+  Widget _buildMenuTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap, Color? titleColor, String? trailingText}) {
     return ListTile(
       leading: Container(
         width: 40,
@@ -225,7 +296,9 @@ class SettingsPage extends StatelessWidget {
         child: Icon(icon, color: titleColor ?? AppColors.icon(context), size: 20),
       ),
       title: Text(title, style: TextStyle(color: titleColor ?? AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
-      trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context)),
+      trailing: trailingText != null
+          ? Text(trailingText, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13))
+          : Icon(Icons.chevron_right_rounded, color: AppColors.textMuted(context)),
       onTap: onTap,
     );
   }
@@ -243,15 +316,25 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSignOutButton(BuildContext context, bool isPersian) {
+  Widget _buildVersionTile(BuildContext context, AppStrings s) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final version = snapshot.hasData ? snapshot.data!.version : '';
+        return _buildInfoTile(context, icon: Icons.info_outline, title: s.version, value: version);
+      },
+    );
+  }
+
+  Widget _buildSignOutButton(BuildContext context, AppStrings s) {
     return GestureDetector(
       onTap: () {
         showDialog(
           context: context,
           builder: (dialogContext) => AlertDialog(
             backgroundColor: AppColors.surface(context),
-            title: Text(isPersian ? 'خروج' : 'Sign Out', style: TextStyle(color: AppColors.text(context))),
-            content: Text(isPersian ? 'آیا مطمئن هستید؟' : 'Are you sure?', style: TextStyle(color: AppColors.textSecondary(context))),
+            title: Text(s.signOut, style: TextStyle(color: AppColors.text(context))),
+            content: Text(s.areYouSure, style: TextStyle(color: AppColors.textSecondary(context))),
             actions: [
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext),
@@ -261,7 +344,7 @@ class SettingsPage extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
-                child: Text(isPersian ? 'لغو' : 'Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                child: Text(s.cancel, style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
               ),
               TextButton(
                 onPressed: () async {
@@ -272,12 +355,12 @@ class SettingsPage extends StatelessWidget {
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(isPersian ? 'خطا در خروج' : 'Failed to sign out'), backgroundColor: AppColors.error),
+                        SnackBar(content: Text(s.failedToSignOut), backgroundColor: AppColors.error),
                       );
                     }
                   }
                 },
-                child: Text(isPersian ? 'خروج' : 'Sign Out', style: const TextStyle(color: AppColors.error)),
+                child: Text(s.signOut, style: const TextStyle(color: AppColors.error)),
               ),
             ],
           ),
@@ -296,14 +379,14 @@ class SettingsPage extends StatelessWidget {
           children: [
             const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
             const SizedBox(width: 8),
-            Text(isPersian ? 'خروج از حساب' : 'Sign Out', style: const TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.w600)),
+            Text(s.signOutAccount, style: const TextStyle(color: AppColors.error, fontSize: 16, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
     );
   }
 
-  void _showThemeBottomSheet(BuildContext context, SettingsState state) {
+  void _showThemeBottomSheet(BuildContext context, SettingsState state, AppStrings s) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface(context),
@@ -313,11 +396,11 @@ class SettingsPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(state.locale.languageCode == 'fa' ? 'انتخاب تم' : 'Select Theme', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            Text(s.selectTheme, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
             const SizedBox(height: 16),
-            _buildThemeOption(context, state, ThemeMode.dark, Icons.dark_mode_rounded, 'Dark'),
-            _buildThemeOption(context, state, ThemeMode.light, Icons.light_mode_rounded, 'Light'),
-            _buildThemeOption(context, state, ThemeMode.system, Icons.phone_android_rounded, 'System'),
+            _buildThemeOption(context, state, ThemeMode.dark, Icons.dark_mode_rounded, s.themeDark),
+            _buildThemeOption(context, state, ThemeMode.light, Icons.light_mode_rounded, s.themeLight),
+            _buildThemeOption(context, state, ThemeMode.system, Icons.phone_android_rounded, s.themeSystem),
           ],
         ),
       ),
@@ -337,7 +420,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  void _showLanguageBottomSheet(BuildContext context, SettingsState state) {
+  void _showLanguageBottomSheet(BuildContext context, SettingsState state, AppStrings s) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface(context),
@@ -347,7 +430,7 @@ class SettingsPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(state.locale.languageCode == 'fa' ? 'انتخاب زبان' : 'Select Language', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            Text(s.selectLanguage, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
             const SizedBox(height: 16),
             _buildLanguageOption(context, state, const Locale('en'), 'English', '🇺🇸'),
             _buildLanguageOption(context, state, const Locale('fa'), 'فارسی', '🇮🇷'),
@@ -371,6 +454,7 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showChangePasswordDialog(BuildContext context, bool isPersian) {
+    final s = AppStrings(isPersian);
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -381,7 +465,7 @@ class SettingsPage extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isPersian ? 'تغییر رمز عبور' : 'Change Password', style: TextStyle(color: AppColors.text(context))),
+        title: Text(s.changePassword, style: TextStyle(color: AppColors.text(context))),
         content: Form(
           key: formKey,
           child: Column(
@@ -392,13 +476,13 @@ class SettingsPage extends StatelessWidget {
                 obscureText: true,
                 style: TextStyle(color: AppColors.text(context)),
                 decoration: InputDecoration(
-                  hintText: isPersian ? 'رمز عبور فعلی' : 'Current Password',
+                  hintText: s.currentPassword,
                   hintStyle: TextStyle(color: AppColors.textMuted(context)),
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
                   focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return isPersian ? 'رمز عبور فعلی را وارد کنید' : 'Please enter current password';
+                  if (value == null || value.isEmpty) return s.enterCurrentPassword;
                   return null;
                 },
               ),
@@ -408,16 +492,16 @@ class SettingsPage extends StatelessWidget {
                 obscureText: true,
                 style: TextStyle(color: AppColors.text(context)),
                 decoration: InputDecoration(
-                  hintText: isPersian ? 'رمز عبور جدید' : 'New Password',
+                  hintText: s.newPassword,
                   hintStyle: TextStyle(color: AppColors.textMuted(context)),
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
                   focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return isPersian ? 'رمز عبور را وارد کنید' : 'Please enter password';
-                  if (value.length < 8) return isPersian ? 'حداقل ۸ کاراکتر' : 'Minimum 8 characters';
-                  if (!RegExp(r'[A-Z]').hasMatch(value)) return isPersian ? 'باید حرف بزرگ داشته باشد' : 'Must contain an uppercase letter';
-                  if (!RegExp(r'[0-9]').hasMatch(value)) return isPersian ? 'باید عدد داشته باشد' : 'Must contain a number';
+                  if (value == null || value.isEmpty) return s.enterPassword;
+                  if (value.length < 8) return s.minEightChars;
+                  if (!RegExp(r'[A-Z]').hasMatch(value)) return s.mustHaveUppercase;
+                  if (!RegExp(r'[0-9]').hasMatch(value)) return s.mustHaveNumber;
                   return null;
                 },
               ),
@@ -427,14 +511,14 @@ class SettingsPage extends StatelessWidget {
                 obscureText: true,
                 style: TextStyle(color: AppColors.text(context)),
                 decoration: InputDecoration(
-                  hintText: isPersian ? 'تکرار رمز عبور' : 'Confirm Password',
+                  hintText: s.confirmPassword,
                   hintStyle: TextStyle(color: AppColors.textMuted(context)),
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
                   focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.electricPurple)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return isPersian ? 'تکرار رمز عبور را وارد کنید' : 'Please confirm password';
-                  if (value != newPasswordController.text) return isPersian ? 'رمز عبور مطابقت ندارد' : 'Passwords do not match';
+                  if (value == null || value.isEmpty) return s.confirmPasswordHint;
+                  if (value != newPasswordController.text) return s.passwordsNoMatch;
                   return null;
                 },
               ),
@@ -455,7 +539,7 @@ class SettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text(isPersian ? 'لغو' : 'Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+            child: Text(s.cancel, style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -471,14 +555,14 @@ class SettingsPage extends StatelessWidget {
                     await supabase.updatePassword(newPasswordController.text);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(isPersian ? 'رمز عبور تغییر کرد' : 'Password changed'), backgroundColor: AppColors.success),
+                        SnackBar(content: Text(s.passwordChanged), backgroundColor: AppColors.success),
                       );
                     }
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(isPersian ? 'رمز عبور فعلی اشتباه است' : 'Current password is incorrect'), backgroundColor: AppColors.error),
+                      SnackBar(content: Text(s.currentPasswordWrong), backgroundColor: AppColors.error),
                     );
                   }
                 } finally {
@@ -489,7 +573,7 @@ class SettingsPage extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.electricPurple),
-            child: Text(isPersian ? 'تغییر' : 'Change'),
+            child: Text(s.change),
           ),
         ],
       ),
@@ -497,6 +581,7 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showDeleteDialog(BuildContext context, bool isPersian) {
+    final s = AppStrings(isPersian);
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -505,14 +590,14 @@ class SettingsPage extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isPersian ? 'حذف حساب' : 'Delete Account', style: const TextStyle(color: AppColors.error)),
+        title: Text(s.deleteAccount, style: const TextStyle(color: AppColors.error)),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                isPersian ? 'آیا مطمئن هستید؟ این عمل غیرقابل بازگشت است.' : 'Are you sure you want to delete your account? This action cannot be undone.',
+                s.deleteAccountConfirm,
                 style: TextStyle(color: AppColors.textSecondary(context)),
               ),
               const SizedBox(height: 16),
@@ -521,13 +606,13 @@ class SettingsPage extends StatelessWidget {
                 obscureText: true,
                 style: TextStyle(color: AppColors.text(context)),
                 decoration: InputDecoration(
-                  hintText: isPersian ? 'رمز عبور فعلی را وارد کنید' : 'Enter your password to confirm',
+                  hintText: s.enterPasswordToConfirm,
                   hintStyle: TextStyle(color: AppColors.textMuted(context)),
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border(context))),
                   focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.error)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return isPersian ? 'رمز عبور را وارد کنید' : 'Please enter your password';
+                  if (value == null || value.isEmpty) return s.enterPassword;
                   return null;
                 },
               ),
@@ -546,7 +631,7 @@ class SettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text(isPersian ? 'لغو' : 'Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+            child: Text(s.cancel, style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -572,7 +657,7 @@ class SettingsPage extends StatelessWidget {
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(isPersian ? 'رمز عبور اشتباه است' : 'Incorrect password'), backgroundColor: AppColors.error),
+                    SnackBar(content: Text(s.incorrectPassword), backgroundColor: AppColors.error),
                   );
                 }
               } finally {
@@ -580,7 +665,7 @@ class SettingsPage extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: Text(isPersian ? 'حذف' : 'Delete'),
+            child: Text(s.delete),
           ),
         ],
       ),
@@ -588,6 +673,7 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _showInfoDialog(BuildContext context, String title, String content) {
+    final s = AppStrings.of(context);
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -596,7 +682,7 @@ class SettingsPage extends StatelessWidget {
         title: Text(title, style: TextStyle(color: AppColors.text(context))),
         content: Text(content, style: TextStyle(color: AppColors.textSecondary(context))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('OK')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(s.ok)),
         ],
       ),
     );

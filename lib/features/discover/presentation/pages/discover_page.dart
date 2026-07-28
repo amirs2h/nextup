@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class DiscoverPage extends StatelessWidget {
   final Map<String, dynamic>? filters;
@@ -90,7 +91,7 @@ class _DiscoverPageViewState extends State<_DiscoverPageView> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
         children: [
-          Text('Discover', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).discover, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
           const Spacer(),
           GestureDetector(
             onTap: () => context.push('/filters'),
@@ -119,9 +120,9 @@ class _DiscoverPageViewState extends State<_DiscoverPageView> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          _buildMediaTypeChip(context, 'TV Shows', 'tv'),
+          _buildMediaTypeChip(context, AppStrings.of(context).tvShows, 'tv'),
           const SizedBox(width: 8),
-          _buildMediaTypeChip(context, 'Movies', 'movie'),
+          _buildMediaTypeChip(context, AppStrings.of(context).movies, 'movie'),
         ],
       ),
     );
@@ -211,7 +212,7 @@ class _DiscoverPageViewState extends State<_DiscoverPageView> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<DiscoverCubit>().clearFilter(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -228,7 +229,7 @@ class _DiscoverPageViewState extends State<_DiscoverPageView> {
                 children: [
                   Icon(Icons.explore_off, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No content found', style: TextStyle(color: AppColors.textMuted(context))),
+                  Text(AppStrings.of(context).noContentFound, style: TextStyle(color: AppColors.textMuted(context))),
                 ],
               ),
             );

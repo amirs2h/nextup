@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/models/show_model.dart';
@@ -69,9 +70,9 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                 children: [
                   Icon(Icons.person_outline, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('Please login to view your profile', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+                  Text(AppStrings.of(context).loginToViewProfile, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
                   const SizedBox(height: 24),
-                  ElevatedButton(onPressed: () => context.go('/login'), child: const Text('Login')),
+                  ElevatedButton(onPressed: () => context.go('/login'), child: Text(AppStrings.of(context).login)),
                 ],
               ),
             );
@@ -101,9 +102,9 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                     children: [
                       const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                       const SizedBox(height: 12),
-                      Text('Could not load profile', style: TextStyle(color: AppColors.textSecondary(context))),
+                      Text(AppStrings.of(context).couldNotLoadProfile, style: TextStyle(color: AppColors.textSecondary(context))),
                       const SizedBox(height: 12),
-                      ElevatedButton(onPressed: () => _loadData(), child: const Text('Retry')),
+                      ElevatedButton(onPressed: () => _loadData(), child: Text(AppStrings.of(context).retry)),
                     ],
                   ),
                 );
@@ -329,16 +330,16 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStatItem(context, 'Watchlist', watchlist),
+          _buildStatItem(context, AppStrings.of(context).watchlist, watchlist),
           Container(width: 1, height: 40, color: AppColors.divider(context)),
           GestureDetector(
             onTap: () => _showFollowing(followingList),
-            child: _buildStatItem(context, 'Following', following),
+            child: _buildStatItem(context, AppStrings.of(context).following, following),
           ),
           Container(width: 1, height: 40, color: AppColors.divider(context)),
           GestureDetector(
             onTap: () => _showFollowers(followersList),
-            child: _buildStatItem(context, 'Followers', followers),
+            child: _buildStatItem(context, AppStrings.of(context).followers, followers),
           ),
         ],
       ),
@@ -462,7 +463,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         if (totalItems == 0) return const SizedBox();
         return _buildCarouselSection(
           context,
-          title: 'Favorites',
+          title: AppStrings.of(context).favorites,
           icon: Icons.favorite_rounded,
           color: const Color(0xFFE50914),
           onSeeAll: () => context.push('/favorites'),
@@ -490,7 +491,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         if (items.isEmpty) return const SizedBox();
         return _buildCarouselSection(
           context,
-          title: 'Watchlist',
+          title: AppStrings.of(context).watchlist,
           icon: Icons.bookmark_rounded,
           color: const Color(0xFF6C63FF),
           onSeeAll: () => context.go('/watchlist'),
@@ -521,7 +522,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         if (totalItems == 0) return const SizedBox();
         return _buildCarouselSection(
           context,
-          title: 'Watch History',
+          title: AppStrings.of(context).watchHistory,
           icon: Icons.history_rounded,
           color: const Color(0xFF00CC6A),
           onSeeAll: () => context.push('/watch-history'),
@@ -549,14 +550,14 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         if (lists.isEmpty) return const SizedBox();
         return _buildCarouselSection(
           context,
-          title: 'My Lists',
+          title: AppStrings.of(context).myLists,
           icon: Icons.playlist_play_rounded,
           color: const Color(0xFF9D4EDD),
           onSeeAll: () => context.push('/custom-lists'),
           itemCount: lists.length > 10 ? 10 : lists.length,
           itemBuilder: (context, index) {
             final list = lists[index];
-            final name = list['name'] ?? 'Untitled';
+            final name = list['name'] ?? AppStrings.of(context).untitled;
             final description = list['description'] ?? '';
             final isPublic = list['is_public'] ?? false;
             final listId = list['id'];
@@ -584,7 +585,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         if (lists.isEmpty) return const SizedBox();
         return _buildCarouselSection(
           context,
-          title: 'Shared Lists',
+          title: AppStrings.of(context).sharedLists,
           icon: Icons.people_alt_rounded,
           color: const Color(0xFF00B4D8),
           onSeeAll: () => context.push('/shared-lists'),
@@ -592,7 +593,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
           itemBuilder: (context, index) {
             final listData = lists[index];
             final list = listData['shared_lists'] ?? listData;
-            final name = list['name'] ?? 'Untitled';
+            final name = list['name'] ?? AppStrings.of(context).untitled;
             final description = list['description'] ?? '';
             final listId = list['id'];
             return _buildListItem(
@@ -701,7 +702,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text('See All', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+                child: Text(AppStrings.of(context).seeAll, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -755,7 +756,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
       children: [
         Expanded(
           child: GlassButton(
-            text: 'Edit Profile',
+            text: AppStrings.of(context).editProfile,
             icon: Icons.edit_outlined,
             onPressed: () => context.push('/edit-profile'),
           ),
@@ -765,8 +766,8 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
           onTap: () {
             final authState = context.read<AuthCubit>().state;
             if (authState is AuthAuthenticated) {
-              final username = authState.profile?['username'] ?? 'User';
-              Share.share('Check out $username\'s profile on NextUp!');
+              final username = authState.profile?['username'] ?? AppStrings.of(context).user;
+              Share.share(AppStrings.of(context).checkOutProfile(username));
             }
           },
           child: Container(
@@ -786,16 +787,16 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   Widget _buildUserContent(BuildContext context) {
     return Column(
       children: [
-        _buildContentCard(context, icon: Icons.bookmark_rounded, title: 'My Watchlist', subtitle: 'Shows and movies to watch', color: const Color(0xFF6C63FF), onTap: () => context.go('/watchlist')),
-        _buildContentCard(context, icon: Icons.favorite_rounded, title: 'Favorites', subtitle: 'Your favorite shows and movies', color: const Color(0xFFE50914), onTap: () => context.push('/favorites')),
-        _buildContentCard(context, icon: Icons.history_rounded, title: 'Watch History', subtitle: 'Shows and movies you\'ve watched', color: const Color(0xFF00CC6A), onTap: () => context.push('/watch-history')),
-        _buildContentCard(context, icon: Icons.playlist_play_rounded, title: 'My Lists', subtitle: 'Custom collections', color: const Color(0xFF9D4EDD), onTap: () => context.push('/custom-lists')),
-        _buildContentCard(context, icon: Icons.people_alt_rounded, title: 'Shared Lists', subtitle: 'Lists with friends', color: const Color(0xFF6C63FF), onTap: () => context.push('/shared-lists')),
-        _buildContentCard(context, icon: Icons.leaderboard_rounded, title: 'Rankings', subtitle: 'Compare with friends', color: const Color(0xFFFFD93D), onTap: () => context.push('/rankings')),
-        _buildContentCard(context, icon: Icons.bar_chart_rounded, title: 'Statistics', subtitle: 'Your watching stats', color: const Color(0xFF00CC6A), onTap: () => context.push('/stats')),
-        _buildContentCard(context, icon: Icons.emoji_events_rounded, title: 'Achievements', subtitle: 'Your badges and milestones', color: const Color(0xFFFFD93D), onTap: () => context.push('/achievements')),
-        _buildContentCard(context, icon: Icons.people_rounded, title: 'Activity', subtitle: 'What your friends are watching', color: const Color(0xFF6C63FF), onTap: () => context.push('/activity')),
-        _buildContentCard(context, icon: Icons.settings_rounded, title: 'Settings', subtitle: 'Theme, language, notifications', color: AppColors.textSecondary(context), onTap: () => context.push('/settings')),
+        _buildContentCard(context, icon: Icons.bookmark_rounded, title: AppStrings.of(context).myWatchlist, subtitle: AppStrings.of(context).showsAndMoviesToWatch, color: const Color(0xFF6C63FF), onTap: () => context.go('/watchlist')),
+        _buildContentCard(context, icon: Icons.favorite_rounded, title: AppStrings.of(context).favorites, subtitle: AppStrings.of(context).yourFavoriteShowsAndMovies, color: const Color(0xFFE50914), onTap: () => context.push('/favorites')),
+        _buildContentCard(context, icon: Icons.history_rounded, title: AppStrings.of(context).watchHistory, subtitle: AppStrings.of(context).showsAndMoviesYouWatched, color: const Color(0xFF00CC6A), onTap: () => context.push('/watch-history')),
+        _buildContentCard(context, icon: Icons.playlist_play_rounded, title: AppStrings.of(context).myLists, subtitle: AppStrings.of(context).customCollections, color: const Color(0xFF9D4EDD), onTap: () => context.push('/custom-lists')),
+        _buildContentCard(context, icon: Icons.people_alt_rounded, title: AppStrings.of(context).sharedLists, subtitle: AppStrings.of(context).listsWithFriends, color: const Color(0xFF6C63FF), onTap: () => context.push('/shared-lists')),
+        _buildContentCard(context, icon: Icons.leaderboard_rounded, title: AppStrings.of(context).rankings, subtitle: AppStrings.of(context).compareWithFriends, color: const Color(0xFFFFD93D), onTap: () => context.push('/rankings')),
+        _buildContentCard(context, icon: Icons.bar_chart_rounded, title: AppStrings.of(context).statistics, subtitle: AppStrings.of(context).yourWatchingStats, color: const Color(0xFF00CC6A), onTap: () => context.push('/stats')),
+        _buildContentCard(context, icon: Icons.emoji_events_rounded, title: AppStrings.of(context).achievements, subtitle: AppStrings.of(context).yourBadgesAndMilestones, color: const Color(0xFFFFD93D), onTap: () => context.push('/achievements')),
+        _buildContentCard(context, icon: Icons.people_rounded, title: AppStrings.of(context).activity, subtitle: AppStrings.of(context).whatFriendsAreWatching, color: const Color(0xFF6C63FF), onTap: () => context.push('/activity')),
+        _buildContentCard(context, icon: Icons.settings_rounded, title: AppStrings.of(context).settings, subtitle: AppStrings.of(context).themeLanguageNotifications, color: AppColors.textSecondary(context), onTap: () => context.push('/settings')),
       ],
     );
   }
@@ -850,7 +851,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: const Text('Failed to unfollow. Please try again.'), backgroundColor: AppColors.error),
+                  SnackBar(content: Text(AppStrings.of(context).failedToUnfollow), backgroundColor: AppColors.error),
                 );
               }
             }
@@ -884,7 +885,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: const Text('Failed to follow. Please try again.'), backgroundColor: AppColors.error),
+                  SnackBar(content: Text(AppStrings.of(context).failedToFollow), backgroundColor: AppColors.error),
                 );
               }
             }
@@ -914,12 +915,12 @@ class _FollowingDialogState extends State<_FollowingDialog> {
     return SimpleDialog(
       backgroundColor: AppColors.surface(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Following', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+      title: Text(AppStrings.of(context).following, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
       children: [
         if (widget.following.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Not following anyone yet', style: TextStyle(color: AppColors.textMuted(context))),
+            child: Text(AppStrings.of(context).notFollowingAnyone, style: TextStyle(color: AppColors.textMuted(context))),
           )
         else
           ...widget.following.map((user) {
@@ -947,7 +948,7 @@ class _FollowingDialogState extends State<_FollowingDialog> {
                     },
                     child: isUnfollowing
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF4757)))
-                        : const Text('Unfollow', style: TextStyle(color: Color(0xFFFF4757))),
+                        : Text(AppStrings.of(context).unfollow, style: const TextStyle(color: Color(0xFFFF4757))),
                   ),
                 ],
               ),
@@ -978,12 +979,12 @@ class _FollowersDialogState extends State<_FollowersDialog> {
     return SimpleDialog(
       backgroundColor: AppColors.surface(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Followers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+      title: Text(AppStrings.of(context).followers, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
       children: [
         if (widget.followers.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('No followers yet', style: TextStyle(color: AppColors.textMuted(context))),
+            child: Text(AppStrings.of(context).noFollowers, style: TextStyle(color: AppColors.textMuted(context))),
           )
         else
           ...widget.followers.map((user) {
@@ -1011,7 +1012,7 @@ class _FollowersDialogState extends State<_FollowersDialog> {
                         color: AppColors.cardBg(context),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text('Following', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                      child: Text(AppStrings.of(context).following, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                     )
                   else
                     TextButton(
@@ -1027,7 +1028,7 @@ class _FollowersDialogState extends State<_FollowersDialog> {
                       },
                       child: isFollowing
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4CAF50)))
-                          : const Text('Follow Back', style: TextStyle(color: Color(0xFF4CAF50))),
+                          : Text(AppStrings.of(context).followBack, style: const TextStyle(color: Color(0xFF4CAF50))),
                     ),
                 ],
               ),

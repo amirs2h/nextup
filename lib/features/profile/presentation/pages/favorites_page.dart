@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -70,7 +71,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Favorites', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).favorites, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -94,7 +95,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<FavoritesCubit>().loadFavorites(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -109,9 +110,9 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 children: [
                   Icon(Icons.favorite_outline, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                Text('No favorites yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
-                  const SizedBox(height: 8),
-                  Text('Add shows and movies to your favorites', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                Text(AppStrings.of(context).noFavoritesYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
+                   const SizedBox(height: 8),
+                  Text(AppStrings.of(context).addShowsToFavorites, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                 ],
               ),
             );
@@ -123,13 +124,13 @@ class _FavoritesPageState extends State<FavoritesPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 if (state.shows.isNotEmpty) ...[
-                  Text('Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  Text(AppStrings.of(context).shows, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                   const SizedBox(height: 12),
                   ...state.shows.map((show) => _buildShowCard(context, show)),
                   const SizedBox(height: 20),
                 ],
                 if (state.movies.isNotEmpty) ...[
-                  Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  Text(AppStrings.of(context).movies, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                   const SizedBox(height: 12),
                   ...state.movies.map((movie) => _buildMovieCard(context, movie)),
                 ],
@@ -244,8 +245,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Remove from Favorites'),
-        content: Text('Remove "$name" from your favorites?'),
+        title: Text(AppStrings.of(context).removeFromFavorites),
+        content: Text(AppStrings.of(context).removeFromFavoritesConfirm(name)),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -255,14 +256,14 @@ class _FavoritesPageState extends State<FavoritesPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+            child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
               onConfirm();
             },
-            child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+            child: Text(AppStrings.of(context).remove, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),

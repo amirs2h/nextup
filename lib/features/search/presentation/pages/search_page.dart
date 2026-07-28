@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../domain/search_cubit.dart';
@@ -79,7 +80,7 @@ class _SearchPageState extends State<SearchPage> {
                       autofocus: true,
                       style: TextStyle(color: AppColors.text(context)),
                       decoration: InputDecoration(
-                        hintText: 'Search shows, movies, people...',
+                        hintText: AppStrings.of(context).searchFullHint,
                         hintStyle: TextStyle(color: AppColors.textMuted(context)),
                         border: InputBorder.none,
                       ),
@@ -105,7 +106,7 @@ class _SearchPageState extends State<SearchPage> {
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () => context.go('/'),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 15)),
+            child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 15)),
           ),
         ],
       ),
@@ -138,7 +139,7 @@ class _SearchPageState extends State<SearchPage> {
                       context.read<SearchCubit>().search(_searchController.text);
                     }
                   },
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -153,7 +154,7 @@ class _SearchPageState extends State<SearchPage> {
                 children: [
                   Icon(Icons.search_off, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No results found for "${state.query}"', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text('${AppStrings.of(context).noResultsFound} "${state.query}"', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                 ],
               ),
             );
@@ -164,13 +165,13 @@ class _SearchPageState extends State<SearchPage> {
             children: [
               // Users section
               if (state.users.isNotEmpty) ...[
-                _buildSectionHeader('Users', Icons.people, const Color(0xFF6C63FF)),
+                _buildSectionHeader(AppStrings.of(context).users, Icons.people, const Color(0xFF6C63FF)),
                 ...state.users.map((user) => _buildUserResultItem(context, user: user)),
                 const SizedBox(height: 16),
               ],
               // Shows section
               if (state.shows.isNotEmpty) ...[
-                _buildSectionHeader('TV Shows', Icons.tv, AppColors.primary),
+                _buildSectionHeader(AppStrings.of(context).tvShows, Icons.tv, AppColors.primary),
                 ...state.shows.map((show) => _buildSearchResultItem(
                   context,
                   id: show.id,
@@ -184,7 +185,7 @@ class _SearchPageState extends State<SearchPage> {
               ],
               // Movies section
               if (state.movies.isNotEmpty) ...[
-                _buildSectionHeader('Movies', Icons.movie, AppColors.electricPurple),
+                _buildSectionHeader(AppStrings.of(context).movies, Icons.movie, AppColors.electricPurple),
                 ...state.movies.map((movie) => _buildSearchResultItem(
                   context,
                   id: movie.id,
@@ -213,7 +214,7 @@ class _SearchPageState extends State<SearchPage> {
           children: [
             Icon(Icons.search, size: 60, color: AppColors.textMuted(context)),
             const SizedBox(height: 16),
-            Text('Search for shows, movies, and people', style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
+            Text(AppStrings.of(context).searchFullHint, style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
           ],
         ),
       );
@@ -226,11 +227,11 @@ class _SearchPageState extends State<SearchPage> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Row(
             children: [
-              Text('Recent Searches', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text(context))),
+              Text(AppStrings.of(context).recentSearches, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text(context))),
               const Spacer(),
               GestureDetector(
                 onTap: () => context.read<SearchCubit>().clearRecentSearches(),
-                child: Text('Clear', style: TextStyle(color: AppColors.electricPurple, fontSize: 14)),
+                child: Text(AppStrings.of(context).clear, style: TextStyle(color: AppColors.electricPurple, fontSize: 14)),
               ),
             ],
           ),
@@ -298,7 +299,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildUserResultItem(BuildContext context, {required Map<String, dynamic> user}) {
-    final username = user['username'] ?? 'User';
+    final username = user['username'] ?? AppStrings.of(context).user;
     final bio = user['bio'] ?? '';
     final avatarUrl = user['avatar_url'];
     final userId = user['id'];

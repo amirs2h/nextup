@@ -49,5 +49,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Allow resolving Myket app store intents on Android 11+ (package visibility) -->
+        <package android:name="ir.mservices.market"/>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="myket"/>
+        </intent>
     </queries>
+
 </manifest>

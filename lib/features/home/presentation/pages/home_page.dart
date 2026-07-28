@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../../shared/widgets/app_background.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -107,8 +108,8 @@ class _HomePageViewState extends State<_HomePageView> {
                       if (faState is FriendsActivityLoaded || faState is FriendsActivityLoading) {
                         return _buildSection(
                           context: context,
-                          title: 'Friends Are Watching',
-                          subtitle: 'What your friends are watching right now',
+                          title: AppStrings.of(context).friendsAreWatching,
+                          subtitle: AppStrings.of(context).friendsAreWatchingSub,
                           onSeeAll: () => context.push('/activity'),
                           child: const FriendsActivitySection(),
                         );
@@ -122,8 +123,8 @@ class _HomePageViewState extends State<_HomePageView> {
                       if (recState is RecommendationsLoaded && (recState.shows.isNotEmpty || recState.movies.isNotEmpty)) {
                         return _buildSection(
                           context: context,
-                          title: 'For You',
-                          subtitle: 'Based on your watch history',
+                          title: AppStrings.of(context).forYou,
+                          subtitle: AppStrings.of(context).forYouSub,
                           child: Column(
                             children: [
                               // Tab bar
@@ -131,9 +132,9 @@ class _HomePageViewState extends State<_HomePageView> {
                                 padding: const EdgeInsets.symmetric(horizontal: 20),
                                 child: Row(
                                   children: [
-                                    _buildForYouTab(context, 'Shows', 0),
+                                    _buildForYouTab(context, AppStrings.of(context).shows, 0),
                                     const SizedBox(width: 8),
-                                    _buildForYouTab(context, 'Movies', 1),
+                                    _buildForYouTab(context, AppStrings.of(context).movies, 1),
                                   ],
                                 ),
                               ),
@@ -179,9 +180,9 @@ class _HomePageViewState extends State<_HomePageView> {
                   else if (state is HomeLoaded) ...[
                     SliverToBoxAdapter(child: _buildSection(
                       context: context,
-                      title: 'Trending Shows',
-                      subtitle: 'Most popular this week',
-                      onSeeAll: () => context.push('/see-all', extra: {'title': 'Trending Shows', 'type': 'trending_shows'}),
+                      title: AppStrings.of(context).trendingShows,
+                      subtitle: AppStrings.of(context).trendingShowsSub,
+                      onSeeAll: () => context.push('/see-all', extra: {'title': AppStrings.of(context).trendingShows, 'type': 'trending_shows'}),
                       child: SizedBox(
                         height: 260,
                         child: ListView.builder(
@@ -200,9 +201,9 @@ class _HomePageViewState extends State<_HomePageView> {
                     )),
                     SliverToBoxAdapter(child: _buildSection(
                       context: context,
-                      title: 'Trending Movies',
-                      subtitle: 'Popular movies right now',
-                      onSeeAll: () => context.push('/see-all', extra: {'title': 'Trending Movies', 'type': 'trending_movies'}),
+                      title: AppStrings.of(context).trendingMovies,
+                      subtitle: AppStrings.of(context).trendingMoviesSub,
+                      onSeeAll: () => context.push('/see-all', extra: {'title': AppStrings.of(context).trendingMovies, 'type': 'trending_movies'}),
                       child: SizedBox(
                         height: 260,
                         child: ListView.builder(
@@ -221,9 +222,9 @@ class _HomePageViewState extends State<_HomePageView> {
                     )),
                     SliverToBoxAdapter(child: _buildSection(
                       context: context,
-                      title: 'Top Rated',
-                      subtitle: 'Highest rated shows',
-                      onSeeAll: () => context.push('/see-all', extra: {'title': 'Top Rated', 'type': 'top_rated'}),
+                      title: AppStrings.of(context).topRated,
+                      subtitle: AppStrings.of(context).topRatedSub,
+                      onSeeAll: () => context.push('/see-all', extra: {'title': AppStrings.of(context).topRated, 'type': 'top_rated'}),
                       child: SizedBox(
                         height: 260,
                         child: ListView.builder(
@@ -250,7 +251,7 @@ class _HomePageViewState extends State<_HomePageView> {
                             const SizedBox(height: 16),
                             Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                             const SizedBox(height: 16),
-                            ElevatedButton(onPressed: () => context.read<HomeCubit>().refresh(), child: const Text('Retry')),
+                            ElevatedButton(onPressed: () => context.read<HomeCubit>().refresh(), child: Text(AppStrings.of(context).retry)),
                           ],
                         ),
                       ),
@@ -270,9 +271,9 @@ class _HomePageViewState extends State<_HomePageView> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
-          String userName = 'Guest';
+          String userName = AppStrings.of(context).guest;
           if (state is AuthAuthenticated && state.profile != null) {
-            userName = state.profile!['username'] ?? 'User';
+            userName = state.profile!['username'] ?? AppStrings.of(context).user;
           }
 
           return Row(
@@ -291,7 +292,7 @@ class _HomePageViewState extends State<_HomePageView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Hi, $userName', style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
+                  Text(AppStrings.of(context).hiUser(userName), style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
                   Text('NextUp', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                 ],
               ),
@@ -406,7 +407,7 @@ class _HomePageViewState extends State<_HomePageView> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  isShow ? 'TRENDING SHOW' : 'TRENDING MOVIE',
+                                  isShow ? AppStrings.of(context).trendingShowBadge : AppStrings.of(context).trendingMovieBadge,
                                   style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                                 ),
                               ),
@@ -514,7 +515,7 @@ class _HomePageViewState extends State<_HomePageView> {
                   children: [
                     Icon(Icons.search, color: AppColors.textMuted(context), size: 22),
                     const SizedBox(width: 12),
-                    Text('Search shows, movies...', style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
+                    Text(AppStrings.of(context).searchHint, style: TextStyle(color: AppColors.textMuted(context), fontSize: 15)),
                   ],
                 ),
               ),
@@ -560,7 +561,7 @@ class _HomePageViewState extends State<_HomePageView> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('See All', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+                        Text(AppStrings.of(context).seeAll, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
                         const SizedBox(width: 4),
                         Icon(Icons.arrow_forward_ios, color: AppColors.textSecondary(context), size: 12),
                       ],

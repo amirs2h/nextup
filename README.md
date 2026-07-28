@@ -72,3 +72,12 @@ wrangler pages deploy build/web --project-name=nextup
 - **State Management:** BLoC/Cubit
 - **Routing:** GoRouter
 - **Hosting:** Cloudflare Pages
+
+## 🌍 Localization (i18n)
+
+The app supports **Persian (fa)** and **English (en)** out of the box.
+
+- All user-facing strings live in `lib/core/localization/app_strings.dart`.
+- Use `AppStrings.of(context).<getter>` in widgets to get the right string for the current locale.
+- The locale is controlled from **Settings → Language** and the app automatically switches RTL/LTR via `Directionality` in `main.dart`.
+- To add a new string, add a getter to `AppStrings` using the `_p(faText, enText)` helper, then use it in the relevant screen.

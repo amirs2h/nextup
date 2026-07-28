@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_strings.dart';
 
 class MainScaffold extends StatefulWidget {
   final Widget child;
@@ -15,12 +16,30 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMixin {
   final List<_NavItem> _items = [
-    _NavItem(icon: Icons.home_rounded, activeIcon: Icons.home_rounded, label: 'Home', path: '/'),
-    _NavItem(icon: Icons.search_rounded, activeIcon: Icons.search_rounded, label: 'Search', path: '/search'),
-    _NavItem(icon: Icons.explore_rounded, activeIcon: Icons.explore_rounded, label: 'Discover', path: '/discover'),
-    _NavItem(icon: Icons.bookmark_rounded, activeIcon: Icons.bookmark_rounded, label: 'Watchlist', path: '/watchlist'),
-    _NavItem(icon: Icons.person_rounded, activeIcon: Icons.person_rounded, label: 'Profile', path: '/profile'),
+    _NavItem(icon: Icons.home_rounded, activeIcon: Icons.home_rounded, path: '/'),
+    _NavItem(icon: Icons.search_rounded, activeIcon: Icons.search_rounded, path: '/search'),
+    _NavItem(icon: Icons.explore_rounded, activeIcon: Icons.explore_rounded, path: '/discover'),
+    _NavItem(icon: Icons.bookmark_rounded, activeIcon: Icons.bookmark_rounded, path: '/watchlist'),
+    _NavItem(icon: Icons.person_rounded, activeIcon: Icons.person_rounded, path: '/profile'),
   ];
+
+  String _labelFor(BuildContext context, int index) {
+    final s = AppStrings.of(context);
+    switch (index) {
+      case 0:
+        return s.home;
+      case 1:
+        return s.search;
+      case 2:
+        return s.discover;
+      case 3:
+        return s.watchlist;
+      case 4:
+        return s.profile;
+      default:
+        return '';
+    }
+  }
 
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
@@ -101,7 +120,7 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
                   children: List.generate(_items.length, (index) {
                     final item = _items[index];
                     final isActive = currentIndex == index;
-                    return _buildNavItem(context, item, index, isActive, isDark);
+                    return _buildNavItem(context, item, index, isActive, isDark, _labelFor(context, index));
                   }),
                 ),
               ),
@@ -112,7 +131,7 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
     );
   }
 
-  Widget _buildNavItem(BuildContext context, _NavItem item, int index, bool isActive, bool isDark) {
+  Widget _buildNavItem(BuildContext context, _NavItem item, int index, bool isActive, bool isDark, String label) {
     return GestureDetector(
       onTap: () => _onTap(index),
       behavior: HitTestBehavior.opaque,
@@ -170,7 +189,7 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
                 ),
-                child: Text(item.label),
+                child: Text(label),
               ),
             ],
           ],
@@ -183,13 +202,11 @@ class _MainScaffoldState extends State<MainScaffold> with TickerProviderStateMix
 class _NavItem {
   final IconData icon;
   final IconData activeIcon;
-  final String label;
   final String path;
 
   _NavItem({
     required this.icon,
     required this.activeIcon,
-    required this.label,
     required this.path,
   });
 }
