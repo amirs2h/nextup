@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/models/show_model.dart';
 import '../../../../shared/models/movie_model.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class SeeAllPage extends StatefulWidget {
   final String title;
@@ -118,7 +119,7 @@ class _SeeAllPageState extends State<SeeAllPage> {
 
     if (_items.isEmpty) {
       return Center(
-        child: Text('No items found', style: TextStyle(color: AppColors.textMuted(context))),
+        child: Text(AppStrings.of(context).noItemsFound, style: TextStyle(color: AppColors.textMuted(context))),
       );
     }
 

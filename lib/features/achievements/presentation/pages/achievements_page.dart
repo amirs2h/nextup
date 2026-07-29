@@ -6,6 +6,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/achievements_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class AchievementsPage extends StatefulWidget {
   const AchievementsPage({super.key});
@@ -54,7 +55,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Achievements', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).achievements, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -78,7 +79,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<AchievementsCubit>().loadAchievements(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -289,7 +290,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                       children: [
                         Icon(Icons.check_circle, color: achievement.color, size: 14),
                         const SizedBox(width: 4),
-                        Text('Unlocked', style: TextStyle(color: achievement.color, fontSize: 11, fontWeight: FontWeight.w600)),
+                        Text(AppStrings.of(context).unlocked, style: TextStyle(color: achievement.color, fontSize: 11, fontWeight: FontWeight.w600)),
                         const Spacer(),
                         Text('+${achievement.xpReward} XP', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
                       ],

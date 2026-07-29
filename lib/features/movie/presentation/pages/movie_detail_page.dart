@@ -22,6 +22,7 @@ import '../../../watchlist/domain/watchlist_cubit.dart';
 import '../../../profile/domain/favorites_cubit.dart';
 import '../../../profile/domain/watch_history_cubit.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class MovieDetailPage extends StatelessWidget {
   final int movieId;
@@ -73,7 +74,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => context.read<MovieDetailCubit>().loadMovieDetails(),
-                      child: const Text('Retry'),
+                      child: Text(AppStrings.of(context).retry),
                     ),
                   ],
                 ),
@@ -294,7 +295,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                               children: [
                                 const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 24),
                                 const SizedBox(width: 8),
-                                Text('Rate This Movie', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
+                                Text(AppStrings.of(context).rateThisMovie, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
                               ],
                             ),
                           ),
@@ -354,7 +355,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                           ),
                           const SizedBox(height: 16),
                         ],
-                        Text('Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                        Text(AppStrings.of(context).overview, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                         const SizedBox(height: 8),
                         Text(state.movie.overview ?? 'No overview available.', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.5)),
                       ],
@@ -368,7 +369,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Cast', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                          Text(AppStrings.of(context).cast, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 120,
@@ -443,7 +444,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Similar Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                          Text(AppStrings.of(context).similarMovies, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 260,
@@ -491,7 +492,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Reactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            Text(AppStrings.of(context).reactions, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
             const SizedBox(height: 12),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -515,7 +516,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: const Text('Failed to add reaction'), backgroundColor: AppColors.error),
+                            SnackBar(content: Text(AppStrings.of(context).failedToAddReaction), backgroundColor: AppColors.error),
                           );
                         }
                       }
@@ -599,7 +600,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Part of Collection', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text(AppStrings.of(context).partOfCollection, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text(name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15)),
                 ],
@@ -709,7 +710,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                                     color: AppColors.primary.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text('Current', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w600)),
+                                  child: Text(AppStrings.of(context).current, style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w600)),
                                 ),
                             ],
                           ),
@@ -726,7 +727,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to load collection'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppStrings.of(context).failedToLoadCollection), backgroundColor: AppColors.error),
         );
       }
     }
@@ -742,7 +743,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
           children: [
             const Icon(Icons.playlist_add, color: AppColors.electricPurple),
             const SizedBox(width: 8),
-            Text('Add to List', style: TextStyle(color: AppColors.text(context))),
+            Text(AppStrings.of(context).addToList, style: TextStyle(color: AppColors.text(context))),
           ],
         ),
         content: Column(
@@ -756,7 +757,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                 context.push('/custom-lists');
               },
               icon: const Icon(Icons.playlist_play),
-              label: const Text('Go to My Lists'),
+              label: Text(AppStrings.of(context).goToMyLists),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.electricPurple),
             ),
           ],
@@ -764,7 +765,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+            child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context))),
           ),
         ],
       ),

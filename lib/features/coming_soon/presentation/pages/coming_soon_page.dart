@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/modern_widgets.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/coming_soon_cubit.dart';
 
@@ -68,7 +69,7 @@ class _ComingSoonPageViewState extends State<_ComingSoonPageView> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Coming Soon', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).comingSoon, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -92,7 +93,7 @@ class _ComingSoonPageViewState extends State<_ComingSoonPageView> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<ComingSoonCubit>().loadComingSoon(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -110,9 +111,9 @@ class _ComingSoonPageViewState extends State<_ComingSoonPageView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (state.airingToday.isNotEmpty) ...[
-                    Text('Airing Today', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    Text(AppStrings.of(context).airingToday, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                     const SizedBox(height: 4),
-                    Text('New episodes available today', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                    Text(AppStrings.of(context).airingTodaySub, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 260,
@@ -134,9 +135,9 @@ class _ComingSoonPageViewState extends State<_ComingSoonPageView> {
                     const SizedBox(height: 32),
                   ],
                   if (state.upcomingMovies.isNotEmpty) ...[
-                    Text('Upcoming Movies', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    Text(AppStrings.of(context).upcomingMovies, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                     const SizedBox(height: 4),
-                    Text('Coming to theaters soon', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                    Text(AppStrings.of(context).upcomingMoviesSub, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 260,

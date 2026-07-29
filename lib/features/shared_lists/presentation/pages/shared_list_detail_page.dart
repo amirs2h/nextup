@@ -12,6 +12,7 @@ import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/shared_list_detail_cubit.dart';
 import '../../domain/shared_lists_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class SharedListDetailPage extends StatefulWidget {
   final String listId;
@@ -69,7 +70,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.listName, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                Text('Shared List', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                Text(AppStrings.of(context).sharedList, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
               ],
             ),
           ),
@@ -113,7 +114,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<SharedListDetailCubit>().loadDetail(widget.listId),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -128,9 +129,9 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                 children: [
                   Icon(Icons.movie_outlined, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No items yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noItemsYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Tap + to add shows or movies', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text(AppStrings.of(context).tapToAddShowsOrMovies, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                 ],
               ),
             );
@@ -263,7 +264,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                               builder: (dialogContext) => AlertDialog(
                                 backgroundColor: AppColors.surface(context),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                title: DialogHelper.titleWithIcon(Icons.remove_circle_outline, AppColors.error, 'Remove Item'),
+                                title: DialogHelper.titleWithIcon(Icons.remove_circle_outline, AppColors.error, AppStrings.of(context).removeItem),
                                 content: Text('Remove "$title" from this list?', style: TextStyle(color: AppColors.textSecondary(context))),
                                 actions: [
                                   Row(
@@ -312,7 +313,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
             title: Row(
               children: [
                 Expanded(
-                  child: Text('Members', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  child: Text(AppStrings.of(context).members, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                 ),
                 IconButton(
                   onPressed: () {
@@ -327,7 +328,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               if (members.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('No members yet', style: TextStyle(color: AppColors.textMuted(context))),
+                  child: Text(AppStrings.of(context).noMembers, style: TextStyle(color: AppColors.textMuted(context))),
                 )
               else
                 ...members.map((member) {
@@ -363,7 +364,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                                 builder: (dialogContext) => AlertDialog(
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  title: DialogHelper.titleWithIcon(Icons.person_remove, AppColors.error, 'Remove Member'),
+                                  title: DialogHelper.titleWithIcon(Icons.person_remove, AppColors.error, AppStrings.of(context).removeMember),
                                   content: Text('Remove $username from the list?', style: TextStyle(color: AppColors.text(context))),
                                   actions: DialogHelper.cancelDangerActions(
                                     dialogContext,
@@ -466,7 +467,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                 if (isSearching)
                   const CircularProgressIndicator(color: AppColors.electricPurple)
                 else if (searchResults.isEmpty)
-                  Text('No users found', style: TextStyle(color: AppColors.textMuted(context)))
+                  Text(AppStrings.of(context).noUsersFound, style: TextStyle(color: AppColors.textMuted(context)))
                 else
                   Flexible(
                     child: ListView.builder(
@@ -574,7 +575,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                 if (isSearching)
                   const CircularProgressIndicator(color: AppColors.electricPurple)
                 else if (searchResults.isEmpty)
-                  Text('Search for shows or movies', style: TextStyle(color: AppColors.textMuted(context)))
+                  Text(AppStrings.of(context).searchShowsOrMovies, style: TextStyle(color: AppColors.textMuted(context)))
                 else
                   Flexible(
                     child: ListView.builder(
@@ -656,8 +657,8 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               if (isOwner)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                  title: const Text('Delete List', style: TextStyle(color: AppColors.error)),
-                  subtitle: Text('This will permanently delete the list and all items', style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
+                  title: Text(AppStrings.of(context).deleteList, style: TextStyle(color: AppColors.error)),
+                  subtitle: Text(AppStrings.of(context).deleteListWarning, style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _confirmDeleteList(context);
@@ -666,8 +667,8 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
               else
                 ListTile(
                   leading: Icon(Icons.exit_to_app, color: AppColors.textMuted(context)),
-                  title: Text('Leave List', style: TextStyle(color: AppColors.text(context))),
-                  subtitle: Text('You will no longer have access to this list', style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
+                  title: Text(AppStrings.of(context).leaveList, style: TextStyle(color: AppColors.text(context))),
+                  subtitle: Text(AppStrings.of(context).leaveListWarning, style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _confirmLeaveList(context);

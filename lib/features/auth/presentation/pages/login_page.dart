@@ -5,6 +5,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/auth_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -76,7 +77,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     children: [
                       const Icon(Icons.email_outlined, color: AppColors.electricPurple),
                       const SizedBox(width: 8),
-                      Text('Check Your Email', style: TextStyle(color: AppColors.text(context))),
+                      Text(AppStrings.of(context).checkYourEmail, style: TextStyle(color: AppColors.text(context))),
                     ],
                   ),
                   content: Text(
@@ -200,7 +201,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                     if (_emailController.text.isEmpty) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: const Text('Please enter your email first'),
+                                          content: Text(AppStrings.of(context).enterEmailFirst),
                                           backgroundColor: AppColors.warning,
                                           behavior: SnackBarBehavior.floating,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -211,7 +212,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(_emailController.text)) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: const Text('Please enter a valid email'),
+                                          content: Text(AppStrings.of(context).enterValidEmail),
                                           backgroundColor: AppColors.error,
                                           behavior: SnackBarBehavior.floating,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -224,7 +225,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: const Text('Password reset email sent!'),
+                                            content: Text(AppStrings.of(context).passwordResetSent),
                                             backgroundColor: AppColors.success,
                                             behavior: SnackBarBehavior.floating,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -235,7 +236,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: const Text('Failed to send reset email. Please try again.'),
+                                            content: Text(AppStrings.of(context).failedToSendReset),
                                             backgroundColor: AppColors.error,
                                             behavior: SnackBarBehavior.floating,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -273,7 +274,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                   Expanded(child: Container(height: 1, color: AppColors.border(context))),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 14),
-                                    child: Text('Or continue with', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                                    child: Text(AppStrings.of(context).orContinueWith, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                                   ),
                                   Expanded(child: Container(height: 1, color: AppColors.border(context))),
                                 ],
@@ -300,7 +301,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       label: 'Apple',
                                       onTap: () {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: const Text('Coming soon!'), backgroundColor: AppColors.electricPurple, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                          SnackBar(content: Text(AppStrings.of(context).comingSoonSnackBar), backgroundColor: AppColors.electricPurple, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                                         );
                                       },
                                     ),
@@ -315,7 +316,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                   Text("Don't have an account? ", style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                                   GestureDetector(
                                     onTap: () => context.go('/register'),
-                                    child: const Text('Sign Up', style: TextStyle(color: AppColors.electricPurple, fontWeight: FontWeight.w600, fontSize: 13)),
+                                    child: Text(AppStrings.of(context).signUp, style: TextStyle(color: AppColors.electricPurple, fontWeight: FontWeight.w600, fontSize: 13)),
                                   ),
                                 ],
                               ),

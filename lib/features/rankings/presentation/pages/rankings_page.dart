@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../domain/rankings_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class RankingsPage extends StatefulWidget {
   const RankingsPage({super.key});
@@ -61,7 +62,7 @@ class _RankingsPageState extends State<RankingsPage> {
             children: [
               Icon(Icons.leaderboard_rounded, color: AppColors.warning, size: 24),
               const SizedBox(width: 8),
-              Text('Friend Rankings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+              Text(AppStrings.of(context).friendRankings, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
             ],
           ),
         ],
@@ -87,7 +88,7 @@ class _RankingsPageState extends State<RankingsPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<RankingsCubit>().loadRankings(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -102,9 +103,9 @@ class _RankingsPageState extends State<RankingsPage> {
                 children: [
                   Icon(Icons.leaderboard_outlined, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No rankings yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noRankingsYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Follow people to see rankings', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text(AppStrings.of(context).followPeopleToSeeRankings, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                 ],
               ),
             );

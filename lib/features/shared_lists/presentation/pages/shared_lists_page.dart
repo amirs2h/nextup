@@ -10,6 +10,7 @@ import '../../../../shared/widgets/dialog_helper.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../../../shared/services/supabase_service.dart';
 import '../../domain/shared_lists_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class SharedListsPage extends StatefulWidget {
   const SharedListsPage({super.key});
@@ -60,8 +61,8 @@ class _SharedListsPageState extends State<SharedListsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Shared Lists', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                          Text('Watch together with friends', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                          Text(AppStrings.of(context).sharedLists, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                          Text(AppStrings.of(context).watchTogetherWithFriends, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                         ],
                       ),
                     ),
@@ -97,7 +98,7 @@ class _SharedListsPageState extends State<SharedListsPage> {
                             const SizedBox(height: 16),
                             Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                             const SizedBox(height: 16),
-                            ElevatedButton(onPressed: _loadLists, child: const Text('Retry')),
+                            ElevatedButton(onPressed: _loadLists, child: Text(AppStrings.of(context).retry)),
                           ],
                         ),
                       );
@@ -118,9 +119,9 @@ class _SharedListsPageState extends State<SharedListsPage> {
                             children: [
                               Icon(Icons.people_outline, size: 60, color: AppColors.textMuted(context)),
                               const SizedBox(height: 16),
-                              Text('No shared lists yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                              Text(AppStrings.of(context).noSharedLists, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                               const SizedBox(height: 8),
-                              Text('Create a list to watch together with friends', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                              Text(AppStrings.of(context).createSharedListHint, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                             ],
                           ),
                         );
@@ -239,7 +240,7 @@ class _SharedListsPageState extends State<SharedListsPage> {
                     DialogHelper.dialogTextField(controller: descController, hintText: 'Description (optional)', context: context),
                     const SizedBox(height: 20),
                     // Add Members section
-                    Text('Add Members', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 14)),
+                    Text(AppStrings.of(context).addMembers, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 14)),
                     const SizedBox(height: 8),
                     // Search field
                     TextField(
@@ -326,7 +327,7 @@ class _SharedListsPageState extends State<SharedListsPage> {
                     // Following list (first 10)
                     if (following.isNotEmpty && searchController.text.isEmpty) ...[
                       const SizedBox(height: 8),
-                      Text('Following', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                      Text(AppStrings.of(context).following, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                       const SizedBox(height: 4),
                       ...following.take(10).map((user) {
                         final uid = user['following_id'] as String?;

@@ -6,6 +6,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/stats_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
@@ -52,7 +53,7 @@ class _StatsPageState extends State<StatsPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Statistics', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).statistics, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -76,7 +77,7 @@ class _StatsPageState extends State<StatsPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<StatsCubit>().loadStats(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -183,7 +184,7 @@ class _StatsPageState extends State<StatsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Watch Streak', style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
+                Text(AppStrings.of(context).watchStreak, style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -228,14 +229,14 @@ class _StatsPageState extends State<StatsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Watch Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+              Text(AppStrings.of(context).watchActivity, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('Last 6 months', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
+                child: Text(AppStrings.of(context).last6Months, style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -320,7 +321,7 @@ class _StatsPageState extends State<StatsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Content Distribution', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).contentDistribution, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -398,7 +399,7 @@ class _StatsPageState extends State<StatsPage> {
             children: [
               Icon(Icons.category_rounded, color: AppColors.electricPurple, size: 20),
               const SizedBox(width: 8),
-              Text('Top Genres', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+              Text(AppStrings.of(context).topGenres, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
             ],
           ),
           const SizedBox(height: 16),
@@ -470,7 +471,7 @@ class _StatsPageState extends State<StatsPage> {
             children: [
               Icon(Icons.insights_rounded, color: AppColors.warning, size: 20),
               const SizedBox(width: 8),
-              Text('Insights', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+              Text(AppStrings.of(context).insights, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
             ],
           ),
           const SizedBox(height: 16),

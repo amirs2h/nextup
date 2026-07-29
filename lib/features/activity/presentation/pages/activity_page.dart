@@ -6,6 +6,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/activity_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
@@ -57,7 +58,7 @@ class _ActivityPageState extends State<ActivityPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Activity', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).activity, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -81,7 +82,7 @@ class _ActivityPageState extends State<ActivityPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<ActivityCubit>().loadActivity(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -96,9 +97,9 @@ class _ActivityPageState extends State<ActivityPage> {
                 children: [
                   Icon(Icons.people_outline, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No activity yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noActivityYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Follow people to see their activity', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text(AppStrings.of(context).followPeopleToSeeActivity, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                 ],
               ),
             );

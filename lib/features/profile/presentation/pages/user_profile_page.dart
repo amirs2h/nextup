@@ -11,6 +11,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
 import '../../../auth/domain/auth_cubit.dart';import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/services/tmdb_service.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userId;
@@ -244,7 +245,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to update. Please try again.'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppStrings.of(context).failedToUpdate), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -258,12 +259,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
       builder: (context) => SimpleDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Following', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        title: Text(AppStrings.of(context).following, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         children: [
           if (_following.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Not following anyone yet', style: TextStyle(color: AppColors.textMuted(context))),
+              child: Text(AppStrings.of(context).notFollowingAnyone, style: TextStyle(color: AppColors.textMuted(context))),
             )
           else
             ..._following.map((user) {
@@ -297,12 +298,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
       builder: (context) => SimpleDialog(
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Followers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        title: Text(AppStrings.of(context).followers, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         children: [
           if (_followers.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('No followers yet', style: TextStyle(color: AppColors.textMuted(context))),
+              child: Text(AppStrings.of(context).noFollowers, style: TextStyle(color: AppColors.textMuted(context))),
             )
           else
             ..._followers.map((user) {
@@ -356,16 +357,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
           children: [
             Icon(Icons.error_outline, size: 60, color: AppColors.error),
             const SizedBox(height: 16),
-            Text('Could not load profile', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
+            Text(AppStrings.of(context).couldNotLoadProfile, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
             const SizedBox(height: 8),
-            Text('Check your internet connection and try again.', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14), textAlign: TextAlign.center),
+            Text(AppStrings.of(context).checkConnection, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: () {
               setState(() => _isLoading = true);
               _loadProfile();
-            }, child: const Text('Retry')),
+            }, child: Text(AppStrings.of(context).retry)),
             const SizedBox(height: 12),
-            TextButton(onPressed: () => context.pop(), child: const Text('Go Back')),
+            TextButton(onPressed: () => context.pop(), child: Text(AppStrings.of(context).goBack)),
           ],
         ),
       ),
@@ -466,7 +467,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   child: OutlinedButton.icon(
                     onPressed: () => context.push('/compare/${widget.userId}'),
                     icon: Icon(Icons.compare_arrows_rounded, color: AppColors.electricPurple),
-                    label: Text('Compare Stats', style: TextStyle(color: AppColors.electricPurple)),
+                    label: Text(AppStrings.of(context).compareStats, style: TextStyle(color: AppColors.electricPurple)),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       side: BorderSide(color: AppColors.electricPurple.withValues(alpha: 0.3)),
@@ -556,7 +557,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           children: [
                             Icon(Icons.movie_outlined, size: 40, color: AppColors.textMuted(context)),
                             const SizedBox(height: 12),
-                            Text('No activity yet', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+                            Text(AppStrings.of(context).noActivityYet, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
                           ],
                         ),
                       ),
@@ -574,9 +575,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     children: [
                       Icon(Icons.lock_outline, size: 40, color: AppColors.textMuted(context)),
                       const SizedBox(height: 12),
-                      Text('This profile is private', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+                      Text(AppStrings.of(context).privateProfile, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
                       const SizedBox(height: 8),
-                      Text('Follow this user to see their content', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                      Text(AppStrings.of(context).followToSeeContent, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                     ],
                   ),
                 ),
@@ -925,7 +926,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('See All', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(AppStrings.of(context).seeAll, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
                   const SizedBox(width: 4),
                   Icon(Icons.arrow_forward_ios, color: color, size: 12),
                 ],

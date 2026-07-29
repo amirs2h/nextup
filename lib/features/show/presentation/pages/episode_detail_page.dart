@@ -12,6 +12,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class EpisodeDetailPage extends StatefulWidget {
   final int showId;
@@ -177,7 +178,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to update watch status'),
+            content: Text(AppStrings.of(context).failedToUpdateWatch),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -224,7 +225,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
         setState(() => _reactions = previousReactions);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to add reaction'),
+            content: Text(AppStrings.of(context).failedToAddReaction),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -291,7 +292,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+              child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: rating > 0 ? () async {
@@ -324,7 +325,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Failed to save rating'),
+                        content: Text(AppStrings.of(context).failedToSaveRating),
                         backgroundColor: const Color(0xFFFF4757),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -337,7 +338,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Rate'),
+              child: Text(AppStrings.of(context).rate),
             ),
           ],
         ),
@@ -359,9 +360,9 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
             children: [
               const Icon(Icons.error_outline, size: 60, color: AppColors.error),
               const SizedBox(height: 16),
-              Text('Episode not found', style: TextStyle(color: AppColors.textSecondary(context))),
+              Text(AppStrings.of(context).episodeNotFound, style: TextStyle(color: AppColors.textSecondary(context))),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => context.pop(), child: const Text('Go Back')),
+              ElevatedButton(onPressed: () => context.pop(), child: Text(AppStrings.of(context).goBack)),
             ],
           ),
         ),
@@ -484,13 +485,13 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                     const SizedBox(height: 24),
                     // Overview
                     if (overview.isNotEmpty) ...[
-                      Text('Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                      Text(AppStrings.of(context).overview, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                       const SizedBox(height: 8),
                       Text(overview, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.5)),
                       const SizedBox(height: 24),
                     ],
                     // Reactions
-                    Text('Reactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    Text(AppStrings.of(context).reactions, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -535,7 +536,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                     ),
                     const SizedBox(height: 24),
                     // Rating Section
-                    Text('Rating', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    Text(AppStrings.of(context).rating, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                     const SizedBox(height: 12),
                     GlassContainer(
                       padding: const EdgeInsets.all(16),
@@ -591,7 +592,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Comments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                        Text(AppStrings.of(context).comments, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                         TextButton(
                           onPressed: () => context.push('/comments', extra: {
                             'tmdbId': widget.showId,
@@ -601,7 +602,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                             'title': _showName,
                             'posterPath': _showPosterPath,
                           }),
-                          child: const Text('See All'),
+                          child: Text(AppStrings.of(context).seeAll),
                         ),
                       ],
                     ),

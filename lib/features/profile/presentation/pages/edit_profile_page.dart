@@ -8,6 +8,7 @@ import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -53,7 +54,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Profile updated successfully!'),
+            content: Text(AppStrings.of(context).profileUpdatedSuccessfully),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -123,7 +124,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         ),
         const SizedBox(width: 16),
-        Text('Edit Profile', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        Text(AppStrings.of(context).editProfile, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
       ],
     );
   }
@@ -190,13 +191,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                       ],
                     )
-                  : const Center(
+                  : Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.camera_alt, color: Colors.white, size: 30),
-                          SizedBox(height: 8),
-                          Text('Tap to add header image', style: TextStyle(color: Colors.white, fontSize: 14)),
+                          const Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                          const SizedBox(height: 8),
+                          Text(AppStrings.of(context).tapToAddHeaderImage, style: const TextStyle(color: Colors.white, fontSize: 14)),
                         ],
                       ),
                     ),
@@ -327,7 +328,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.pop(sheetContext),
-                child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+                child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context))),
               ),
             ],
           ),
@@ -358,12 +359,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       await authCubit.refreshProfile();
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: const Text('Avatar removed!'), backgroundColor: AppColors.success),
+        SnackBar(content: Text(AppStrings.of(context).avatarRemoved), backgroundColor: AppColors.success),
       );
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(
-          SnackBar(content: const Text('Failed to remove avatar'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppStrings.of(context).failedToRemoveAvatar), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -380,13 +381,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       await context.read<AuthCubit>().refreshProfile();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Header removed!'), backgroundColor: AppColors.success),
+          SnackBar(content: Text(AppStrings.of(context).headerRemoved), backgroundColor: AppColors.success),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to remove header'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppStrings.of(context).failedToRemoveHeader), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -418,13 +419,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (url != null && mounted) {
         await context.read<AuthCubit>().refreshProfile();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Avatar updated!'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          SnackBar(content: Text(AppStrings.of(context).avatarUpdated), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to upload avatar'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          SnackBar(content: Text(AppStrings.of(context).failedToUploadAvatar), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         );
       }
     } finally {
@@ -461,13 +462,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
         await authCubit.refreshProfile();
         if (!mounted) return;
         messenger.showSnackBar(
-          SnackBar(content: const Text('Header image updated!'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          SnackBar(content: Text(AppStrings.of(context).headerImageUpdated), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         );
       }
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(
-          SnackBar(content: const Text('Failed to upload header image'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          SnackBar(content: Text(AppStrings.of(context).failedToUploadHeader), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         );
       }
     } finally {
@@ -484,7 +485,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Username', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+              Text(AppStrings.of(context).usernameLabel, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _usernameController,
@@ -515,7 +516,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Bio', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+              Text(AppStrings.of(context).bio, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _bioController,

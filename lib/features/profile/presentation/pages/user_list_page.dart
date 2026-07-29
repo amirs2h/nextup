@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/services/tmdb_service.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class UserListPage extends StatefulWidget {
   final String userId;
@@ -295,11 +296,11 @@ class _UserListPageState extends State<UserListPage> {
                               children: [
                                 Icon(Icons.error_outline, size: 60, color: AppColors.error),
                                 const SizedBox(height: 16),
-                                Text('Failed to load. Please try again.', style: TextStyle(color: AppColors.textSecondary(context))),
+                                Text(AppStrings.of(context).failedToLoad, style: TextStyle(color: AppColors.textSecondary(context))),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   onPressed: () { setState(() { _isLoading = true; _hasError = false; }); _loadData(); },
-                                  child: const Text('Retry'),
+                                  child: Text(AppStrings.of(context).retry),
                                 ),
                               ],
                           ),
@@ -458,7 +459,7 @@ class _UserListPageState extends State<UserListPage> {
           children: [
             Icon(_getIcon(), size: 60, color: AppColors.textMuted(context)),
             const SizedBox(height: 16),
-            Text('No items yet', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
+            Text(AppStrings.of(context).noItemsYet, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 16)),
           ],
         ),
       );

@@ -11,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/season_detail_cubit.dart';
 import '../../../../shared/mixins/toggle_lock_mixin.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class SeasonDetailPage extends StatelessWidget {
   final int showId;
@@ -71,7 +72,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => context.read<SeasonDetailCubit>().loadSeasonDetails(),
-                      child: const Text('Retry'),
+                      child: Text(AppStrings.of(context).retry),
                     ),
                   ],
                 ),
@@ -131,8 +132,8 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                 builder: (dialogContext) => AlertDialog(
                   backgroundColor: AppColors.surface(context),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  title: const Text('Mark All Episodes'),
-                  content: const Text('Mark all episodes in this season as watched?'),
+                  title: Text(AppStrings.of(context).markAllEpisodes),
+                  content: Text(AppStrings.of(context).markAllEpisodesConfirm),
                   actions: [
                     ElevatedButton(
                       onPressed: () => Navigator.pop(dialogContext),
@@ -142,7 +143,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       ),
-                      child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
+                      child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context), fontWeight: FontWeight.w600)),
                     ),
                     TextButton(
                       onPressed: _isMarkingAll ? null : () async {
@@ -156,7 +157,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                       },
                       child: _isMarkingAll
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Mark All', style: TextStyle(color: AppColors.electricPurple)),
+                          : Text(AppStrings.of(context).markAll, style: TextStyle(color: AppColors.electricPurple)),
                     ),
                   ],
                 ),
@@ -204,7 +205,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
   Widget _buildEpisodeList(BuildContext context, SeasonDetailLoaded state) {
     final episodes = state.season.episodes;
     if (episodes == null || episodes.isEmpty) {
-      return Center(child: Text('No episodes available', style: TextStyle(color: AppColors.textMuted(context))));
+      return Center(child: Text(AppStrings.of(context).noEpisodes, style: TextStyle(color: AppColors.textMuted(context))));
     }
 
     return ListView.builder(
@@ -323,7 +324,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                       children: [
                         Icon(Icons.chat_bubble_outline, color: AppColors.textMuted(context), size: 16),
                         const SizedBox(width: 6),
-                          Text('Comments', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                          Text(AppStrings.of(context).comments, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
                       ],
                     ),
                   ),
@@ -360,7 +361,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: const Text('Failed to add reaction'),
+                                content: Text(AppStrings.of(context).failedToAddReaction),
                                 backgroundColor: AppColors.error,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

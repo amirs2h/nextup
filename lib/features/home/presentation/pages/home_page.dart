@@ -293,7 +293,7 @@ class _HomePageViewState extends State<_HomePageView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(AppStrings.of(context).hiUser(userName), style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
-                  Text('NextUp', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                  Text(AppStrings.of(context).nextUp, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                 ],
               ),
               const Spacer(),

@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../domain/auth_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -83,7 +84,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                     children: [
                       const Icon(Icons.email_outlined, color: AppColors.electricPurple),
                       const SizedBox(width: 8),
-                      Text('Check Your Email', style: TextStyle(color: AppColors.text(context))),
+                      Text(AppStrings.of(context).checkYourEmail, style: TextStyle(color: AppColors.text(context))),
                     ],
                   ),
                   content: Text(
@@ -96,7 +97,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                         Navigator.pop(context);
                         context.go('/login');
                       },
-                      child: const Text('Go to Login'),
+                      child: Text(AppStrings.of(context).goToLogin),
                     ),
                   ],
                 ),

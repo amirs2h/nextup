@@ -7,6 +7,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/calendar_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
@@ -98,7 +99,7 @@ class _CalendarPageViewState extends State<_CalendarPageView> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Calendar', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).calendar, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -251,7 +252,7 @@ class _CalendarPageViewState extends State<_CalendarPageView> {
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: _loadCalendar, child: const Text('Retry')),
+                ElevatedButton(onPressed: _loadCalendar, child: Text(AppStrings.of(context).retry)),
               ],
             ),
           );
@@ -265,9 +266,9 @@ class _CalendarPageViewState extends State<_CalendarPageView> {
                 children: [
                   Icon(Icons.calendar_today_rounded, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No episodes this month', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noEpisodesThisMonth, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Add shows to your watchlist to see them here', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text(AppStrings.of(context).addShowsToSeeHere, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                 ],
               ),
             );
@@ -350,7 +351,7 @@ class _CalendarPageViewState extends State<_CalendarPageView> {
               ),
               if (isToday) ...[
                 const SizedBox(width: 8),
-                Text('Today', style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+                Text(AppStrings.of(context).today, style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.bold)),
               ],
             ],
           ),

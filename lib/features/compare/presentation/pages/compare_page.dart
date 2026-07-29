@@ -10,6 +10,7 @@ import '../../../../shared/services/supabase_service.dart';
 import '../../../../shared/utils/user_activity_stats.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class ComparePage extends StatefulWidget {
   final String userId;
@@ -154,10 +155,10 @@ class _ComparePageState extends State<ComparePage> {
                         children: [
                           const Icon(Icons.error_outline, size: 56, color: AppColors.error),
                           const SizedBox(height: 12),
-                          Text('Failed to load comparison', style: TextStyle(color: AppColors.text(context))),
+                          Text(AppStrings.of(context).failedToLoadComparison, style: TextStyle(color: AppColors.text(context))),
                           const SizedBox(height: 16),
-                          ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
-                          TextButton(onPressed: () => context.pop(), child: const Text('Go Back')),
+                          ElevatedButton(onPressed: _loadData, child: Text(AppStrings.of(context).retry)),
+                          TextButton(onPressed: () => context.pop(), child: Text(AppStrings.of(context).goBack)),
                         ],
                       ),
                     ),
@@ -242,7 +243,7 @@ class _ComparePageState extends State<ComparePage> {
           ),
         ),
         const SizedBox(height: 6),
-        Text('Level', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
+        Text(AppStrings.of(context).level, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -256,7 +257,7 @@ class _ComparePageState extends State<ComparePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Stats', style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(AppStrings.of(context).stats, style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           _statRow('Shows', my['totalShows'] ?? 0, other['totalShows'] ?? 0),
           _statRow('Movies', my['totalMovies'] ?? 0, other['totalMovies'] ?? 0),
@@ -313,7 +314,7 @@ class _ComparePageState extends State<ComparePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Achievements', style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(AppStrings.of(context).achievements, style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text('You · ${_myBadges.length}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
           const SizedBox(height: 8),
@@ -332,7 +333,7 @@ class _ComparePageState extends State<ComparePage> {
 
   Widget _badgeScroll(List<Achievement> badges) {
     if (badges.isEmpty) {
-      return Text('No achievements yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13));
+      return Text(AppStrings.of(context).noAchievementsYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13));
     }
     return SizedBox(
       height: 32,
@@ -376,7 +377,7 @@ class _ComparePageState extends State<ComparePage> {
           ),
           const SizedBox(height: 12),
           if (_commonContent.isEmpty)
-            Text('No shared watch history yet', style: TextStyle(color: AppColors.textMuted(context)))
+            Text(AppStrings.of(context).noSharedWatchHistory, style: TextStyle(color: AppColors.textMuted(context)))
           else
             ..._commonContent.take(20).map((item) {
               final title = item['title'] as String? ?? 'Unknown';

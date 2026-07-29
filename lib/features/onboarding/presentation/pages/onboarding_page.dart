@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -55,7 +56,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to save preferences'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppStrings.of(context).failedToSavePreferences), backgroundColor: AppColors.error),
         );
       }
     }
@@ -95,7 +96,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             child: const Icon(Icons.movie_outlined, color: Colors.white, size: 40),
           ),
           const SizedBox(height: 16),
-          Text('Welcome to NextUp!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).welcomeToNextUp, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
           const SizedBox(height: 8),
           Text(
             'Select your favorite genres to get personalized recommendations',
@@ -191,7 +192,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               await prefs.setBool('onboarding_complete', true);
               if (mounted) context.go('/');
             },
-            child: Text('Skip for now', style: TextStyle(color: AppColors.textMuted(context))),
+            child: Text(AppStrings.of(context).skipForNow, style: TextStyle(color: AppColors.textMuted(context))),
           ),
         ],
       ),

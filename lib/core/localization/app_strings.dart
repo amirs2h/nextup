@@ -293,4 +293,222 @@ class AppStrings {
   String get support => _p('پشتیبانی', 'Support');
   static const String publisherName = 'Amir Mohammad Shafiei';
   static const String supportTelegram = '@amirs2h';
+
+  // ---- Auth fields ----
+  String get email => _p('ایمیل', 'Email');
+  String get password => _p('رمز عبور', 'Password');
+  String get confirmPasswordField => _p('تکرار رمز عبور', 'Confirm Password');
+  String get settingUp => _p('در حال تنظیم...', 'Setting up...');
+  String get getStarted => _p('شروع کنید', 'Get Started');
+  String get comingSoonSnackBar => _p('به‌زودی!', 'Coming soon!');
+  String get passwordResetSent => _p('ایمیل بازنشانی رمز عبور ارسال شد!', 'Password reset email sent!');
+  String get failedToSendReset => _p('خطا در ارسال ایمیل بازنشانی. دوباره تلاش کنید.', 'Failed to send reset email. Please try again.');
+
+  // ---- Search / Lists ----
+  String get searchShowsOrMovies => _p('جستجوی سریال یا فیلم', 'Search shows or movies');
+  String get searchByUsername => _p('جستجو با نام کاربری', 'Search by username');
+  String get searchUsers => _p('جستجوی کاربران...', 'Search users...');
+  String get listName => _p('نام لیست', 'List name');
+  String get descriptionOptional => _p('توضیحات (اختیاری)', 'Description (optional)');
+  String get searchFailed => _p('جستجو ناموفق بود. دوباره تلاش کنید.', 'Search failed. Please try again.');
+
+  // ---- Media types ----
+  String get tvShow => _p('سریال', 'TV Show');
+  String get movie => _p('فیلم', 'Movie');
+
+  // ---- Detail pages ----
+  String get compare => _p('مقایسه', 'Compare');
+  String get stats => _p('آمار', 'Stats');
+  String get overview => _p('خلاصه', 'Overview');
+  String get cast => _p('بازیگران', 'Cast');
+  String get rating => _p('امتیاز', 'Rating');
+  String get watch => _p('تماشا', 'Watch');
+
+  // ---- Season / Episode ----
+  String reactedWith(String emoji) => _p('با $emoji واکنش نشان دادید', 'Reacted with $emoji');
+  String ratedN(int rating) => _p('امتیاز $rating از ۱۰', 'Rated $rating/10');
+
+  // ---- Comments ----
+  String get commentTooLong => _p('نظر خیلی طولانی است (حداکثر ۵۰۰ کاراکتر)', 'Comment is too long (max 500 characters)');
+
+  // ---- Misc ----
+  String get refresh => _p('بازخوانی', 'Refresh');
+  String get errorPrefix => _p('خطا', 'Error');
+  String get list => _p('لیست', 'List');
+  String get year => _p('سال', 'Year');
+  String get genre => _p('ژانر', 'Genre');
+
+  // ---- Achievement categories ----
+  String get catWatching => _p('تماشا', 'Watching');
+  String get catCountry => _p('کشور', 'Country');
+  String get catTime => _p('زمان', 'Time');
+  String get catCollection => _p('مجموعه', 'Collection');
+  String get catFunny => _p('طنز', 'Funny');
+
+  // ---- Coming Soon ----
+  String get airingToday => _p('امروز پخش می‌شود', 'Airing Today');
+  String get airingTodaySub => _p('قسمت‌های جدید امروز', 'New episodes available today');
+  String get upcomingMovies => _p('فیلم‌های پیش‌رو', 'Upcoming Movies');
+  String get upcomingMoviesSub => _p('به‌زودی در سینما', 'Coming to theaters soon');
+
+
+  // ---- Missing keys for feature pages ----
+  String get filters => _p('فیلترها', 'Filters');
+  String get minimumRating => _p('حداقل امتیاز', 'Minimum Rating');
+  String get loadingGenres => _p('در حال بارگذاری ژانرها...', 'Loading genres...');
+  String get noEpisodesThisMonth => _p('قسمتی در این ماه نیست', 'No episodes this month');
+  String get addShowsToSeeHere => _p('سریال‌ها را به لیست تماشا اضافه کنید تا اینجا ببینید', 'Add shows to your watchlist to see them here');
+  String get today => _p('امروز', 'Today');
+  String get checkYourEmail => _p('ایمیل خود را بررسی کنید', 'Check Your Email');
+  String get failedToLoadComparison => _p('بارگذاری مقایسه ناموفق بود', 'Failed to load comparison');
+  String get level => _p('سطح', 'Level');
+  String levelN(int level) => _p('سطح $level', 'Level $level');
+  String get noAchievementsYet => _p('هنوز دستاوردی نیست', 'No achievements yet');
+  String get noSharedWatchHistory => _p('تاریخچه مشترکی نیست', 'No shared watch history yet');
+  String youN(int count) => _p('شما · $count', 'You · $count');
+  String get followPeopleToSeeActivity => _p('برای دیدن فعالیت افراد را دنبال کنید', 'Follow people to see their activity');
+  String get noCustomListsYet => _p('هنوز لیست سفارشی نیست', 'No custom lists yet');
+  String get createYourCollection => _p('مجموعه خود را بسازید', 'Create your own collection');
+  String get friendRankings => _p('رده‌بندی دوستان', 'Friend Rankings');
+  String get noRankingsYet => _p('هنوز رده‌بندی نیست', 'No rankings yet');
+  String get followPeopleToSeeRankings => _p('برای دیدن رده‌بندی افراد را دنبال کنید', 'Follow people to see rankings');
+  String get customList => _p('لیست سفارشی', 'Custom List');
+  String get tapToAddShowsOrMovies => _p('برای افزودن سریال یا فیلم + را بزنید', 'Tap + to add shows or movies');
+  String get removeItem => _p('حذف مورد', 'Remove Item');
+  String removeFromListConfirm(String name) => _p('«$name» از این لیست حذف شود؟', 'Remove "$name" from this list?');
+  String deleteListConfirm(String name) => _p('آیا از حذف «$name» مطمئن هستید؟ این کار غیرقابل بازگشت است.', 'Are you sure you want to delete "$name"? This cannot be undone.');
+  String get biography => _p('بیوگرافی', 'Biography');
+  String get knownFor => _p('معروف برای', 'Known For');
+  String get noCommentsYet => _p('هنوز نظری نیست', 'No comments yet');
+  String get beFirstToComment => _p('اولین نفر باشید!', 'Be the first to comment!');
+  String get reply => _p('پاسخ', 'Reply');
+  String get welcomeToNextUp => _p('به NextUp خوش آمدید!', 'Welcome to NextUp!');
+  String get rateThisMovie => _p('به این فیلم امتیاز بدهید', 'Rate This Movie');
+  String get rateThisShow => _p('به این سریال امتیاز بدهید', 'Rate This Show');
+  String get similarMovies => _p('فیلم‌های مشابه', 'Similar Movies');
+  String get similarShows => _p('سریال‌های مشابه', 'Similar Shows');
+  String get reactions => _p('واکنش‌ها', 'Reactions');
+  String get partOfCollection => _p('بخشی از مجموعه', 'Part of Collection');
+  String get addToList => _p('افزودن به لیست', 'Add to List');
+  String addToListConfirm(String title) => _p('«$title» را به لیست سفارشی اضافه کنید', 'Add "$title" to a custom list');
+  String get allCaughtUp => _p('همه را دیدید!', 'All Caught Up!');
+  String get watchedAllEpisodes => _p('همه قسمت‌ها را تماشا کرده‌اید', "You've watched all episodes");
+  String get upNext => _p('بعدی', 'Up Next');
+  String get seasons => _p('فصل‌ها', 'Seasons');
+  String get allEpisodesMarked => _p('همه قسمت‌ها به‌عنوان تماشا شده علامت بخورد!', 'All episodes marked as watched!');
+  String get watchStreak => _p('رکورد تماشا', 'Watch Streak');
+  String bestN(int n) => _p('بهترین: $n', 'Best: $n');
+  String get watchActivity => _p('فعالیت تماشا', 'Watch Activity');
+  String get last6Months => _p('۶ ماه اخیر', 'Last 6 months');
+  String get contentDistribution => _p('توزیع محتوا', 'Content Distribution');
+  String get topGenres => _p('برترین ژانرها', 'Top Genres');
+  String get insights => _p('نکات', 'Insights');
+  String get nextUp => _p('NextUp', 'NextUp');
+  String get sharedList => _p('لیست مشترک', 'Shared List');
+  String get removeMember => _p('حذف عضو', 'Remove Member');
+  String removeMemberConfirm(String username) => _p('$username از لیست حذف شود؟', 'Remove $username from the list?');
+  String get noUsersFound => _p('کاربری یافت نشد', 'No users found');
+  String get leaveListConfirm => _p('دیگر به این لیست دسترسی نخواهید داشت.', 'You will no longer have access to this list.');
+  String get deleteListConfirmFull => _p('آیا مطمئن هستید؟ این کار لیست و همه موارد آن را برای همیشه حذف می‌کند.', 'Are you sure? This will permanently delete the list and all its items.');
+  String get episodeNotFound => _p('قسمت یافت نشد', 'Episode not found');
+  String get watchTogetherWithFriends => _p('با دوستان تماشا کنید', 'Watch together with friends');
+  String get addMembers => _p('افزودن اعضا', 'Add Members');
+  String selectedN(int n) => _p('انتخاب شده ($n)', 'Selected ($n)');
+  String get unlocked => _p('باز شده', 'Unlocked');
+  String get dontHaveAccount => _p('حساب کاربری ندارید؟ ', "Don't have an account? ");
+
+  // ---- Achievements ----
+  String achievementTitle(String id) {
+    final titles = <String, String>{
+      'first_episode': _p('اولین قسمت', 'First Episode'),
+      'binge_master': _p('استاد ماراتن', 'Binge Master'),
+      'marathon_monster': _p('هیولای ماراتن', 'Marathon Monster'),
+      'night_owl': _p('جغد شب', 'Night Owl'),
+      'early_bird': _p('سحرخیز', 'Early Bird'),
+      'daily_streak': _p('رکورد روزانه', 'Daily Streak'),
+      'monthly_streak': _p('رکورد ماهانه', 'Monthly Streak'),
+      'year_streak': _p('رکورد یک‌ساله', 'One Year Streak'),
+      'movie_maniac': _p('دیوانه فیلم', 'Movie Maniac'),
+      'series_addict': _p('معتاد سریال', 'Series Addict'),
+      'episode_hunter': _p('شکارچی قسمت', 'Episode Hunter'),
+      'action_lover': _p('عاشق اکشن', 'Action Lover'),
+      'comedy_expert': _p('متخصص کمدی', 'Comedy Expert'),
+      'scifi_explorer': _p('کاوشگر علمی‌تخیلی', 'Sci-Fi Explorer'),
+      'fantasy_wizard': _p('جادوگر فانتزی', 'Fantasy Wizard'),
+      'crime_detective': _p('کارآگاه جنایی', 'Crime Detective'),
+      'horror_survivor': _p('بازمانده ترس', 'Horror Survivor'),
+      'romance_expert': _p('متخصص عاشقانه', 'Romance Expert'),
+      'genre_explorer': _p('کاوشگر ژانر', 'Genre Explorer'),
+      'hollywood_tourist': _p('توریست هالیوود', 'Hollywood Tourist'),
+      'korean_fan': _p('طرفدار کی‌دراما', 'K-Drama Fan'),
+      'anime_world': _p('دنیای انیمه', 'Anime World'),
+      'first_save': _p('اولین ذخیره', 'First Save'),
+      'collector': _p('کلکسیونر', 'Collector'),
+      'wishlist_king': _p('پادشاه لیست', 'Wishlist King'),
+      'first_favorite': _p('اولین علاقه‌مندی', 'First Favorite'),
+      'favorites_10': _p('کلکسیونر قلب', 'Heart Collector'),
+      'favorites_50': _p('طرفدار فوق‌العاده', 'Super Fan'),
+      'hours_10': _p('شروع راه', 'Getting Started'),
+      'hours_100': _p('بیننده‌ی تعهدی', 'Dedicated Viewer'),
+      'hours_500': _p('استاد زمان', 'Time Master'),
+      'hours_1000': _p('طرفدار نهایی', 'Ultimate Fan'),
+      'unique_50': _p('جستجوگر تنوع', 'Variety Seeker'),
+      'unique_100': _p('کاوشگر محتوا', 'Content Explorer'),
+      'unique_500': _p('آرشیویست', 'The Archivist'),
+      'pizza_movies': _p('پیتزا و فیلم', 'Pizza & Movies'),
+      'cry_baby': _p('آب‌دیده', 'Cry Baby'),
+      'halloween': _p('ویژه هالووین', 'Halloween Special'),
+      'christmas': _p('روح کریسمس', 'Christmas Spirit'),
+      'summer_vacation': _p('حال و هوای تابستان', 'Summer Vibes'),
+      'hidden_completionist': _p('تکمیل‌کننده', 'Completionist'),
+    };
+    return titles[id] ?? id;
+  }
+
+  String achievementDescription(String id) {
+    final descriptions = <String, String>{
+      'first_episode': _p('اولین قسمت خود را تماشا کنید', 'Watch your first episode'),
+      'binge_master': _p('۵۰ قسمت تماشا کنید', 'Watch 50 episodes'),
+      'marathon_monster': _p('۲۰۰ قسمت تماشا کنید', 'Watch 200 episodes'),
+      'night_owl': _p('بین ۱۲ شب تا ۴ صبح تماشا کنید', 'Watch between 12AM-4AM'),
+      'early_bird': _p('قبل از ۷ صبح تماشا کنید', 'Watch before 7AM'),
+      'daily_streak': _p('۷ روز پشت سر هم', '7 days in a row'),
+      'monthly_streak': _p('۳۰ روز پشت سر هم', '30 days in a row'),
+      'year_streak': _p('۳۶۵ روز پشت سر هم', '365 days in a row'),
+      'movie_maniac': _p('۱۰۰ فیلم تماشا کنید', 'Watch 100 movies'),
+      'series_addict': _p('۵۰ سریال تماشا کنید', 'Watch 50 shows'),
+      'episode_hunter': _p('۱۰۰۰ قسمت تماشا کنید', 'Watch 1000 episodes'),
+      'action_lover': _p('۵ عنوان اکشن تماشا کنید', 'Watch 5 action titles'),
+      'comedy_expert': _p('۵ عنوان کمدی تماشا کنید', 'Watch 5 comedy titles'),
+      'scifi_explorer': _p('۵ عنوان علمی‌تخیلی تماشا کنید', 'Watch 5 sci-fi titles'),
+      'fantasy_wizard': _p('۵ عنوان فانتزی تماشا کنید', 'Watch 5 fantasy titles'),
+      'crime_detective': _p('۵ عنوان جنایی تماشا کنید', 'Watch 5 crime titles'),
+      'horror_survivor': _p('۵ عنوان ترسناک تماشا کنید', 'Watch 5 horror titles'),
+      'romance_expert': _p('۵ عنوان عاشقانه تماشا کنید', 'Watch 5 romance titles'),
+      'genre_explorer': _p('از ۵ ژانر مختلف تماشا کنید', 'Watch from 5 different genres'),
+      'hollywood_tourist': _p('۵ عنوان آمریکایی تماشا کنید', 'Watch 5 US titles'),
+      'korean_fan': _p('۵ عنوان کره‌ای تماشا کنید', 'Watch 5 Korean titles'),
+      'anime_world': _p('۵ عنوان ژاپنی تماشا کنید', 'Watch 5 Japanese titles'),
+      'first_save': _p('اولین مورد را به لیست تماشا اضافه کنید', 'Add first item to watchlist'),
+      'collector': _p('۱۰ مورد به لیست تماشا اضافه کنید', 'Add 10 items to watchlist'),
+      'wishlist_king': _p('۱۰۰ مورد به لیست تماشا اضافه کنید', 'Add 100 items to watchlist'),
+      'first_favorite': _p('اولین علاقه‌مندی خود را اضافه کنید', 'Add your first favorite'),
+      'favorites_10': _p('۱۰ علاقه‌مندی اضافه کنید', 'Add 10 favorites'),
+      'favorites_50': _p('۵۰ علاقه‌مندی اضافه کنید', 'Add 50 favorites'),
+      'hours_10': _p('۱۰ ساعت تماشا کنید', 'Watch 10 hours'),
+      'hours_100': _p('۱۰۰ ساعت تماشا کنید', 'Watch 100 hours'),
+      'hours_500': _p('۵۰۰ ساعت تماشا کنید', 'Watch 500 hours'),
+      'hours_1000': _p('۱۰۰۰ ساعت تماشا کنید', 'Watch 1000 hours'),
+      'unique_50': _p('۵۰ عنوان متفاوت تماشا کنید', 'Watch 50 unique titles'),
+      'unique_100': _p('۱۰۰ عنوان متفاوت تماشا کنید', 'Watch 100 unique titles'),
+      'unique_500': _p('۵۰۰ عنوان متفاوت تماشا کنید', 'Watch 500 unique titles'),
+      'pizza_movies': _p('۱۰ فیلم تماشا کنید', 'Watch 10 movies'),
+      'cry_baby': _p('۱۰ درام تماشا کنید', 'Watch 10 dramas'),
+      'halloween': _p('در اکتبر چیزی تماشا کنید', 'Watch something in October'),
+      'christmas': _p('در دسامبر چیزی تماشا کنید', 'Watch something in December'),
+      'summer_vacation': _p('در تابستان چیزی تماشا کنید', 'Watch something in summer'),
+      'hidden_completionist': _p('۲۰ دستاورد باز کنید', 'Unlock 20 achievements'),
+    };
+    return descriptions[id] ?? id;
+  }
 }

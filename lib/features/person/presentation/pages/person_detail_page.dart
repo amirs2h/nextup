@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/person_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class PersonDetailPage extends StatelessWidget {
   final int personId;
@@ -177,7 +178,7 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
                             _buildInfoRow(context, 'Birthplace', placeOfBirth),
                           const SizedBox(height: 20),
                           if (biography.isNotEmpty) ...[
-                            Text('Biography', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                            Text(AppStrings.of(context).biography, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                             const SizedBox(height: 8),
                             Text(biography, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.5)),
                           ],
@@ -192,7 +193,7 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Known For', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                            Text(AppStrings.of(context).knownFor, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                             const SizedBox(height: 12),
                             SizedBox(
                               height: 260,
@@ -337,7 +338,7 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
             } catch (e) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: const Text('Failed to vote'), backgroundColor: AppColors.error),
+                  SnackBar(content: Text(AppStrings.of(context).failedToVote), backgroundColor: AppColors.error),
                 );
               }
             }

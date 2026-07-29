@@ -7,6 +7,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/dialog_helper.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/custom_lists_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class CustomListsPage extends StatefulWidget {
   const CustomListsPage({super.key});
@@ -74,7 +75,7 @@ class _CustomListsPageState extends State<CustomListsPage> {
             children: [
               Icon(Icons.playlist_play_rounded, color: AppColors.electricPurple, size: 28),
               const SizedBox(width: 8),
-              Text('My Lists', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+              Text(AppStrings.of(context).myLists, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
             ],
           ),
         ],
@@ -100,7 +101,7 @@ class _CustomListsPageState extends State<CustomListsPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<CustomListsCubit>().loadCustomLists(),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -122,9 +123,9 @@ class _CustomListsPageState extends State<CustomListsPage> {
                 children: [
                   Icon(Icons.playlist_play_rounded, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No custom lists yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noCustomListsYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Create your own collection', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text(AppStrings.of(context).createYourCollection, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                 ],
               ),
             );

@@ -12,6 +12,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../auth/domain/auth_cubit.dart';
 import '../../domain/comments_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class CommentsPage extends StatefulWidget {
   final int tmdbId;
@@ -68,7 +69,7 @@ class _CommentsPageState extends State<CommentsPage> {
     if (_commentController.text.trim().isEmpty) return;
     if (_commentController.text.trim().length > 500) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Comment is too long (max 500 characters)'), backgroundColor: AppColors.warning),
+        SnackBar(content: Text(AppStrings.of(context).commentTooLong), backgroundColor: AppColors.warning),
       );
       return;
     }
@@ -156,7 +157,7 @@ class _CommentsPageState extends State<CommentsPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Comments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                      Text(AppStrings.of(context).comments, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                       if (widget.title != null)
                         Row(
                           children: [
@@ -201,7 +202,7 @@ class _CommentsPageState extends State<CommentsPage> {
                 const SizedBox(height: 16),
                 Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: _loadComments, child: const Text('Retry')),
+                ElevatedButton(onPressed: _loadComments, child: Text(AppStrings.of(context).retry)),
               ],
             ),
           );
@@ -215,9 +216,9 @@ class _CommentsPageState extends State<CommentsPage> {
                 children: [
                   Icon(Icons.chat_bubble_outline, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No comments yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noCommentsYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Be the first to comment!', style: TextStyle(color: AppColors.textMuted(context))),
+                  Text(AppStrings.of(context).beFirstToComment, style: TextStyle(color: AppColors.textMuted(context))),
                 ],
               ),
             );
@@ -268,7 +269,7 @@ class _CommentsPageState extends State<CommentsPage> {
                           final success = await context.read<CommentsCubit>().loadReplies(reply.id);
                           if (!success && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: const Text('Failed to load replies'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                              SnackBar(content: Text(AppStrings.of(context).failedToLoadReplies), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
                             );
                           }
                         },
@@ -406,7 +407,7 @@ class _CommentsPageState extends State<CommentsPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(color: const Color(0xFFFFD93D).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
-                              child: const Text('Spoiler', style: TextStyle(color: Color(0xFFFFD93D), fontSize: 9, fontWeight: FontWeight.w600)),
+                              child: Text(AppStrings.of(context).spoiler, style: TextStyle(color: Color(0xFFFFD93D), fontSize: 9, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ],
@@ -457,7 +458,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     children: [
                       Icon(Icons.reply, color: AppColors.textMuted(context), size: 16),
                       const SizedBox(width: 4),
-                      Text('Reply', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+                      Text(AppStrings.of(context).reply, style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                     ],
                   ),
                 ),
@@ -483,7 +484,7 @@ class _CommentsPageState extends State<CommentsPage> {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
-              title: const Text('Delete Comment', style: TextStyle(color: AppColors.error)),
+              title: Text(AppStrings.of(context).deleteComment, style: TextStyle(color: AppColors.error)),
               onTap: () {
                 Navigator.pop(ctx);
                 context.read<CommentsCubit>().deleteComment(comment.id, tmdbId: widget.tmdbId, mediaType: widget.mediaType, seasonNumber: widget.seasonNumber, episodeNumber: widget.episodeNumber);
@@ -505,7 +506,7 @@ class _CommentsPageState extends State<CommentsPage> {
         child: GlassContainer(
           padding: const EdgeInsets.all(14),
           borderRadius: BorderRadius.circular(14),
-          child: Center(child: Text('Login to comment', style: TextStyle(color: AppColors.textMuted(context)))),
+          child: Center(child: Text(AppStrings.of(context).loginToComment, style: TextStyle(color: AppColors.textMuted(context)))),
         ),
       );
     }

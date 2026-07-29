@@ -10,6 +10,7 @@ import '../../domain/watch_history_cubit.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class WatchHistoryPage extends StatefulWidget {
   const WatchHistoryPage({super.key});
@@ -57,7 +58,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                             const SizedBox(height: 16),
                             Text(state.message, style: TextStyle(color: AppColors.textSecondary(context))),
                             const SizedBox(height: 16),
-                            ElevatedButton(onPressed: _loadHistory, child: const Text('Retry')),
+                            ElevatedButton(onPressed: _loadHistory, child: Text(AppStrings.of(context).retry)),
                           ],
                         ),
                       );
@@ -71,9 +72,9 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                             children: [
                               Icon(Icons.history, size: 60, color: AppColors.textMuted(context)),
                               const SizedBox(height: 16),
-                              Text('No watch history yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                              Text(AppStrings.of(context).noWatchHistory, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                               const SizedBox(height: 8),
-                              Text('Start watching to build your history', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                              Text(AppStrings.of(context).startWatchingToBuildHistory, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                             ],
                           ),
                         );
@@ -202,7 +203,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Watch History', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).watchHistory, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );

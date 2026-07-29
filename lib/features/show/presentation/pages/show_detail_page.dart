@@ -21,6 +21,7 @@ import '../../../watchlist/domain/watchlist_cubit.dart';
 import '../../../profile/domain/favorites_cubit.dart';
 import '../../../profile/domain/watch_history_cubit.dart';
 import '../../../achievements/domain/achievements_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class ShowDetailPage extends StatelessWidget {
   final int showId;
@@ -83,7 +84,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
         context.read<WatchlistCubit>().loadWatchlist();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('All episodes marked as watched!'),
+            content: Text(AppStrings.of(context).allEpisodesMarked),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -94,7 +95,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to mark all episodes'),
+            content: Text(AppStrings.of(context).failedToMarkAll),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -127,7 +128,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => context.read<ShowDetailCubit>().loadShowDetails(),
-                      child: const Text('Retry'),
+                      child: Text(AppStrings.of(context).retry),
                     ),
                   ],
                 ),
@@ -356,7 +357,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                               children: [
                                 const Icon(Icons.star_rounded, color: Color(0xFFFFD93D), size: 24),
                                 const SizedBox(width: 8),
-                                Text('Rate This Show', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
+                                Text(AppStrings.of(context).rateThisShow, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
                               ],
                             ),
                           ),
@@ -417,7 +418,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                           ),
                           const SizedBox(height: 16),
                         ],
-                        Text('Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                        Text(AppStrings.of(context).overview, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                         const SizedBox(height: 8),
                         Text(state.show.overview ?? 'No overview available.', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 14, height: 1.5)),
                       ],
@@ -432,7 +433,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Seasons', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                          Text(AppStrings.of(context).seasons, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                           const SizedBox(height: 12),
                           ...state.show.seasons!.where((s) => s.seasonNumber > 0).map((season) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
@@ -485,7 +486,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Cast', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                          Text(AppStrings.of(context).cast, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 120,
@@ -552,7 +553,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Similar Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                          Text(AppStrings.of(context).similarShows, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 260,
@@ -603,7 +604,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('All Caught Up!', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15)),
+                  Text(AppStrings.of(context).allCaughtUp, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 15)),
                   const SizedBox(height: 2),
                   Text('You\'ve watched all episodes', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
                 ],
@@ -640,7 +641,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Up Next', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 11, letterSpacing: 0.5)),
+                  Text(AppStrings.of(context).upNext, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 11, letterSpacing: 0.5)),
                   const SizedBox(height: 2),
                   Text(
                     'Season $seasonNum · Episode $episodeNum',
@@ -660,7 +661,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                 children: [
                   Icon(Icons.play_arrow_rounded, color: AppColors.primary, size: 14),
                   const SizedBox(width: 4),
-                  Text('Watch', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  Text(AppStrings.of(context).watch, style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -680,7 +681,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
           children: [
             const Icon(Icons.playlist_add, color: AppColors.electricPurple),
             const SizedBox(width: 8),
-            Text('Add to List', style: TextStyle(color: AppColors.text(context))),
+            Text(AppStrings.of(context).addToList, style: TextStyle(color: AppColors.text(context))),
           ],
         ),
         content: Column(
@@ -694,7 +695,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                 context.push('/custom-lists');
               },
               icon: const Icon(Icons.playlist_play),
-              label: const Text('Go to My Lists'),
+              label: Text(AppStrings.of(context).goToMyLists),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.electricPurple),
             ),
           ],
@@ -702,7 +703,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+            child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context))),
           ),
         ],
       ),

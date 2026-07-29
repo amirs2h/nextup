@@ -5,6 +5,7 @@ import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/app_background.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../discover/domain/discover_cubit.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class FiltersPage extends StatefulWidget {
   const FiltersPage({super.key});
@@ -87,11 +88,11 @@ class _FiltersPageState extends State<FiltersPage> {
             ),
           ),
           const SizedBox(width: 16),
-          Text('Filters', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+          Text(AppStrings.of(context).filters, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text(context))),
           const Spacer(),
           TextButton(
             onPressed: _resetFilters,
-            child: Text('Reset', style: TextStyle(color: AppColors.electricPurple, fontSize: 14)),
+            child: Text(AppStrings.of(context).reset, style: TextStyle(color: AppColors.electricPurple, fontSize: 14)),
           ),
         ],
       ),
@@ -320,7 +321,7 @@ class _FiltersPageState extends State<FiltersPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Minimum Rating', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.text(context))),
+              Text(AppStrings.of(context).minimumRating, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.text(context))),
               Text(
                 _minRating > 0 ? '${_minRating.toStringAsFixed(0)}+' : 'Any',
                 style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w600, fontSize: 14),
@@ -362,7 +363,7 @@ class _FiltersPageState extends State<FiltersPage> {
             builder: (context, state) {
               final genres = state is DiscoverLoaded ? state.genres : <dynamic>[];
               if (genres.isEmpty) {
-                return Text('Loading genres...', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13));
+                return Text(AppStrings.of(context).loadingGenres, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13));
               }
               return Wrap(
                 spacing: 8,

@@ -10,6 +10,7 @@ import '../../../../shared/widgets/dialog_helper.dart';
 import '../../domain/custom_list_detail_cubit.dart';
 import '../../domain/custom_lists_cubit.dart';
 import '../../../../shared/services/tmdb_service.dart';
+import 'package:nextup/core/localization/app_strings.dart';
 
 class CustomListDetailPage extends StatefulWidget {
   final String listId;
@@ -100,7 +101,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                     if (description.isNotEmpty)
                       Text(description, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)
                     else
-                      Text('Custom List', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                      Text(AppStrings.of(context).customList, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                   ],
                 ),
               ),
@@ -143,7 +144,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => context.read<CustomListDetailCubit>().loadDetail(widget.listId),
-                  child: const Text('Retry'),
+                  child: Text(AppStrings.of(context).retry),
                 ),
               ],
             ),
@@ -162,9 +163,9 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                 children: [
                   Icon(Icons.playlist_play_rounded, size: 60, color: AppColors.textMuted(context)),
                   const SizedBox(height: 16),
-                  Text('No items yet', style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
+                  Text(AppStrings.of(context).noItemsYet, style: TextStyle(color: AppColors.textMuted(context), fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Tap + to add shows or movies', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                  Text(AppStrings.of(context).tapToAddShowsOrMovies, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                 ],
               ),
             );
@@ -215,7 +216,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                 builder: (dialogContext) => AlertDialog(
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  title: DialogHelper.titleWithIcon(Icons.delete_outline, AppColors.error, 'Remove Item'),
+                                  title: DialogHelper.titleWithIcon(Icons.delete_outline, AppColors.error, AppStrings.of(context).removeItem),
                                   content: Text('Remove "${show.name}" from this list?', style: TextStyle(color: AppColors.text(context))),
                                   actions: DialogHelper.cancelDangerActions(
                                     dialogContext,
@@ -239,7 +240,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
               ],
               if (movies.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                Text(AppStrings.of(context).movies, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                 const SizedBox(height: 12),
                 ...movies.map((movie) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -356,7 +357,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                             });
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: const Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                                SnackBar(content: Text(AppStrings.of(context).searchFailed), backgroundColor: AppColors.error),
                               );
                             }
                           }
@@ -393,7 +394,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                 if (isSearching)
                   const CircularProgressIndicator(color: AppColors.electricPurple)
                 else if (searchResults.isEmpty)
-                  Text('Search for shows or movies', style: TextStyle(color: AppColors.textMuted(context)))
+                  Text(AppStrings.of(context).searchShowsOrMovies, style: TextStyle(color: AppColors.textMuted(context)))
                 else
                   Flexible(
                     child: ListView.builder(
@@ -464,8 +465,8 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                title: const Text('Delete List', style: TextStyle(color: AppColors.error)),
-                subtitle: Text('This will permanently delete the list and all items', style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
+                title: Text(AppStrings.of(context).deleteList, style: TextStyle(color: AppColors.error)),
+                subtitle: Text(AppStrings.of(context).deleteListWarning, style: TextStyle(color: AppColors.textMuted(ctx), fontSize: 12)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmDeleteList(context);
