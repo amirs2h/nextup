@@ -152,7 +152,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   Icon(Icons.local_fire_department_rounded, color: AppColors.primary, size: 28),
                   const SizedBox(height: 4),
                   Text('${state.currentStreak}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                  Text('streak', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
+                  Text(AppStrings.of(context).streak, style: TextStyle(color: AppColors.textMuted(context), fontSize: 10)),
                 ],
               ),
             ],

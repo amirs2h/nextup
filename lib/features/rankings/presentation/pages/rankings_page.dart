@@ -204,7 +204,7 @@ class _RankingsPageState extends State<RankingsPage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text('watched', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
+                          Text(AppStrings.of(context).watched, style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
                         ],
                       ),
                     ],

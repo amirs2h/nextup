@@ -341,6 +341,12 @@ class AppStrings {
   String get pageNotFound => _p('صفحه یافت نشد', 'Page not found');
   String replyingTo(String username) => _p('در حال پاسخ به @$username', 'Replying to @$username');
   String errorWithMsg(String msg) => _p('خطا: $msg', 'Error: $msg');
+  String get streak => _p('رکورد', 'streak');
+  String get watched => _p('تماشا شده', 'watched');
+  String get days => _p(' روز', ' days');
+  String get eps => _p('قسمت', 'eps');
+  String get startedWatching => _p('شروع تماشا', 'started watching');
+  String watchedSE(int season, int episode) => _p('تماشا شد S$season E$episode', 'watched S${season}E$episode');
 
   // ---- Trailer / Watch providers ----
   String get trailers => _p('تیزرها', 'Trailers');

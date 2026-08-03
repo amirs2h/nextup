@@ -189,7 +189,7 @@ class _StatsPageState extends State<StatsPage> {
                 Row(
                   children: [
                     Text('${stats.currentStreak}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                    Text(' days', style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
+                    Text(AppStrings.of(context).days, style: TextStyle(fontSize: 14, color: AppColors.textMuted(context))),
                     const SizedBox(width: 16),
                     Icon(Icons.emoji_events_rounded, color: const Color(0xFFFFD93D), size: 16),
                     const SizedBox(width: 4),

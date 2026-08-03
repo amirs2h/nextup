@@ -1032,7 +1032,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               color: Colors.black.withValues(alpha: 0.7),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text('$episodeCount eps', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                            child: Text('$episodeCount ${AppStrings.of(context).eps}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
                           ),
                         ),
                     ],
