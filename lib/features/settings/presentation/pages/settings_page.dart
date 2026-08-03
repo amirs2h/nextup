@@ -312,7 +312,16 @@ class SettingsPage extends StatelessWidget {
         child: Icon(icon, color: AppColors.icon(context), size: 20),
       ),
       title: Text(title, style: TextStyle(color: AppColors.text(context), fontSize: 15, fontWeight: FontWeight.w500)),
-      trailing: Text(value, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+      trailing: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 160),
+        child: Text(
+          value,
+          style: TextStyle(color: AppColors.textMuted(context), fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          textAlign: TextAlign.end,
+        ),
+      ),
     );
   }
 

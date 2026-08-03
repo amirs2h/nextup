@@ -287,11 +287,11 @@ class AppStrings {
   String get checkForUpdate => _p('بررسی به‌روزرسانی', 'Check for update');
   String get myketNotAvailable => _p('امکان باز کردن مایکت وجود ندارد', 'Could not open Myket');
 
-  // ---- About / publisher ----
+  // ---- About / developer ----
   String get aboutApp => _p('درباره برنامه', 'About App');
-  String get publisher => _p('عرضه و ویرایش', 'Published & edited by');
+  String get publisher => _p('توسعه‌دهنده', 'Developer');
   String get support => _p('پشتیبانی', 'Support');
-  static const String publisherName = 'Amir Mohammad Shafiei';
+  static const String publisherName = 'Amirmohammad Shafiei';
   static const String supportTelegram = '@amirs2h';
 
   // ---- Auth fields ----
