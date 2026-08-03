@@ -373,7 +373,7 @@ class _PersonDetailViewState extends State<_PersonDetailView> {
             } catch (e) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: const Text('Failed to vote'), backgroundColor: AppColors.error),
+                  SnackBar(content: Text(AppStrings.of(context).failedToVote), backgroundColor: AppColors.error),
                 );
               }
             }

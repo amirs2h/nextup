@@ -313,7 +313,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                       setState(() => _userRating = currentRating);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Rated $currentRating/10'),
+                          content: Text(AppStrings.of(context).ratedN(currentRating.round())),
                           backgroundColor: const Color(0xFF00FF88),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

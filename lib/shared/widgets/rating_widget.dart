@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_strings.dart';
 
 class StarRating extends StatelessWidget {
   final double rating;
@@ -151,7 +152,7 @@ class _RatingDialogState extends State<RatingDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context))),
+          child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context))),
         ),
         ElevatedButton(
           onPressed: _rating > 0 ? () => Navigator.pop(context, _rating) : null,
@@ -159,7 +160,7 @@ class _RatingDialogState extends State<RatingDialog> {
             backgroundColor: const Color(0xFFE50914),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          child: const Text('Rate'),
+          child: Text(AppStrings.of(context).rate),
         ),
       ],
     );

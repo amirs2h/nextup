@@ -164,7 +164,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
               );
             },
             icon: const Icon(Icons.check_circle_outline, size: 18),
-            label: const Text('Mark All'),
+            label: Text(AppStrings.of(context).markAll),
           ),
         ],
       ),
@@ -349,7 +349,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Reacted with $emoji'),
+                                content: Text(AppStrings.of(context).reactedWith(emoji)),
                                 backgroundColor: AppColors.success,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

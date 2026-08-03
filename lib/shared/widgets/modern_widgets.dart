@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_strings.dart';
 import 'glass_container.dart';
 
 class ModernShowCard extends StatelessWidget {

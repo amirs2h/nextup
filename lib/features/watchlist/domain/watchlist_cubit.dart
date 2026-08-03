@@ -98,14 +98,16 @@ class WatchlistCubit extends Cubit<WatchlistState> {
         try {
           final hasTitle = item['title'] != null && (item['title'] as String).isNotEmpty;
           final hasPoster = item['poster_path'] != null && (item['poster_path'] as String).isNotEmpty;
+          final dbVoteAverage = (item['vote_average'] as num?)?.toDouble() ?? 0;
 
           if (item['media_type'] == 'tv') {
-            if (hasTitle && hasPoster) {
+            if (hasTitle && hasPoster && dbVoteAverage > 0) {
               return WatchlistItem(
                 model: ShowModel(
                   id: item['tmdb_id'],
                   name: item['title'],
                   posterPath: item['poster_path'],
+                  voteAverage: dbVoteAverage,
                 ),
                 mediaType: 'tv',
                 status: item['status'] ?? 'watchlist',
@@ -118,12 +120,13 @@ class WatchlistCubit extends Cubit<WatchlistState> {
               status: item['status'] ?? 'watchlist',
             );
           } else {
-            if (hasTitle && hasPoster) {
+            if (hasTitle && hasPoster && dbVoteAverage > 0) {
               return WatchlistItem(
                 model: MovieModel(
                   id: item['tmdb_id'],
                   title: item['title'],
                   posterPath: item['poster_path'],
+                  voteAverage: dbVoteAverage,
                 ),
                 mediaType: 'movie',
                 status: item['status'] ?? 'watchlist',

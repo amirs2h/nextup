@@ -172,7 +172,7 @@ class _CommentsPageState extends State<CommentsPage> {
               ),
             )
           else
-            Text('Comments', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+            Text(AppStrings.of(context).comments, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         ],
       ),
     );
@@ -304,7 +304,7 @@ class _CommentsPageState extends State<CommentsPage> {
                 final success = await context.read<CommentsCubit>().loadReplies(comment.id);
                 if (!success && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: const Text('Failed to load replies'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                    SnackBar(content: Text(AppStrings.of(context).failedToLoadReplies), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
                   );
                 }
               },
@@ -529,7 +529,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     children: [
                       Icon(Icons.reply, color: AppColors.electricPurple, size: 14),
                       const SizedBox(width: 6),
-                      Expanded(child: Text('Replying to @$replyingTo', style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Expanded(child: Text(AppStrings.of(context).replyingTo(replyingTo ?? ''), style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
                       GestureDetector(onTap: () => context.read<CommentsCubit>().clearReplyingTo(), child: Icon(Icons.close, color: AppColors.textMuted(context), size: 18)),
                     ],
                   ),

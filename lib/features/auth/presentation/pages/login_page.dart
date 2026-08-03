@@ -87,7 +87,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   actions: [
                     TextButton(
                       onPressed: () => context.pop(),
-                      child: const Text('OK'),
+                      child: Text(AppStrings.of(context).ok),
                     ),
                   ],
                 ),

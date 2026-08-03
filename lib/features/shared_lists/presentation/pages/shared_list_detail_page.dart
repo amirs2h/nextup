@@ -265,7 +265,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                                 backgroundColor: AppColors.surface(context),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                 title: DialogHelper.titleWithIcon(Icons.remove_circle_outline, AppColors.error, AppStrings.of(context).removeItem),
-                                content: Text('Remove "$title" from this list?', style: TextStyle(color: AppColors.textSecondary(context))),
+                                content: Text(AppStrings.of(context).removeFromListConfirm(title), style: TextStyle(color: AppColors.textSecondary(context))),
                                 actions: [
                                   Row(
                                     children: DialogHelper.cancelDangerActions(
@@ -365,7 +365,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                   title: DialogHelper.titleWithIcon(Icons.person_remove, AppColors.error, AppStrings.of(context).removeMember),
-                                  content: Text('Remove $username from the list?', style: TextStyle(color: AppColors.text(context))),
+                                  content: Text(AppStrings.of(context).removeMemberConfirm(username), style: TextStyle(color: AppColors.text(context))),
                                   actions: DialogHelper.cancelDangerActions(
                                     dialogContext,
                                     dangerLabel: 'Remove',
@@ -433,7 +433,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                             setDialogState(() => isSearching = false);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                                SnackBar(content: Text(AppStrings.of(context).searchFailed), backgroundColor: AppColors.error),
                               );
                             }
                           }
@@ -456,7 +456,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                         setDialogState(() => isSearching = false);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                            SnackBar(content: Text(AppStrings.of(context).searchFailed), backgroundColor: AppColors.error),
                           );
                         }
                       }
@@ -541,7 +541,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                             setDialogState(() => isSearching = false);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                                SnackBar(content: Text(AppStrings.of(context).searchFailed), backgroundColor: AppColors.error),
                               );
                             }
                           }
@@ -564,7 +564,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
                         setDialogState(() => isSearching = false);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                            SnackBar(content: Text(AppStrings.of(context).searchFailed), backgroundColor: AppColors.error),
                           );
                         }
                       }
@@ -689,7 +689,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: DialogHelper.titleWithIcon(Icons.delete_forever, AppColors.error, 'Delete List'),
-        content: Text('Are you sure? This will permanently delete the list and all its items.', style: TextStyle(color: AppColors.textSecondary(context))),
+        content: Text(AppStrings.of(context).deleteListConfirmFull, style: TextStyle(color: AppColors.textSecondary(context))),
         actions: [
           Row(
             children: DialogHelper.cancelDangerActions(
@@ -716,7 +716,7 @@ class _SharedListDetailPageState extends State<SharedListDetailPage> {
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: DialogHelper.titleWithIcon(Icons.exit_to_app, AppColors.warning, 'Leave List'),
-        content: Text('You will no longer have access to this list.', style: TextStyle(color: AppColors.textSecondary(context))),
+        content: Text(AppStrings.of(context).leaveListConfirm, style: TextStyle(color: AppColors.textSecondary(context))),
         actions: [
           Row(
             children: DialogHelper.cancelDangerActions(

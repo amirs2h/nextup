@@ -181,14 +181,14 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                                             if (state.averageRating > 0) ...[
                                               Icon(Icons.people, color: AppColors.textMuted(context), size: 14),
                                               const SizedBox(width: 4),
-                                              Text('NextUp: ${state.averageRating.toStringAsFixed(1)}',
+                                              Text('${AppStrings.of(context).nextUp}: ${state.averageRating.toStringAsFixed(1)}',
                                                 style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12, fontWeight: FontWeight.w600)),
                                             ],
                                             if (state.userRating != null) ...[
                                               const SizedBox(width: 12),
                                               Icon(Icons.star, color: const Color(0xFFFFD93D), size: 14),
                                               const SizedBox(width: 4),
-                                              Text('You: ${state.userRating!.toStringAsFixed(1)}',
+                                              Text('${AppStrings.of(context).you}: ${state.userRating!.toStringAsFixed(1)}',
                                                 style: TextStyle(color: const Color(0xFFFFD93D), fontSize: 12, fontWeight: FontWeight.w600)),
                                             ],
                                           ],
@@ -749,7 +749,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Add "$title" to a custom list', style: TextStyle(color: AppColors.textSecondary(context))),
+            Text(AppStrings.of(context).addToListConfirm(title), style: TextStyle(color: AppColors.textSecondary(context))),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {

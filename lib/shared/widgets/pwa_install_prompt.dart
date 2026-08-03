@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 
 // Conditional import for web platform detection
 import 'pwa_platform_stub.dart' if (dart.library.html) 'pwa_platform_web.dart';
+import '../../core/localization/app_strings.dart';
 
 class PwaInstallPrompt extends StatefulWidget {
   final Widget child;
@@ -152,9 +153,9 @@ class _InstallCard extends StatelessWidget {
                   child: const Icon(Icons.play_arrow_rounded, size: 34, color: Colors.white),
                 ),
                 const SizedBox(height: 14),
-                const Text('Install NextUp', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(AppStrings.of(context).installNextUp, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 6),
-                Text('Add to your home screen for quick access', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13), textAlign: TextAlign.center),
+                Text(AppStrings.of(context).installNextUpSub, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13), textAlign: TextAlign.center),
               ],
             ),
           ),
@@ -182,7 +183,7 @@ class _InstallCard extends StatelessWidget {
                           side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
-                        child: Text('Later', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14)),
+                        child: Text(AppStrings.of(context).later, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14)),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -196,7 +197,7 @@ class _InstallCard extends StatelessWidget {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
-                        child: const Text('Got it', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        child: Text(AppStrings.of(context).gotIt, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],

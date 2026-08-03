@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/config/app_config.dart';
+import '../../core/localization/app_strings.dart';
 
 class TrailerWidget extends StatelessWidget {
   final List<Map<String, dynamic>> videos;
@@ -19,7 +20,7 @@ class TrailerWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Trailers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        Text(AppStrings.of(context).trailers, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         const SizedBox(height: 12),
         SizedBox(
           height: 140,
@@ -121,22 +122,22 @@ class WatchProvidersWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Where to Watch', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        Text(AppStrings.of(context).whereToWatch, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         const SizedBox(height: 12),
         if (flatrate.isNotEmpty) ...[
-          Text('Stream', style: TextStyle(fontSize: 14, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500)),
+          Text(AppStrings.of(context).stream, style: TextStyle(fontSize: 14, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           _buildProviderRow(context, flatrate),
           const SizedBox(height: 12),
         ],
         if (rent.isNotEmpty) ...[
-          Text('Rent', style: TextStyle(fontSize: 14, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500)),
+          Text(AppStrings.of(context).rent, style: TextStyle(fontSize: 14, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           _buildProviderRow(context, rent),
           const SizedBox(height: 12),
         ],
         if (buy.isNotEmpty) ...[
-          Text('Buy', style: TextStyle(fontSize: 14, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500)),
+          Text(AppStrings.of(context).buy, style: TextStyle(fontSize: 14, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           _buildProviderRow(context, buy),
         ],

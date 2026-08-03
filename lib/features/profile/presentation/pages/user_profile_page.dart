@@ -767,7 +767,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     children: [
                       Row(
                         children: [
-                          Text('Level $level', style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
+                          Text(AppStrings.of(context).levelN(level), style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
                           const Spacer(),
                           Text('$currentXp / $xpToNext XP', style: TextStyle(color: AppColors.textMuted(context), fontSize: 11)),
                         ],

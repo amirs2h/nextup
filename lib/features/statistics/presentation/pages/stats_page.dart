@@ -193,7 +193,7 @@ class _StatsPageState extends State<StatsPage> {
                     const SizedBox(width: 16),
                     Icon(Icons.emoji_events_rounded, color: const Color(0xFFFFD93D), size: 16),
                     const SizedBox(width: 4),
-                    Text('Best: ${stats.longestStreak}', style: TextStyle(fontSize: 13, color: AppColors.textMuted(context))),
+                    Text(AppStrings.of(context).bestN(stats.longestStreak), style: TextStyle(fontSize: 13, color: AppColors.textMuted(context))),
                   ],
                 ),
               ],

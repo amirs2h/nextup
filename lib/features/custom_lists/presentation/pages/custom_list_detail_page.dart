@@ -175,7 +175,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
             padding: const EdgeInsets.all(20),
             children: [
               if (shows.isNotEmpty) ...[
-                Text('TV Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                Text(AppStrings.of(context).tvShows, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                 const SizedBox(height: 12),
                 ...shows.map((show) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -217,7 +217,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                   title: DialogHelper.titleWithIcon(Icons.delete_outline, AppColors.error, AppStrings.of(context).removeItem),
-                                  content: Text('Remove "${show.name}" from this list?', style: TextStyle(color: AppColors.text(context))),
+                                  content: Text(AppStrings.of(context).removeFromListConfirm(show.name), style: TextStyle(color: AppColors.text(context))),
                                   actions: DialogHelper.cancelDangerActions(
                                     dialogContext,
                                     dangerLabel: 'Remove',
@@ -282,7 +282,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                                   backgroundColor: AppColors.surface(context),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                   title: DialogHelper.titleWithIcon(Icons.delete_outline, AppColors.error, 'Remove Item'),
-                                  content: Text('Remove "${movie.title}" from this list?', style: TextStyle(color: AppColors.text(context))),
+                                  content: Text(AppStrings.of(context).removeFromListConfirm(movie.title), style: TextStyle(color: AppColors.text(context))),
                                   actions: DialogHelper.cancelDangerActions(
                                     dialogContext,
                                     dangerLabel: 'Remove',
@@ -383,7 +383,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
                         });
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: const Text('Search failed. Please try again.'), backgroundColor: AppColors.error),
+                            SnackBar(content: Text(AppStrings.of(context).searchFailed), backgroundColor: AppColors.error),
                           );
                         }
                       }
@@ -487,7 +487,7 @@ class _CustomListDetailPageState extends State<CustomListDetailPage> {
         backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: DialogHelper.titleWithIcon(Icons.delete_forever, AppColors.error, 'Delete List'),
-        content: Text('Are you sure you want to delete "${widget.listName}"? This cannot be undone.', style: TextStyle(color: AppColors.text(context))),
+        content: Text(AppStrings.of(context).deleteListConfirm(widget.listName), style: TextStyle(color: AppColors.text(context))),
         actions: DialogHelper.cancelDangerActions(
           dialogContext,
           dangerLabel: 'Delete',

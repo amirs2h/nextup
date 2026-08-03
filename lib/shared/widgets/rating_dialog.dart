@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_strings.dart';
 
 void showRatingDialog({
   required BuildContext context,
@@ -14,7 +15,7 @@ void showRatingDialog({
       builder: (ctx, setState) => AlertDialog(
         backgroundColor: AppColors.surface(ctx),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Rate $title', style: TextStyle(color: AppColors.text(ctx), fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+        title: Text('${AppStrings.of(dialogContext).rate} $title', style: TextStyle(color: AppColors.text(ctx), fontWeight: FontWeight.bold), textAlign: TextAlign.center),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -59,7 +60,7 @@ void showRatingDialog({
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(ctx), fontWeight: FontWeight.w600)),
+            child: Text(AppStrings.of(ctx).cancel, style: TextStyle(color: AppColors.textMuted(ctx), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: rating > 0 ? () async {
@@ -69,19 +70,19 @@ void showRatingDialog({
                 await onRate(currentRating);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Rated $currentRating/10'), backgroundColor: const Color(0xFF00FF88), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    SnackBar(content: Text(AppStrings.of(context).ratedN(currentRating.round())), backgroundColor: const Color(0xFF00FF88), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: const Text('Failed to save rating'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    SnackBar(content: Text(AppStrings.of(context).failedToSaveRating), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   );
                 }
               }
             } : null,
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text('Rate'),
+            child: Text(AppStrings.of(ctx).rate),
           ),
         ],
       ),

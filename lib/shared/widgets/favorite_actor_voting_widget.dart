@@ -5,6 +5,7 @@ import '../services/supabase_service.dart';
 import '../../features/auth/domain/auth_cubit.dart';
 import '../widgets/glass_container.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_strings.dart';
 
 class FavoriteActorVotingWidget extends StatefulWidget {
   final int tmdbId;
@@ -38,9 +39,9 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Who's Your Favorite?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+        Text(AppStrings.of(context).whoIsYourFavorite, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
         const SizedBox(height: 4),
-        Text('Vote for your favorite actor', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+        Text(AppStrings.of(context).voteForFavoriteActor, style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
         const SizedBox(height: 12),
         if (userId == null)
           _buildVotingUI(context, supabase, null)
@@ -91,7 +92,7 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: const Text('Failed to vote. Please try again.'), backgroundColor: AppColors.error),
+                      SnackBar(content: Text(AppStrings.of(context).failedToVoteTryAgain), backgroundColor: AppColors.error),
                     );
                   }
                 }
@@ -130,7 +131,7 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
                       color: AppColors.electricPurple.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text('Vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10, fontWeight: FontWeight.w600)),
+                    child: Text(AppStrings.of(context).vote, style: TextStyle(color: AppColors.electricPurple, fontSize: 10, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
@@ -212,7 +213,7 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
                                       color: AppColors.electricPurple.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Text('Your vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 10)),
+                                    child: Text(AppStrings.of(context).yourVote, style: TextStyle(color: AppColors.electricPurple, fontSize: 10)),
                                   ),
                               ],
                             ),
@@ -272,7 +273,7 @@ class _FavoriteActorVotingWidgetState extends State<FavoriteActorVotingWidget> {
                   children: [
                     Icon(Icons.edit, color: AppColors.electricPurple, size: 14),
                     const SizedBox(width: 6),
-                    Text('Change Vote', style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text(AppStrings.of(context).changeVote, style: TextStyle(color: AppColors.electricPurple, fontSize: 12, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),

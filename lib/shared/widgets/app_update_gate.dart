@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 
 // Conditional import for web reload
 import 'web_reload_stub.dart' if (dart.library.html) 'web_reload_web.dart' as web_reload;
+import '../../core/localization/app_strings.dart';
 
 /// Periodically checks version.json so PWA/web users get a reload prompt
 /// instead of being stuck on a cached service-worker shell.
@@ -132,7 +133,7 @@ class _AppUpdateGateState extends State<AppUpdateGate> with WidgetsBindingObserv
                     ),
                     TextButton(
                       onPressed: () => setState(() => _updateAvailable = false),
-                      child: Text('Later', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+                      child: Text(AppStrings.of(context).later, style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
                     ),
                     ElevatedButton(
                       onPressed: _reload,
@@ -142,7 +143,7 @@ class _AppUpdateGateState extends State<AppUpdateGate> with WidgetsBindingObserv
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Refresh'),
+                      child: Text(AppStrings.of(context).refresh),
                     ),
                   ],
                 ),

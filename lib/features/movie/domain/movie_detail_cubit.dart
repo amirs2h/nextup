@@ -300,6 +300,7 @@ class MovieDetailCubit extends Cubit<MovieDetailState> {
             posterPath: currentState.movie.posterPath,
             genres: currentState.movie.genreNames,
             originCountries: currentState.movie.originCountryCodes.isNotEmpty ? currentState.movie.originCountryCodes : null,
+            voteAverage: currentState.movie.voteAverage,
           );
           try {
             await _supabaseService.computeAndSetMovieStatus(

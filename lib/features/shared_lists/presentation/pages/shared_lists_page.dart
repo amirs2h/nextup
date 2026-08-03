@@ -368,7 +368,7 @@ class _SharedListsPageState extends State<SharedListsPage> {
                     // Selected members chips
                     if (selectedMembers.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      Text('Selected (${selectedMembers.length})', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(AppStrings.of(context).selectedN(selectedMembers.length), style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600, fontSize: 13)),
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6,

@@ -219,6 +219,7 @@ class SupabaseService {
     String? posterPath,
     List<String>? genres,
     List<String>? originCountries,
+    double? voteAverage,
   }) async {
     final row = <String, dynamic>{
       'user_id': userId,
@@ -231,6 +232,7 @@ class SupabaseService {
     };
     if (genres != null) row['genres'] = genres;
     if (originCountries != null) row['origin_countries'] = originCountries;
+    if (voteAverage != null) row['vote_average'] = voteAverage;
     await _client.from('watchlist').upsert(
           row,
           onConflict: 'user_id,tmdb_id,media_type,list_name',

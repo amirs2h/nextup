@@ -337,6 +337,32 @@ class AppStrings {
   String get list => _p('لیست', 'List');
   String get year => _p('سال', 'Year');
   String get genre => _p('ژانر', 'Genre');
+  String get you => _p('شما', 'You');
+  String get pageNotFound => _p('صفحه یافت نشد', 'Page not found');
+  String replyingTo(String username) => _p('در حال پاسخ به @$username', 'Replying to @$username');
+  String errorWithMsg(String msg) => _p('خطا: $msg', 'Error: $msg');
+
+  // ---- Trailer / Watch providers ----
+  String get trailers => _p('تیزرها', 'Trailers');
+  String get whereToWatch => _p('کجا تماشا کنیم', 'Where to Watch');
+  String get stream => _p('استریم', 'Stream');
+  String get rent => _p('اجاره', 'Rent');
+  String get buy => _p('خرید', 'Buy');
+
+  // ---- Rating / Voting ----
+  String get votes => _p('آرا', 'Votes');
+  String get vote => _p('رأی', 'Vote');
+  String get yourVote => _p('رأی شما', 'Your vote');
+  String get changeVote => _p('تغییر رأی', 'Change Vote');
+  String get failedToVoteTryAgain => _p('خطا در ثبت رأی. دوباره تلاش کنید.', 'Failed to vote. Please try again.');
+  String get whoIsYourFavorite => _p('بازیگر مورد علاقه شما کیست؟', 'Who is your favorite actor?');
+  String get voteForFavoriteActor => _p('برای بازیگر مورد علاقه‌تان رأی دهید', 'Vote for your favorite actor');
+
+  // ---- PWA / Update ----
+  String get later => _p('بعداً', 'Later');
+  String get gotIt => _p('متوجه شدم', 'Got it');
+  String get installNextUp => _p('نصب نکست‌آپ', 'Install NextUp');
+  String get installNextUpSub => _p('برای دسترسی سریع به صفحه اصلی اضافه کنید', 'Add to your home screen for quick access');
 
   // ---- Achievement categories ----
   String get catWatching => _p('تماشا', 'Watching');
@@ -410,6 +436,7 @@ class AppStrings {
   String get noUsersFound => _p('کاربری یافت نشد', 'No users found');
   String get leaveListConfirm => _p('دیگر به این لیست دسترسی نخواهید داشت.', 'You will no longer have access to this list.');
   String get deleteListConfirmFull => _p('آیا مطمئن هستید؟ این کار لیست و همه موارد آن را برای همیشه حذف می‌کند.', 'Are you sure? This will permanently delete the list and all its items.');
+  String get episode => _p('قسمت', 'Episode');
   String get episodeNotFound => _p('قسمت یافت نشد', 'Episode not found');
   String get watchTogetherWithFriends => _p('با دوستان تماشا کنید', 'Watch together with friends');
   String get addMembers => _p('افزودن اعضا', 'Add Members');

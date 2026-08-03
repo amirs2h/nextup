@@ -316,7 +316,7 @@ class _ComparePageState extends State<ComparePage> {
         children: [
           Text(AppStrings.of(context).achievements, style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('You · ${_myBadges.length}', style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
+          Text(AppStrings.of(context).youN(_myBadges.length), style: TextStyle(color: AppColors.textMuted(context), fontSize: 12)),
           const SizedBox(height: 8),
           _badgeScroll(_myBadges),
           const SizedBox(height: 16),

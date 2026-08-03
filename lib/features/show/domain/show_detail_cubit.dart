@@ -314,6 +314,7 @@ class ShowDetailCubit extends Cubit<ShowDetailState> {
             title: currentState.show.name,
             posterPath: currentState.show.posterPath,
             genres: currentState.show.genreNames,
+            voteAverage: currentState.show.voteAverage,
           );
           try {
             final showDetails = await _tmdbService.getShowDetails(showId);

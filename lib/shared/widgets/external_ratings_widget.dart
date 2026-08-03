@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_strings.dart';
 
 class ExternalRatingsWidget extends StatelessWidget {
   final double? tmdbRating;
@@ -104,7 +105,7 @@ class ExternalRatingsWidget extends StatelessWidget {
         children: [
           Icon(Icons.shield, color: AppColors.textSecondary(context), size: 16),
           const SizedBox(height: 4),
-          Text('Rating', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(AppStrings.of(context).rating, style: TextStyle(color: AppColors.textMuted(context), fontSize: 10, fontWeight: FontWeight.w600)),
           Text(rating, style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
         ],
       ),
@@ -125,7 +126,7 @@ class ExternalRatingsWidget extends StatelessWidget {
         children: [
           Icon(Icons.people, color: AppColors.textSecondary(context), size: 16),
           const SizedBox(height: 4),
-          Text('Votes', style: TextStyle(color: AppColors.textMuted(context), fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(AppStrings.of(context).votes, style: TextStyle(color: AppColors.textMuted(context), fontSize: 10, fontWeight: FontWeight.w600)),
           Text(_formatVoteCount(voteCount), style: TextStyle(color: AppColors.text(context), fontSize: 14, fontWeight: FontWeight.bold)),
         ],
       ),

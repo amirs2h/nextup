@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_strings.dart';
 
 class DialogHelper {
   /// Standard cancel button for all dialogs
@@ -13,7 +14,7 @@ class DialogHelper {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
-        child: Text('Cancel', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14, fontWeight: FontWeight.w600)),
+        child: Text(AppStrings.of(context).cancel, style: TextStyle(color: AppColors.textMuted(context), fontSize: 14, fontWeight: FontWeight.w600)),
       ),
     );
   }

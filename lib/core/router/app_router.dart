@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../theme/app_colors.dart';
+import '../localization/app_strings.dart';
 import '../../shared/widgets/app_background.dart';
 
 import '../../features/auth/domain/auth_cubit.dart';
@@ -247,11 +248,11 @@ class _ErrorPage extends StatelessWidget {
             children: [
               Icon(Icons.error_outline, size: 60, color: AppColors.error),
               const SizedBox(height: 16),
-              Text('Page not found', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
+              Text(AppStrings.of(context).pageNotFound, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 18)),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => context.go('/'),
-                child: const Text('Go Home'),
+                child: Text(AppStrings.of(context).goHome),
               ),
             ],
           ),

@@ -141,7 +141,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Level ${state.level}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
+                    Text(AppStrings.of(context).levelN(state.level), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.text(context))),
                     const SizedBox(height: 4),
                     Text('${state.unlockedCount}/${state.achievements.length} unlocked', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                   ],
