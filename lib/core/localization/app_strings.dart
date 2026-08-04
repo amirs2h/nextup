@@ -215,6 +215,8 @@ class AppStrings {
   String get markAll => _p('علامت‌گذاری همه', 'Mark All');
   String get markAllEpisodes => _p('علامت‌گذاری همه قسمت‌ها', 'Mark All Episodes');
   String get markAllEpisodesConfirm => _p('همه قسمت‌های این فصل به‌عنوان تماشا شده علامت بخورد؟', 'Mark all episodes in this season as watched?');
+  String get markAllAsWatched => _p('علامت‌گذاری همه به‌عنوان دیده‌شده', 'Mark All as Watched');
+  String get marking => _p('در حال علامت‌گذاری...', 'Marking...');
   String get noEpisodes => _p('قسمتی موجود نیست', 'No episodes available');
 
   // ---- Lists ----

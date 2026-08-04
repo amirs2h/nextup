@@ -325,7 +325,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                                     : const Icon(Icons.done_all_rounded, color: Color(0xFF00FF88), size: 24),
                                 const SizedBox(width: 8),
                                 Text(
-                                  _isMarkingAll ? 'Marking...' : 'Mark All as Watched',
+                                  _isMarkingAll ? AppStrings.of(context).marking : AppStrings.of(context).markAllAsWatched,
                                   style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600),
                                 ),
                               ],
