@@ -121,7 +121,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(state.season.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text(context))),
-                Text('${state.season.episodes?.length ?? 0} episodes', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                Text(AppStrings.of(context).nEpisodes(state.season.episodes?.length ?? 0), style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
               ],
             ),
           ),
@@ -183,7 +183,7 @@ class _SeasonDetailViewState extends State<_SeasonDetailView> with ToggleLockMix
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$watched of $total watched', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+              Text(AppStrings.of(context).watchedOfTotal(watched, total), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
               Text('${(progress * 100).toInt()}%', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
             ],
           ),

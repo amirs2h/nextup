@@ -212,7 +212,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                                           Text(state.show.firstAirDate!.substring(0, 4), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                                         if (state.show.numberOfSeasons != null) ...[
                                           const SizedBox(width: 8),
-                                          Text('${state.show.numberOfSeasons} Seasons', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
+                                          Text(AppStrings.of(context).nSeasons(state.show.numberOfSeasons!), style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                                         ],
                                       ],
                                     ),
@@ -287,7 +287,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                           children: [
                             Expanded(
                               child: GlassButton(
-                                text: state.isInWatchlist ? 'In Watchlist' : 'Add to Watchlist',
+                                text: state.isInWatchlist ? AppStrings.of(context).inWatchlist : AppStrings.of(context).addToWatchlist,
                                 icon: state.isInWatchlist ? Icons.check : Icons.add,
                                 gradient: state.isInWatchlist ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)]) : null,
                                 onPressed: () => withToggleLock(() async {
@@ -301,7 +301,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                             const SizedBox(width: 12),
                             Expanded(
                               child: GlassButton(
-                                text: 'Comments',
+                                text: AppStrings.of(context).comments,
                                 icon: Icons.chat_bubble_outline,
                                 gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
                                 onPressed: () => context.push('/comments', extra: {'tmdbId': widget.showId, 'mediaType': 'tv', 'title': state.show.name, 'posterPath': state.show.posterPath}),
@@ -465,7 +465,7 @@ class _ShowDetailViewState extends State<_ShowDetailView> with ToggleLockMixin {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(season.name, style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.w600)),
-                                          Text('${season.episodeCount} episodes', style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
+                                          Text(AppStrings.of(context).nEpisodes(season.episodeCount), style: TextStyle(color: AppColors.textMuted(context), fontSize: 13)),
                                         ],
                                       ),
                                     ),

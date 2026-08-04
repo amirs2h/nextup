@@ -447,7 +447,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                         if (runtime != null) ...[
                           Icon(Icons.access_time, color: AppColors.textMuted(context), size: 16),
                           const SizedBox(width: 4),
-                          Text('$runtime min', style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
+                          Text(AppStrings.of(context).nMin(runtime!), style: TextStyle(color: AppColors.textMuted(context), fontSize: 14)),
                           const SizedBox(width: 16),
                         ],
                         if (voteAverage > 0) ...[
@@ -463,7 +463,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> with ToggleLockMi
                       children: [
                         Expanded(
                           child: GlassButton(
-                            text: _isWatched ? 'Watched' : 'Mark as Watched',
+                            text: _isWatched ? AppStrings.of(context).watchedBtn : AppStrings.of(context).markAsWatchedBtn,
                             icon: _isWatched ? Icons.check_circle : Icons.check_circle_outline,
                             gradient: _isWatched
                                 ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)])

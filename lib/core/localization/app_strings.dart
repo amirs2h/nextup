@@ -347,6 +347,15 @@ class AppStrings {
   String get eps => _p('قسمت', 'eps');
   String get startedWatching => _p('شروع تماشا', 'started watching');
   String watchedSE(int season, int episode) => _p('تماشا شد S$season E$episode', 'watched S${season}E$episode');
+  String get inWatchlist => _p('در لیست تماشا', 'In Watchlist');
+  String get addToWatchlist => _p('افزودن به لیست تماشا', 'Add to Watchlist');
+  String get markWatched => _p('علامت‌گذاری تماشا', 'Mark Watched');
+  String get markAsWatchedBtn => _p('علامت‌گذاری دیده‌شده', 'Mark as Watched');
+  String get watchedBtn => _p('دیده‌شده', 'Watched');
+  String nEpisodes(int n) => _p('$n قسمت', '$n episodes');
+  String nSeasons(int n) => _p('$n فصل', '$n Seasons');
+  String nMin(int n) => _p('$n دقیقه', '$n min');
+  String watchedOfTotal(int watched, int total) => _p('$watched از $total تماشا شده', '$watched of $total watched');
 
   // ---- Trailer / Watch providers ----
   String get trailers => _p('تیزرها', 'Trailers');

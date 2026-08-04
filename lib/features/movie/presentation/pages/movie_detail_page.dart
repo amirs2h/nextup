@@ -233,7 +233,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                           children: [
                             Expanded(
                               child: GlassButton(
-                                text: state.isInWatchlist ? 'In Watchlist' : 'Add to Watchlist',
+                                text: state.isInWatchlist ? AppStrings.of(context).inWatchlist : AppStrings.of(context).addToWatchlist,
                                 icon: state.isInWatchlist ? Icons.check : Icons.add,
                                 gradient: state.isInWatchlist ? const LinearGradient(colors: [Color(0xFF00FF88), Color(0xFF00CC6A)]) : null,
                                 onPressed: () => withToggleLock(() async {
@@ -247,7 +247,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                             const SizedBox(width: 12),
                             Expanded(
                               child: GlassButton(
-                                text: state.isWatched ? 'Watched' : 'Mark Watched',
+                                text: state.isWatched ? AppStrings.of(context).watchedBtn : AppStrings.of(context).markWatched,
                                 icon: state.isWatched ? Icons.check_circle : Icons.check_circle_outline,
                                 gradient: state.isWatched ? const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]) : null,
                                 onPressed: () => withToggleLock(() async {
@@ -264,7 +264,7 @@ class _MovieDetailViewState extends State<_MovieDetailView> with ToggleLockMixin
                         SizedBox(
                           width: double.infinity,
                           child: GlassButton(
-                            text: 'Comments',
+                            text: AppStrings.of(context).comments,
                             icon: Icons.chat_bubble_outline,
                             gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)]),
                             onPressed: () => context.push('/comments', extra: {'tmdbId': widget.movieId, 'mediaType': 'movie', 'title': state.movie.title, 'posterPath': state.movie.posterPath}),
